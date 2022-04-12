@@ -1,0 +1,33 @@
+---
+title: "GM play"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(gm)
+library(magick)
+
+m <- 
+  Music() + 
+  Meter (4,4) +
+  Line(list("C5", "D5", "E5", "F5"), list(1,1,1,1))
+show(m, to = c("score", "audio"))
+
+```
+
+```{r}
+library(gm)
+
+m <- 
+  Music() + 
+  Meter (4,4) +
+  Line(list("C5", "D5", "E5", "F5", "G5", "A5", "B5", "C6"), list (1,1,1,1,1,1,1,1))
+show(m, to = c("score", "audio"))
+
+
+```
+
