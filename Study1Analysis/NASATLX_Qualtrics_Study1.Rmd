@@ -1,0 +1,119 @@
+---
+title: "NASATLX_Qualtrics"
+output: html_document
+date: '2022-03-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readr)
+library(janitor)
+```
+
+
+```{r}
+setwd("D:/Qualtrics_Data/Study1/NASATLX")
+#Read in the data
+TLXdataRaw <- read.csv("TGExp1NasaTLX.csv") %>%
+
+# Tidy the data - select scores,
+  select(starts_with('Q'))
+  TLXdataOrg <- TLXdataRaw[-c(1:2),]
+  colnames(TLXdataOrg) <- c('Ppt_ID','Condition', 'Mental Demand', 'Physical Demand', 'Temporal Demand', 'Overall Performance', 'Effort', 'Frustration')
+  TLXdataOrg <- TLXdataOrg[-c(1:2),]
+  #Convert columns with ratings in to numeric
+  TLXdataOrg[3:8] = lapply(TLXdataOrg[3:8], FUN = function(y){as.numeric(y)})
+  
+  #Remove Pilot data rows
+  TLXdataOrg <- TLXdataOrg[-c(1:9),]
+  
+  #Change incorrect entries
+  TLXdataOrg[TLXdataOrg == 'P04'] <- 'P04L'
+  TLXdataOrg[TLXdataOrg == 'P118'] <- 'P11G'
+  TLXdataOrg[TLXdataOrg == '13g'] <- 'P13G'
+  TLXdataOrg[TLXdataOrg == 'G19p'] <- 'P19G'
+  TLXdataOrg[TLXdataOrg == '21g'] <- 'P21G'
+ 
+
+
+
+```
+```{r}
+#Reorganise the columns
+
+#Split up the IDs and groups
+TLXdataOrg<- TLXdataOrg %>%
+    mutate(ID = substr(Ppt_ID,
+                     start = 1,
+                     stop = 3)) %>%
+  mutate(Group = substr(Ppt_ID,
+                            start = 4,
+                           stop  = 5))
+#Rearrange the columns and remove extra ID column
+TLXdataOrg <- TLXdataOrg[,-1] %>% 
+  select(c(ID, Group, 1:7))
+
+#Change the conditions to upper case and remove whitespace
+
+TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>% 
+  trimws(which = c("both"))
+
+#Convert to wrangled dataset
+TLXdata <- TLXdataOrg
+
+```
+
+###Need to choose a weighting method and work out how to calculate it!
+
+
+```{r}
+# #Group the data and summarise the descriptives
+# TLXWeighted <- TLXdata 
+# 
+# TLXWeighted$`Mental Demand` <- TLXWeighted$`Mental Demand` * 3
+# TLXWeighted$`Physical Demand` <- TLXWeighted$`Physical Demand` * 0
+# TLXWeighted$`Temporal Demand` <- TLXWeighted$`Temporal Demand` * 5
+# TLXWeighted$`Overall Performance` <- TLXWeighted$`Overall Performance` * 1
+# TLXWeighted$Frustration <- TLXWeighted$Frustration*3
+# TLXWeighted$Effort <- TLXWeighted$Effort * 3
+# 
+# TLXWeighted <- TLXWeighted %>% 
+#   mutate(Total = 
+#            TLXWeighted$`Mental Demand` +
+#            TLXWeighted$`Physical Demand`+
+#            TLXWeighted$`Temporal Demand`+
+#            TLXWeighted$`Overall Performance` +
+#            TLXWeighted$Frustration +
+#            TLXWeighted$Effort
+#            )
+#   
+
+
+```
+
+
+
+```{r}
+
+TLXdataSumm <- TLXdata %>% 
+  
+  group_by(Condition, Group) %>% 
+  summarise(
+    n = n(),
+    Mental_mean = mean(`Mental Demand`),
+    Physical_mean = mean(`Physical Demand`),
+    Temporal_mean = mean(`Temporal Demand`),
+    Performance_mean = mean(`Overall Performance`),
+    Frustration_mean = mean(Frustration),
+    Effort_mean = mean(Effort)
+    
+  )
+
+
+```
+
+

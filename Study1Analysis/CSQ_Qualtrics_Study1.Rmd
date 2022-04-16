@@ -1,0 +1,238 @@
+---
+title: "CSQ_Qualtrics"
+output: html_document
+date: '2022-03-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(root.dir = 'D:/Qualtrics_Data/Study1/CSQ', echo = TRUE)
+```
+
+```{r}
+  library(tidyverse)
+  library(readr)
+  library(janitor)
+
+```
+
+```{r}
+#Set the working directory of the data ***HARD CODED ***
+ setwd("D:/Qualtrics_Data/Study1/CSQ")
+
+```
+
+
+```{r}
+
+  list.files()
+  #Read in the data
+  CSQdataRaw <- read.csv("D:/Qualtrics_Data/Study1/CSQ/EXP1CSQ.csv") %>%  
+    select(starts_with('Q')) 
+  
+  #Format the column names by removing excess characters
+  
+CSQdataRaw[1,] <- sub(".*- ", "", CSQdataRaw[1,])
+    
+#change the row names to the column headers
+CSQdataOrg <- row_to_names(CSQdataRaw, row_number = 1)
+   
+#remove pilot and test data  ***HARD-CODED***
+CSQdataOrg <- CSQdataOrg[-c(1:17),]
+
+  
+  #Change incorrect entries
+  CSQdataOrg[CSQdataOrg == 'Po3g'] <- 'P03G'
+  CSQdataOrg[CSQdataOrg == 'P04'] <- 'P04L'
+  CSQdataOrg[CSQdataOrg == 'P118'] <- 'P11G'
+  CSQdataOrg[CSQdataOrg == '13g'] <- 'P13G'
+  CSQdataOrg[CSQdataOrg == 'G19p'] <- 'P19G'
+  CSQdataOrg[CSQdataOrg == '21g'] <- 'P21G'
+  CSQdataOrg[CSQdataOrg == 'P9G'] <- 'P29G'
+  CSQdataOrg[CSQdataOrg == 'P29gG'] <- 'P29G'
+  
+  
+  
+ 
+
+
+```
+
+
+```{r}
+#Reorganise the columns and separate out the Condition
+CSQdataOrg<- CSQdataOrg %>%
+  mutate(ID = substr(`Participant ID:`,
+                     start = 1,
+                     stop = 3)) %>%
+  mutate(Condition = substr(`Participant ID:`,
+                            start = 4,
+                           stop  = 5))
+
+#Rearrange the columns and remove extra ID column
+CSQdataOrg <- CSQdataOrg[,-1] %>%
+  select(c(ID, Condition, 1:19))
+
+#Change the conditions to upper case and remove whitespace
+CSQdataOrg[,2] = toupper(CSQdataOrg[,2]) %>% 
+  trimws(which = c("both"))
+
+```
+
+
+```{r}
+CSQdata <- CSQdataOrg %>% 
+  rename(Timepoint = `Which timepoint is this?`)
+CSQdata[CSQdata== '0 - None at all'] <- '0'
+CSQdata[CSQdata== '1 - Mild'] <- '1'
+CSQdata[CSQdata== '2 - Moderate'] <- '2'
+CSQdata[CSQdata== '3 - Severe'] <- '3'
+
+CSQdata[CSQdata== 'Pre-Experiment'] <- '1'
+CSQdata[CSQdata== 'End of Control'] <- '2'
+CSQdata[CSQdata== 'End of Experiment'] <- '3'
+
+
+#Convert columns with ratings in to numeric
+CSQdata[4:19] = lapply(CSQdata[4:19], FUN = function(y){as.numeric(y)})
+
+```
+
+
+```{r}
+
+#Calculate the CSQ score weightings according to Kennedy et al 1993
+CSQConversion <- CSQdata %>% 
+  mutate(NauseaWeight = 
+           (CSQConversion$`General Discomfort` + 
+            CSQConversion$`Increased Salivation` + 
+            CSQConversion$Sweating + 
+            CSQConversion$Nausea + 
+            CSQConversion$`Difficulty Concentrating`+
+            CSQConversion$`Stomach Awareness` +
+            CSQConversion$Burping) *
+          9.54) %>% 
+  mutate(OculomotorWeight = 
+           (CSQConversion$`General Discomfort` +
+            CSQConversion$Fatigue +
+            CSQConversion$Headache +
+            CSQConversion$`Eye Strain` +
+            CSQConversion$`Difficulty Focusing` +
+            CSQConversion$`Difficulty Concentrating`+
+            CSQConversion$`Blurred Vision`) *
+          7.58) %>% 
+  mutate(DisorientationWeight =
+           (CSQConversion$`Difficulty Focusing` +
+            CSQConversion$Nausea +
+            CSQConversion$`Fullness of Head` +
+            CSQConversion$`Blurred Vision` +
+            CSQConversion$`Dizzy (Eyes Open)` +
+            CSQConversion$`Dizzy ( Eyes Closed)`+
+            CSQConversion$Vertigo) *
+          13.92) %>% 
+  mutate(TotalCSQScore =
+           CSQConversion$NauseaWeight +
+           CSQConversion$OculomotorWeight +
+           (CSQConversion$DisorientationWeight *
+          3.74))
+```
+
+```{r}
+#Summarise the descriptives for the converted scores
+CSQConversionSummary <- CSQConversion %>% 
+  
+  group_by(Condition, Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(TotalCSQScore),
+  sd = sd(TotalCSQScore),
+  min = min(TotalCSQScore),
+  max = max(TotalCSQScore)
+
+  )   
+      
+```
+
+
+
+```{r}
+CSQNauseaSummary <- CSQConversion %>% 
+  
+  group_by(Condition, Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(NauseaWeight),
+  sd = sd(NauseaWeight),
+  min = min(NauseaWeight),
+  max = max(NauseaWeight)
+
+  )   
+```
+            
+```{r}
+CSQOculoSummary <- CSQConversion %>% 
+  
+  group_by(Condition, Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(OculomotorWeight),
+  sd = sd(OculomotorWeight),
+  min = min(OculomotorWeight),
+  max = max(OculomotorWeight)
+
+  )  
+```
+            
+            
+```{r}
+CSQDisoriSummary <- CSQConversion %>% 
+  
+  group_by(Condition, Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(DisorientationWeight),
+  sd = sd(DisorientationWeight),
+  min = min(DisorientationWeight),
+  max = max(DisorientationWeight)
+
+  ) 
+```
+             
+           
+           
+```{r}
+ggplot(CSQConversion, aes(x = TotalCSQScore, fill = Timepoint ))+
+  geom_histogram(binwidth = 10, position = "dodge")
+
+
+```
+
+           
+           
+        
+    
+    
+```{r}
+ggplot(CSQConversion, aes(Condition, TotalCSQScore, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)
+
+
+```
+ 
+
+```{r}
+
+CSQDataZScores <- CSQdata %>% 
+  group_by(Condition, Timepoint) 
+
+
+#z_scores <- as.data.frame(sapply(df, function(df) (abs(df-mean(df))/sd(df))))
+
+
+
+```
+
+
+
+
+```
+
