@@ -99,7 +99,11 @@ CSQdata[4:19] = lapply(CSQdata[4:19], FUN = function(y){as.numeric(y)})
 
 
 ```{r}
-CSQConversion <- CSQdata
+CSQConversion <- CSQdata %>% 
+#Remove outlier participant
+subset(ID != "P21")
+
+
 #Calculate the CSQ score weightings according to Kennedy et al 1993
 CSQConversion <- CSQConversion %>% 
   mutate(NauseaSum = 
@@ -133,9 +137,11 @@ CSQConversion <- CSQConversion %>%
       mutate(NauseaWeight = (CSQConversion$NauseaSum * 9.54)) %>% 
       mutate(OculomotorWeight = (CSQConversion$OculomotorSum*7.58)) %>% 
       mutate(DisorientationWeight = (CSQConversion$DisorientationSum *13.92)) %>% 
-      mutate(TotalCSQScore = (CSQConversion$NauseaSum +
-                             CSQConversion$OculomotoSum +
-                             CSQConversion$DisorientationSum))
+      mutate(TotalCSQScore = 
+               (CSQConversion$NauseaSum +
+               CSQConversion$OculomotorSum +
+               CSQConversion$DisorientationSum)*
+               3.74)
 ```
 
 ```{r}
@@ -202,8 +208,9 @@ CSQDisoriSummary <- CSQConversion %>%
            
            
 ```{r}
+#Visualise the spread of the data
 ggplot(CSQConversion, aes(x = TotalCSQScore, fill = Timepoint ))+
-  geom_histogram(binwidth = 10, position = "dodge")
+  geom_histogram(binwidth = 10)
 
 
 ```
@@ -214,11 +221,12 @@ ggplot(CSQConversion, aes(x = TotalCSQScore, fill = Timepoint ))+
     
     
 ```{r}
+#Create violin plots for each of the Weighted totals to show the spread of the data
 ggplot(CSQConversion, aes(Condition, TotalCSQScore, fill = Timepoint ))+
   geom_violin(alpha = 0.5)
-ggplot(CSQConversion, aes(Condition, NauseaWeight, fill = Timepoint ))+
-  geom_violin(alpha = 0.5)
 ggplot(CSQConversion, aes(Condition, OculomotorWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)
+ggplot(CSQConversion, aes(Condition, NauseaWeight, fill = Timepoint ))+
   geom_violin(alpha = 0.5)
 ggplot(CSQConversion, aes(Condition, DisorientationWeight, fill = Timepoint ))+
   geom_violin(alpha = 0.5)

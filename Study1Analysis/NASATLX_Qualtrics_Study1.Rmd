@@ -117,22 +117,67 @@ TLXdataSumm <- TLXdata %>%
 ```
 
 ```{r}
-ggplot(TLXdata, aes(Group, TLXdata$`Mental Demand`, fill = Condition ))+
-  geom_violin(alpha = 0.5)
-ggplot(TLXdata, aes(Group, TLXdata$`Physical Demand`, fill = Condition ))+
-  geom_violin(alpha = 0.5)
-ggplot(TLXdata, aes(Group, TLXdata$`Temporal Demand`, fill = Condition ))+
-  geom_violin(alpha = 0.5)
-ggplot(TLXdata, aes(Group, TLXdata$`Overall Performance`, fill = Condition ))+
-  geom_violin(alpha = 0.5)
-ggplot(TLXdata, aes(Group, TLXdata$Effort, fill = Condition ))+
-  geom_violin(alpha = 0.5)
-ggplot(TLXdata, aes(Group, TLXdata$Frustration, fill = Condition ))+
-  geom_violin(alpha = 0.5)
+ggplot(TLXdata, aes(Group, `Mental Demand`, fill = Condition ))+
+  geom_boxplot(alpha = 0.5)+
+  ylim(0,100)+
+  labs(title = "Mental Demand")
+
+ggplot(TLXdata, aes(Group, `Physical Demand`, fill = Condition ))+
+  geom_boxplot(alpha = 0.5)+
+  ylim(0,100)+
+    labs(title = "Physical Demand")
+
+ggplot(TLXdata, aes(Group, `Temporal Demand`, fill = Condition ))+
+  geom_boxplot(alpha = 0.5)+
+  ylim(0,100)+
+    labs(title = "Temporal Demand")
+
+ggplot(TLXdata, aes(Group,`Overall Performance`, fill = Condition ))+
+  geom_boxplot(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Overall Performance")
+
+ggplot(TLXdata, aes(Group, Effort, fill = Condition ))+
+  geom_boxplot(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Effort")
+  
+ggplot(TLXdata, aes(Group, Frustration, fill = Condition ))+
+  geom_boxplot(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Frustration")
 
 
 
 
 
+```
+
+
+```{r}
+
+MD_Aov = aov(`Mental Demand` ~ Condition * Group, data = TLXdata) 
+print("Mental Demand")
+summary(MD_Aov)
+
+print("Physical Demand")
+PD_Aov = aov(`Physical Demand` ~ Condition * Group, data = TLXdata) 
+summary(PD_Aov)
+
+TD_Aov = aov(`Temporal Demand` ~ Condition * Group, data = TLXdata) 
+print("Temporal Demand")
+summary(TD_Aov)
+
+OP_Aov = aov(`Overall Performance` ~ Condition * Group, data = TLXdata) 
+print("Overall Performance")
+summary(OP_Aov)
+
+EF_Aov = aov(Effort ~ Condition * Group, data = TLXdata) 
+print("Effort")
+summary(EF_Aov)
+
+FR_Aov = aov(Frustration ~ Condition * Group, data = TLXdata)
+print("Frustration")
+summary(FR_Aov)
 ```
 
