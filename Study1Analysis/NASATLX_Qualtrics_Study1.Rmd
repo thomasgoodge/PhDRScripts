@@ -116,4 +116,23 @@ TLXdataSumm <- TLXdata %>%
 
 ```
 
+```{r}
+ggplot(TLXdata, aes(Group, TLXdata$`Mental Demand`, fill = Condition ))+
+  geom_violin(alpha = 0.5)
+ggplot(TLXdata, aes(Group, TLXdata$`Physical Demand`, fill = Condition ))+
+  geom_violin(alpha = 0.5)
+ggplot(TLXdata, aes(Group, TLXdata$`Temporal Demand`, fill = Condition ))+
+  geom_violin(alpha = 0.5)
+ggplot(TLXdata, aes(Group, TLXdata$`Overall Performance`, fill = Condition ))+
+  geom_violin(alpha = 0.5)
+ggplot(TLXdata, aes(Group, TLXdata$Effort, fill = Condition ))+
+  geom_violin(alpha = 0.5)
+ggplot(TLXdata, aes(Group, TLXdata$Frustration, fill = Condition ))+
+  geom_violin(alpha = 0.5)
+
+
+
+
+
+```
 

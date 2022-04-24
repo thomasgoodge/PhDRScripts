@@ -99,41 +99,43 @@ CSQdata[4:19] = lapply(CSQdata[4:19], FUN = function(y){as.numeric(y)})
 
 
 ```{r}
-
+CSQConversion <- CSQdata
 #Calculate the CSQ score weightings according to Kennedy et al 1993
-CSQConversion <- CSQdata %>% 
-  mutate(NauseaWeight = 
+CSQConversion <- CSQConversion %>% 
+  mutate(NauseaSum = 
            (CSQConversion$`General Discomfort` + 
             CSQConversion$`Increased Salivation` + 
             CSQConversion$Sweating + 
             CSQConversion$Nausea + 
             CSQConversion$`Difficulty Concentrating`+
             CSQConversion$`Stomach Awareness` +
-            CSQConversion$Burping) *
-          9.54) %>% 
-  mutate(OculomotorWeight = 
+            CSQConversion$Burping)) %>% 
+  mutate(OculomotorSum = 
            (CSQConversion$`General Discomfort` +
             CSQConversion$Fatigue +
             CSQConversion$Headache +
             CSQConversion$`Eye Strain` +
             CSQConversion$`Difficulty Focusing` +
             CSQConversion$`Difficulty Concentrating`+
-            CSQConversion$`Blurred Vision`) *
-          7.58) %>% 
-  mutate(DisorientationWeight =
+            CSQConversion$`Blurred Vision`)) %>% 
+  mutate(DisorientationSum =
            (CSQConversion$`Difficulty Focusing` +
             CSQConversion$Nausea +
             CSQConversion$`Fullness of Head` +
             CSQConversion$`Blurred Vision` +
             CSQConversion$`Dizzy (Eyes Open)` +
             CSQConversion$`Dizzy ( Eyes Closed)`+
-            CSQConversion$Vertigo) *
-          13.92) %>% 
-  mutate(TotalCSQScore =
-           CSQConversion$NauseaWeight +
-           CSQConversion$OculomotorWeight +
-           (CSQConversion$DisorientationWeight *
-          3.74))
+            CSQConversion$Vertigo)) 
+
+
+
+  CSQConversion <- CSQConversion %>% 
+      mutate(NauseaWeight = (CSQConversion$NauseaSum * 9.54)) %>% 
+      mutate(OculomotorWeight = (CSQConversion$OculomotorSum*7.58)) %>% 
+      mutate(DisorientationWeight = (CSQConversion$DisorientationSum *13.92)) %>% 
+      mutate(TotalCSQScore = (CSQConversion$NauseaSum +
+                             CSQConversion$OculomotoSum +
+                             CSQConversion$DisorientationSum))
 ```
 
 ```{r}
@@ -214,7 +216,19 @@ ggplot(CSQConversion, aes(x = TotalCSQScore, fill = Timepoint ))+
 ```{r}
 ggplot(CSQConversion, aes(Condition, TotalCSQScore, fill = Timepoint ))+
   geom_violin(alpha = 0.5)
+ggplot(CSQConversion, aes(Condition, NauseaWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)
+ggplot(CSQConversion, aes(Condition, OculomotorWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)
+ggplot(CSQConversion, aes(Condition, DisorientationWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)
+```
+ 
+ 
+```{r}
 
+quantile(CSQConversion$TotalCSQScore, probs=c(.25,.50,.75, .90), na.rm = FALSE)
+IQR(CSQConversion$TotalCSQScore)
 
 ```
  

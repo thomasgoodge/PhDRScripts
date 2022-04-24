@@ -14,7 +14,7 @@ library(readr)
 library(stringr)
 library(car)
 library(ggpubr)
-
+library(lme4)
 ```
 
 
@@ -26,14 +26,11 @@ setwd("D:/Python Scripts/")
 
 #Define the filepath for where the data is coming from
 dataFolder <- "D:/Python Scripts/RTData"
-```
 
-```{r}
 #Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
 file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
 
 ```
-
 
 ```{r}
 #Loop through the files and create one large dataset
@@ -41,8 +38,9 @@ datasetRaw <- data.frame()
 
 for (i in 1:length(file_list)){
   temp_data <- assign(paste(substr(file_list[i],26,29)),  
-  read.csv(paste0(file_list[i])))
+              read.csv(paste0(file_list[i])))
   temp_data <- temp_data[-c(1:12,103),]
+  
   datasetRaw <- rbind(datasetRaw, temp_data)
 
 }
@@ -55,7 +53,7 @@ datasetRaw[datasetRaw == 'P04'] <- 'P04L'
 
 ```{r}
 #Tidy up the large datasat with the block, ID and Condition
-dataset <- datasetRaw %>% select(15,19,30,31,34,39)
+dataset <- datasetRaw %>% select(1,15,19,30,31,34,39)
 dataset<- dataset %>%
   mutate(ID = substr(participant,
                      start = 1,
@@ -64,8 +62,8 @@ dataset<- dataset %>%
                             start = 4,
                            stop  = 5))
 # Remove and reorganise columns
-dataset <- dataset[,-6] %>%
-  select(c(ID, Condition, 1:5))
+dataset <- dataset[,-7] %>%
+  select(c(ID, Condition, 1:6))
 
 #Convert the two colums with block number into one label
   dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "Control", "")
@@ -74,7 +72,7 @@ dataset <- dataset[,-6] %>%
   dataset <-dataset %>% 
     mutate( Block =  paste(dataset$Block1.thisRepN, 
                                     dataset$Block2.thisRepN)) %>% 
-    select(-c(3,4))
+    select(-c(4,5))
   
   
 dataset[dataset== 'G'] <- 'Global'
@@ -85,8 +83,8 @@ dataset[dataset== 'L'] <- 'Local'
 
 ```{r}
 #Create a dataset with only the RT data for the target stimulus
-datasetRT <- dataset %>% 
-  #Remove all NA values
+  datasetRT <- dataset %>% 
+# #   #Remove all NA values
   drop_na(Block_resp.rt)
 # Delete all rows where the stimulus isn't red ( Participants were not correct)
 datasetRT <- datasetRT[!(datasetRT$Block_resp.corr == 0),]
@@ -102,37 +100,37 @@ datasetMeanRT <- datasetRT %>%
 
   summarise(
     n = n(),
-    avg = mean(Block_resp.rt, na.rm= T),
-    sd_total = sd(Block_resp.rt, na.rm= T) 
-        )
-```
-
-```{r}
-#ggplot(datasetMeanRT, aes(Block, avg))
-
-ggboxplot(datasetRT, x = "Block", y = "Block_resp.rt", color = "Condition")
+    avg = mean(Block_resp.rt, na.rm = T),
+    sd_total = sd(Block_resp.rt, na.rm = T) 
+        ) 
 
 ```
 
+```{r}
+
+ggboxplot(datasetRT, x = "Condition",  y = "Block_resp.rt", color = "Block", size = 0.5, ylim = c(0, 1.0))
+
+```
+```{r}
+datasetMeanRT %>% 
+  ggplot(aes(reorder(Block, avg), avg, ))+
+  geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_point (size = 4.5, aes(color = Condition), shape = 4) +
+  labs(title = "Mean Reaction Time between Standard and Augmented conditions",
+      x = "Trial Type",
+      y = "Mean Reaction Time",
+      tag = "")+
+  theme_bw()
+
+```
+
 
 ```{r}
 
-RT_Aov = aov(Block_resp.rt ~ Condition + Block, data = datasetRT) 
+RT_Aov = aov(Block_resp.rt ~ Condition * Block, data = datasetRT) 
 summary(RT_Aov)
 
 ```
-
-
-
-
-```{r}
-qqp(datasetRT$Block_resp.rt, "norm", groups = datasetRT$Block)
-qqp(datasetRT$Block_resp.rt, "lnorm", groups = datasetRT$Block)
-
-
-```
-
-
 
 
 
@@ -143,15 +141,9 @@ datasetCorr <- dataset %>%
   summarise(
     n =n(),
     Correct = (sum(Block_resp.corr) / n() )* 100
-    
-    
-    
-  )
+    )
 
 
 ```
-```{r}
 
-
-```
 

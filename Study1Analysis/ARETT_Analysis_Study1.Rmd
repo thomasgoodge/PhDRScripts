@@ -16,7 +16,7 @@ knitr::opts_chunk$set(root.dir= normalizePath("C:/Users/thoma/OneDrive - Univers
 library(tidyverse)
 library(readr)
 
-setwd("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R/ARETT-R-Package-master/R_Scripts/")
+setwd("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/")
 ```
 
 
