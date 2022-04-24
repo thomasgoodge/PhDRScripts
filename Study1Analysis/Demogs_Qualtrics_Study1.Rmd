@@ -1,0 +1,90 @@
+---
+title: "Study1_Demogs"
+output: html_document
+date: '2022-04-24'
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(root.dir = 'D:/Qualtrics_Data/Study1/Demographics', echo = TRUE)
+```
+
+```{r}
+  library(tidyverse)
+  library(readr)
+  library(janitor)
+
+```
+
+```{r}
+#Set the working directory of the data ***HARD CODED ***
+ setwd("D:/Qualtrics_Data/Study1/Demographics")
+
+```
+
+```{r}
+  list.files()
+  #Read in the data
+  DemogDataRaw <- read.csv("D:/Qualtrics_Data/Study1/Demographics/TGExperiment1_DemogData.csv") %>%  
+    select(starts_with('Q')) 
+```
+```{r}
+#Change the first row into column headers
+DemogDataOrg <- row_to_names(DemogDataRaw, row_number = 1)
+#Remove pilot data and consent form columns
+DemogDataOrg <- DemogDataOrg[-c(1:7),-c(1:7)]
+  
+  DemogDataOrg[DemogDataOrg == 'Po3g'] <- 'P03G'
+  DemogDataOrg[DemogDataOrg == 'P04'] <- 'P04L'
+  DemogDataOrg[DemogDataOrg == '13g'] <- 'P13G'
+  DemogDataOrg[DemogDataOrg == '16l'] <- 'P16L'
+  
+  
+  DemogDataOrg[DemogDataOrg == 'female'] <- 'Female'
+  DemogDataOrg[DemogDataOrg == 'Man'] <- 'Male'
+  
+ 
+DemogDataOrg<- DemogDataOrg %>%
+  mutate(ID = substr(`Enter your Participant ID:`,
+                     start = 1,
+                     stop = 3)) %>%
+  mutate(Condition = substr(`Enter your Participant ID:`,
+                            start = 4,
+                           stop  = 5))
+
+DemogDataOrg<- DemogDataOrg[-1] %>%
+  select(c(ID, Condition, 1:12))
+
+DemogDataOrg[,2] = toupper(DemogDataOrg[,2])
+DemogDataOrg[,3] = as.numeric(DemogDataOrg[,3])
+DemogDataOrg[,11] = as.numeric(DemogDataOrg[,11])
+DemogDataOrg[is.na(DemogDataOrg)] <- 0 %>% 
+    trimws(which = c("both"))
+
+```
+
+```{r}
+DemogSummary <- DemogDataOrg %>% 
+  
+  group_by(Condition) %>% 
+  summarise(
+  n = n(),
+  AgeMean = mean(`What is your age?`),
+  AgeSD = sd(`What is your age?`),
+  Male = sum(`Which gender do you identify with?` == 'Male'),
+  Female = sum(`Which gender do you identify with?` == "Female"),
+  meanVG = mean(`Roughly how many hours do you play video games for in an average week?`)
+  )   
+```
+
+
+```{r}
+ARExp <- table(DemogDataOrg$`Have you had much experience with Augmented Reality (AR) before?`)
+ARExpType <- table(DemogDataOrg$`Which of these AR devices, if any, have you interacted with before? - Selected Choice`)
+VRExp <- table(DemogDataOrg$`Have you had much experience with Virtual Reality (VR) before?`)
+VRExpType <- table(DemogDataOrg$`Which of these VR devices, if any, have you interacted with before? - Selected Choice`)
+  
+View(ARExp)
+View(ARExpType)
+View(VRExp)
+View(VRExpType)
+```
+
