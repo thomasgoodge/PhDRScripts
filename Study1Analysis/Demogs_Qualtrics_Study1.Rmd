@@ -41,7 +41,28 @@ DemogDataOrg <- DemogDataOrg[-c(1:7),-c(1:7)]
   DemogDataOrg[DemogDataOrg == 'female'] <- 'Female'
   DemogDataOrg[DemogDataOrg == 'Man'] <- 'Male'
   
- 
+  DemogDataOrg[DemogDataOrg == '1hour'] <- 1
+  DemogDataOrg[DemogDataOrg == 'Do not play at all'] <- 0
+  DemogDataOrg[DemogDataOrg == 'Not much. But whenever i go to my friends house every couple months'] <- 0
+  
+DemogDataOrg <- DemogDataOrg %>% 
+  rename(Age = `What is your age?`) %>% 
+  rename(Gender = `Which gender do you identify with?`) %>% 
+  rename(ARExp = `Have you had much experience with Augmented Reality (AR) before?`) %>% 
+  rename(ARHeadsets = `Which of these AR devices, if any, have you interacted with before? - Selected Choice`) %>% 
+  rename(ARHeadsetsText = `Which of these AR devices, if any, have you interacted with before? - Other (Please describe) - Text`) %>% 
+  rename(VRExp = `Have you had much experience with Virtual Reality (VR) before?`) %>% 
+  rename(VRExpHeadset = `Which of these VR devices, if any, have you interacted with before? - Selected Choice`) %>%
+  rename(VRExpHeadsetText = `Which of these VR devices, if any, have you interacted with before? - Other (Please describe) - Text`) %>% 
+  rename(VideoGamesTime = `Roughly how many hours do you play video games for in an average week?`) %>% 
+  rename(MotionSickness = `Do you have any history of motion sickness? - Selected Choice`) %>% 
+  rename(MotionSicknessText = `Do you have any history of motion sickness? - Other (Please describe) - Text`)
+
+```
+
+
+
+```{r}
 DemogDataOrg<- DemogDataOrg %>%
   mutate(ID = substr(`Enter your Participant ID:`,
                      start = 1,
@@ -51,13 +72,12 @@ DemogDataOrg<- DemogDataOrg %>%
                            stop  = 5))
 
 DemogDataOrg<- DemogDataOrg[-1] %>%
-  select(c(ID, Condition, 1:12))
-
-DemogDataOrg[,2] = toupper(DemogDataOrg[,2])
-DemogDataOrg[,3] = as.numeric(DemogDataOrg[,3])
-DemogDataOrg[,11] = as.numeric(DemogDataOrg[,11])
-DemogDataOrg[is.na(DemogDataOrg)] <- 0 %>% 
+  select(c(ID, Condition, 1:12)) %>% 
     trimws(which = c("both"))
+
+DemogDataOrg$Condition = toupper(DemogDataOrg$Condition)
+DemogDataOrg$Age = as.numeric(DemogDataOrg$Age)
+DemogDataOrg$VideoGamesTime = as.numeric(DemogDataOrg$VideoGamesTime)
 
 ```
 
@@ -67,11 +87,11 @@ DemogSummary <- DemogDataOrg %>%
   group_by(Condition) %>% 
   summarise(
   n = n(),
-  AgeMean = mean(`What is your age?`),
-  AgeSD = sd(`What is your age?`),
-  Male = sum(`Which gender do you identify with?` == 'Male'),
-  Female = sum(`Which gender do you identify with?` == "Female"),
-  meanVG = mean(`Roughly how many hours do you play video games for in an average week?`)
+  AgeMean = mean(Age),
+  AgeSD = sd(Age),
+  Male = sum(Gender == 'Male'),
+  Female = sum(Gender == "Female"),
+  meanVG = mean(VideoGamesTime)
   )   
 ```
 
@@ -82,9 +102,6 @@ ARExpType <- table(DemogDataOrg$`Which of these AR devices, if any, have you int
 VRExp <- table(DemogDataOrg$`Have you had much experience with Virtual Reality (VR) before?`)
 VRExpType <- table(DemogDataOrg$`Which of these VR devices, if any, have you interacted with before? - Selected Choice`)
   
-View(ARExp)
-View(ARExpType)
-View(VRExp)
-View(VRExpType)
+
 ```
 
