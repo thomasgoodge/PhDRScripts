@@ -256,6 +256,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Total CSQ Score",
                  fixed=T,
                  leg.bty ="o")
 interaction.plot(x.factor =  CSQConversion$Timepoint,
@@ -265,6 +266,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Nausea",
                  fixed=T,
                  leg.bty ="o")
 interaction.plot(x.factor =  CSQConversion$Timepoint,
@@ -274,6 +276,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Oculomotor",
                  fixed=T,
                  leg.bty ="o")
 interaction.plot(x.factor =  CSQConversion$Timepoint,
@@ -283,6 +286,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Disorientation",
                  fixed=T,
                  leg.bty ="o")
 ```
@@ -293,6 +297,11 @@ CSQModel = lm(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
 
 Anova(CSQModel,
       type = "II")
+```
+```{r}
+CSQmarginal = emmeans(CSQModel, ~Condition:Timepoint)
+pairs(CSQmarginal, adjust="tukey")
+
 ```
  
  
@@ -305,6 +314,11 @@ Anova(OcuModel,
       type = "II")
 
 ```
+```{r}
+Ocumarginal = emmeans(OcuModel, ~Condition:Timepoint)
+pairs(Ocumarginal, adjust="tukey")
+
+```
  
 ```{r}
 NauModel = lm(NauseaWeight ~ Timepoint + Condition + Timepoint:Condition,
@@ -313,6 +327,11 @@ NauModel = lm(NauseaWeight ~ Timepoint + Condition + Timepoint:Condition,
 Anova(NauModel,
       type = "II")
 ```
+```{r}
+Naumarginal = emmeans(NauModel, ~Condition:Timepoint)
+pairs(Naumarginal, adjust="tukey")
+
+```
  
 ```{r}
 DisModel = lm(DisorientationWeight ~ Timepoint + Condition + Timepoint:Condition,
@@ -320,6 +339,11 @@ DisModel = lm(DisorientationWeight ~ Timepoint + Condition + Timepoint:Condition
 
 Anova(DisModel,
       type = "II")
+```
+```{r}
+Dismarginal = emmeans(DisModel, ~Condition:Timepoint)
+pairs(Dismarginal, adjust="tukey")
+
 ```
  
  
@@ -359,7 +383,7 @@ subset(TotalCSQScore < quantile(CSQConversion$TotalCSQScore, probs = .90), na.rm
 
 ```{r}
 ggplot(CSQConversionOutliersRM, aes(x = TotalCSQScore, fill = Timepoint ))+
-  geom_histogram(binwidth = 5)
+  geom_histogram(binwidth = 4)
 
 ```
 
@@ -378,6 +402,7 @@ ggplot(CSQConversionOutliersRM, aes(Condition, DisorientationWeight, fill = Time
   geom_violin(alpha = 0.5)+
   labs(title = "Disorientation Score")
 ```
+
 ```{r}
 interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
                  trace.factor = CSQConversionOutliersRM$Condition,
@@ -386,6 +411,7 @@ interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Total CSQ Score",
                  fixed=T,
                  leg.bty ="o")
 interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
@@ -395,6 +421,7 @@ interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Nausea",
                  fixed=T,
                  leg.bty ="o")
 interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
@@ -404,6 +431,7 @@ interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Oculomotor",
                  fixed=T,
                  leg.bty ="o")
 interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
@@ -413,6 +441,7 @@ interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
+                 trace.label = "Disorientation",
                  fixed=T,
                  leg.bty ="o")
 ```
@@ -460,3 +489,136 @@ pairs(Dis2marginal, adjust="tukey")
 
 ```
  
+```{r}
+
+CSQConversionOutliersRM75 <- CSQConversion %>%  
+#Remove outlier participants
+subset(TotalCSQScore < quantile(CSQConversion$TotalCSQScore, probs = .75), na.rm = F)
+       
+       
+# subset(ID != "P07") %>% 
+# subset(ID != "P13") %>% 
+# subset(ID != "P16") %>% 
+# subset(ID != "P19") %>% 
+# subset(ID != "P21")
+
+# CSQDataZScores <- CSQdata %>% 
+#   group_by(Condition, Timepoint) 
+
+
+#z_scores <- as.data.frame(sapply(df, function(df) (abs(df-mean(df))/sd(df))))
+
+
+```
+
+
+```{r}
+ggplot(CSQConversionOutliersRM75, aes(x = TotalCSQScore, fill = Timepoint ))+
+  geom_histogram(binwidth = 4)
+
+```
+
+
+```{r}
+ggplot(CSQConversionOutliersRM75, aes(Condition, TotalCSQScore, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total CSQ Score")
+ggplot(CSQConversionOutliersRM75, aes(Condition, OculomotorWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Oculomotor Score")
+ggplot(CSQConversionOutliersRM75, aes(Condition, NauseaWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Nausea score")
+ggplot(CSQConversionOutliersRM75, aes(Condition, DisorientationWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Disorientation Score")
+```
+
+```{r}
+interaction.plot(x.factor =  CSQConversionOutliersRM75$Timepoint,
+                 trace.factor = CSQConversionOutliersRM75$Condition,
+                 response = CSQConversionOutliersRM75$TotalCSQScore,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Total CSQ Score",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversionOutliersRM75$Timepoint,
+                 trace.factor = CSQConversionOutliersRM75$Condition,
+                 response = CSQConversionOutliersRM75$NauseaWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Nausea",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversionOutliersRM75$Timepoint,
+                 trace.factor = CSQConversionOutliersRM75$Condition,
+                 response = CSQConversionOutliersRM75$OculomotorWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Oculomotor",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversionOutliersRM75$Timepoint,
+                 trace.factor = CSQConversionOutliersRM75$Condition,
+                 response = CSQConversionOutliersRM75$DisorientationWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Disorientation",
+                 fixed=T,
+                 leg.bty ="o")
+```
+
+
+```{r}
+CSQModel3 = lm(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM75)
+
+Anova(CSQModel3,
+      type = "II")
+```
+ 
+ 
+```{r}
+
+OcuModel3 = lm(OculomotorWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM75)
+
+Anova(OcuModel3,
+      type = "II")
+
+```
+ 
+```{r}
+NauModel3 = lm(NauseaWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM75)
+
+Anova(NauModel3,
+      type = "II")
+```
+ 
+```{r}
+DisModel3 = lm(DisorientationWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM75)
+
+Anova(DisModel3,
+      type = "II")
+```
+
+
+```{r}
+
+Nau3marginal = emmeans(NauModel3, ~Timepoint:Condition)
+pairs(Nau3marginal, adjust="tukey")
+
+
+```
+

@@ -122,32 +122,32 @@ TLXdataSumm <- TLXdata %>%
 
 ```{r}
 ggplot(TLXdata, aes(Condition, `Mental Demand`, fill = Block ))+
-  geom_boxplot(alpha = 0.5)+
+  geom_violin(alpha = 0.5)+
   ylim(0,100)+
   labs(title = "Mental Demand")
 
 ggplot(TLXdata, aes(Condition, `Physical Demand`, fill = Block ))+
-  geom_boxplot(alpha = 0.5)+
+  geom_violin(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Physical Demand")
 
 ggplot(TLXdata, aes(Condition, `Temporal Demand`, fill = Block ))+
-  geom_boxplot(alpha = 0.5)+
+  geom_violin(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Temporal Demand")
 
 ggplot(TLXdata, aes(Condition,`Overall Performance`, fill = Block ))+
-  geom_boxplot(alpha = 0.5)+
-  ylim (0,100)+
-    labs(title = "Overall Performance")
+  geom_violin(alpha = 0.5)+
+  ylim (100,0)+
+    labs(title = "Overall Performance (Inverted)")
 
 ggplot(TLXdata, aes(Condition, Effort, fill = Block ))+
-  geom_boxplot(alpha = 0.5)+
+  geom_violin(alpha = 0.5)+
   ylim (0,100)+
     labs(title = "Effort")
   
 ggplot(TLXdata, aes(Condition, Frustration, fill = Block ))+
-  geom_boxplot(alpha = 0.5)+
+  geom_violin(alpha = 0.5)+
   ylim (0,100)+
     labs(title = "Frustration")
 
@@ -165,6 +165,7 @@ interaction.plot(x.factor = TLXdata$Block,
                  type = "b",
                  col = c("red", "blue"),
                  pch = c(19,17),
+                 trace.label = "Mental Demand",
                  fixed = T,
                  leg.bty="o"
                  )
@@ -176,6 +177,7 @@ interaction.plot(x.factor = TLXdata$Block,
                  type = "b",
                  col = c("red", "blue"),
                  pch = c(19,17),
+                 trace.label = "Physical Demand",
                  fixed = T,
                  leg.bty="o"
                  )
@@ -186,6 +188,7 @@ interaction.plot(x.factor = TLXdata$Block,
                  type = "b",
                  col = c("red", "blue"),
                  pch = c(19,17),
+                 trace.label = "Temporal Demand",
                  fixed = T,
                  leg.bty="o"
                  )
@@ -197,6 +200,7 @@ interaction.plot(x.factor = TLXdata$Block,
                  type = "b",
                  col = c("red", "blue"),
                  pch = c(19,17),
+                 trace.label = "Overall Performance",
                  fixed = T,
                  leg.bty="o"
                  )
@@ -208,6 +212,7 @@ interaction.plot(x.factor = TLXdata$Block,
                  type = "b",
                  col = c("red", "blue"),
                  pch = c(19,17),
+                 trace.label = "Effort",
                  fixed = T,
                  leg.bty="o"
                  )
@@ -220,6 +225,7 @@ interaction.plot(x.factor = TLXdata$Block,
                  type = "b",
                  col = c("red", "blue"),
                  pch = c(19,17),
+                 trace.label = "Frustration",
                  fixed = T,
                  leg.bty="o"
                  )

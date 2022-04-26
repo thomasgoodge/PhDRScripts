@@ -108,8 +108,8 @@ datasetMeanRT <- datasetRT %>%
 
 ```{r}
 
-ggplot(datasetRT, aes(x = Block,  y = Block_resp.rt, colour = Condition, )) +
-  geom_boxplot()
+ggplot(datasetRT, aes(reorder(Block, Block_resp.rt), Block_resp.rt,) ) +
+  geom_violin(aes(x = Block,  y = Block_resp.rt, colour = Condition, fill = Condition))
  
 
 ```
@@ -162,7 +162,7 @@ datasetCorr <- dataset %>%
   mutate(PercentCorrect = (sum(Block_resp.corr) / n() )* 100
     ) 
 
-  datasetCorr <- datasetCorrWhole %>% 
+  datasetCorr <- datasetCorr %>% 
   group_by(ID, Block, Condition, PercentCorrect) %>% 
     summarise()
   
@@ -181,7 +181,7 @@ datasetCorr <- dataset %>%
 
 ```{r}
 
-CorrAovInt = aov(PercentCorrect ~ Condition * Block, data = datasetCorrWhole) 
+CorrAovInt = aov(PercentCorrect ~ Condition * Block, data = datasetCorr) 
 summary(CorrAovInt)
 
 ```
