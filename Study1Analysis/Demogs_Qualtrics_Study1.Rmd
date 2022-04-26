@@ -72,8 +72,7 @@ DemogDataOrg<- DemogDataOrg %>%
                            stop  = 5))
 
 DemogDataOrg<- DemogDataOrg[-1] %>%
-  select(c(ID, Condition, 1:12)) %>% 
-    trimws(which = c("both"))
+  select(c(ID, Condition, 1:12)) 
 
 DemogDataOrg$Condition = toupper(DemogDataOrg$Condition)
 DemogDataOrg$Age = as.numeric(DemogDataOrg$Age)
@@ -97,11 +96,15 @@ DemogSummary <- DemogDataOrg %>%
 
 
 ```{r}
-ARExp <- table(DemogDataOrg$`Have you had much experience with Augmented Reality (AR) before?`)
-ARExpType <- table(DemogDataOrg$`Which of these AR devices, if any, have you interacted with before? - Selected Choice`)
-VRExp <- table(DemogDataOrg$`Have you had much experience with Virtual Reality (VR) before?`)
-VRExpType <- table(DemogDataOrg$`Which of these VR devices, if any, have you interacted with before? - Selected Choice`)
-  
+ARExp <- table(DemogDataOrg$ARExp)
+ARExpType <- table(DemogDataOrg$ARHeadsets)
+VRExp <- table(DemogDataOrg$VRExp)
+VRExpType <- table(DemogDataOrg$VRExpHeadset)
+
+View(ARExp) 
+View(VRExp) 
+
+
 
 ```
 

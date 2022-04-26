@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readr)
 library(janitor)
+library(car)
+library(emmeans)
 ```
 
 
@@ -23,7 +25,7 @@ TLXdataRaw <- read.csv("TGExp1NasaTLX.csv") %>%
 # Tidy the data - select scores,
   select(starts_with('Q'))
   TLXdataOrg <- TLXdataRaw[-c(1:2),]
-  colnames(TLXdataOrg) <- c('Ppt_ID','Condition', 'Mental Demand', 'Physical Demand', 'Temporal Demand', 'Overall Performance', 'Effort', 'Frustration')
+  colnames(TLXdataOrg) <- c('Ppt_ID','Block', 'Mental Demand', 'Physical Demand', 'Temporal Demand', 'Overall Performance', 'Effort', 'Frustration')
   TLXdataOrg <- TLXdataOrg[-c(1:2),]
   #Convert columns with ratings in to numeric
   TLXdataOrg[3:8] = lapply(TLXdataOrg[3:8], FUN = function(y){as.numeric(y)})
@@ -37,9 +39,7 @@ TLXdataRaw <- read.csv("TGExp1NasaTLX.csv") %>%
   TLXdataOrg[TLXdataOrg == '13g'] <- 'P13G'
   TLXdataOrg[TLXdataOrg == 'G19p'] <- 'P19G'
   TLXdataOrg[TLXdataOrg == '21g'] <- 'P21G'
- 
-
-
+  
 
 ```
 ```{r}
@@ -50,17 +50,21 @@ TLXdataOrg<- TLXdataOrg %>%
     mutate(ID = substr(Ppt_ID,
                      start = 1,
                      stop = 3)) %>%
-  mutate(Group = substr(Ppt_ID,
+  mutate(Condition = substr(Ppt_ID,
                             start = 4,
                            stop  = 5))
 #Rearrange the columns and remove extra ID column
 TLXdataOrg <- TLXdataOrg[,-1] %>% 
-  select(c(ID, Group, 1:7))
+  select(c(ID, Condition, 1:7))
 
 #Change the conditions to upper case and remove whitespace
 
 TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>% 
   trimws(which = c("both"))
+
+  TLXdataOrg[TLXdataOrg == "G"] <- "Global"
+  TLXdataOrg[TLXdataOrg == "L"] <- "Local" 
+
 
 #Convert to wrangled dataset
 TLXdata <- TLXdataOrg
@@ -71,7 +75,7 @@ TLXdata <- TLXdataOrg
 
 
 ```{r}
-# #Group the data and summarise the descriptives
+# #Condition the data and summarise the descriptives
 # TLXWeighted <- TLXdata 
 # 
 # TLXWeighted$`Mental Demand` <- TLXWeighted$`Mental Demand` * 3
@@ -101,7 +105,7 @@ TLXdata <- TLXdataOrg
 
 TLXdataSumm <- TLXdata %>% 
   
-  group_by(Condition, Group) %>% 
+  group_by(Block, Condition) %>% 
   summarise(
     n = n(),
     Mental_mean = mean(`Mental Demand`),
@@ -117,32 +121,32 @@ TLXdataSumm <- TLXdata %>%
 ```
 
 ```{r}
-ggplot(TLXdata, aes(Group, `Mental Demand`, fill = Condition ))+
+ggplot(TLXdata, aes(Condition, `Mental Demand`, fill = Block ))+
   geom_boxplot(alpha = 0.5)+
   ylim(0,100)+
   labs(title = "Mental Demand")
 
-ggplot(TLXdata, aes(Group, `Physical Demand`, fill = Condition ))+
+ggplot(TLXdata, aes(Condition, `Physical Demand`, fill = Block ))+
   geom_boxplot(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Physical Demand")
 
-ggplot(TLXdata, aes(Group, `Temporal Demand`, fill = Condition ))+
+ggplot(TLXdata, aes(Condition, `Temporal Demand`, fill = Block ))+
   geom_boxplot(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Temporal Demand")
 
-ggplot(TLXdata, aes(Group,`Overall Performance`, fill = Condition ))+
+ggplot(TLXdata, aes(Condition,`Overall Performance`, fill = Block ))+
   geom_boxplot(alpha = 0.5)+
   ylim (0,100)+
     labs(title = "Overall Performance")
 
-ggplot(TLXdata, aes(Group, Effort, fill = Condition ))+
+ggplot(TLXdata, aes(Condition, Effort, fill = Block ))+
   geom_boxplot(alpha = 0.5)+
   ylim (0,100)+
     labs(title = "Effort")
   
-ggplot(TLXdata, aes(Group, Frustration, fill = Condition ))+
+ggplot(TLXdata, aes(Condition, Frustration, fill = Block ))+
   geom_boxplot(alpha = 0.5)+
   ylim (0,100)+
     labs(title = "Frustration")
@@ -152,32 +156,154 @@ ggplot(TLXdata, aes(Group, Frustration, fill = Condition ))+
 
 
 ```
+```{r}
+
+interaction.plot(x.factor = TLXdata$Block,
+                 trace.factor = TLXdata$Condition,
+                 response = TLXdata$`Mental Demand`,
+                 fun = mean,
+                 type = "b",
+                 col = c("red", "blue"),
+                 pch = c(19,17),
+                 fixed = T,
+                 leg.bty="o"
+                 )
+
+interaction.plot(x.factor = TLXdata$Block,
+                 trace.factor = TLXdata$Condition,
+                 response = TLXdata$`Physical Demand`,
+                 fun = mean,
+                 type = "b",
+                 col = c("red", "blue"),
+                 pch = c(19,17),
+                 fixed = T,
+                 leg.bty="o"
+                 )
+interaction.plot(x.factor = TLXdata$Block,
+                 trace.factor = TLXdata$Condition,
+                 response = TLXdata$`Temporal Demand`,
+                 fun = mean,
+                 type = "b",
+                 col = c("red", "blue"),
+                 pch = c(19,17),
+                 fixed = T,
+                 leg.bty="o"
+                 )
+
+interaction.plot(x.factor = TLXdata$Block,
+                 trace.factor = TLXdata$Condition,
+                 response = TLXdata$`Overall Performance`,
+                 fun = mean,
+                 type = "b",
+                 col = c("red", "blue"),
+                 pch = c(19,17),
+                 fixed = T,
+                 leg.bty="o"
+                 )
+
+interaction.plot(x.factor = TLXdata$Block,
+                 trace.factor = TLXdata$Condition,
+                 response = TLXdata$Effort,
+                 fun = mean,
+                 type = "b",
+                 col = c("red", "blue"),
+                 pch = c(19,17),
+                 fixed = T,
+                 leg.bty="o"
+                 )
+
+
+interaction.plot(x.factor = TLXdata$Block,
+                 trace.factor = TLXdata$Condition,
+                 response = TLXdata$Frustration,
+                 fun = mean,
+                 type = "b",
+                 col = c("red", "blue"),
+                 pch = c(19,17),
+                 fixed = T,
+                 leg.bty="o"
+                 )
+
+
+```
+
+
 
 
 ```{r}
 
-MD_Aov = aov(`Mental Demand` ~ Condition * Group, data = TLXdata) 
+MD_Aov = lm(`Mental Demand` ~ Block + Condition + Block:Condition, data = TLXdata) 
 print("Mental Demand")
-summary(MD_Aov)
+
+Anova(MD_Aov,
+      type = "II")
 
 print("Physical Demand")
-PD_Aov = aov(`Physical Demand` ~ Condition * Group, data = TLXdata) 
-summary(PD_Aov)
+PD_Aov = lm(`Physical Demand` ~ Block + Condition + Block:Condition, data = TLXdata) 
 
-TD_Aov = aov(`Temporal Demand` ~ Condition * Group, data = TLXdata) 
+Anova(PD_Aov,
+      type = "II")
+
+TD_Aov = lm(`Temporal Demand` ~ Block + Condition + Block:Condition, data = TLXdata) 
 print("Temporal Demand")
-summary(TD_Aov)
 
-OP_Aov = aov(`Overall Performance` ~ Condition * Group, data = TLXdata) 
+Anova(TD_Aov,
+      type = "II")
+
+OP_Aov = lm(`Overall Performance` ~ Block + Condition + Block:Condition, data = TLXdata) 
 print("Overall Performance")
-summary(OP_Aov)
 
-EF_Aov = aov(Effort ~ Condition * Group, data = TLXdata) 
+Anova(OP_Aov,
+      type = "II")
+
+EF_Aov = lm(Effort ~ Block + Condition + Block:Condition, data = TLXdata) 
 print("Effort")
-summary(EF_Aov)
 
-FR_Aov = aov(Frustration ~ Condition * Group, data = TLXdata)
+Anova(EF_Aov,
+      type = "II")
+
+FR_Aov = lm(Frustration ~ Block + Condition + Block:Condition, data = TLXdata)
 print("Frustration")
-summary(FR_Aov)
+
+Anova(FR_Aov,
+      type = "II")
+```
+
+
+```{r}
+MDmarginal = emmeans(MD_Aov, ~Block:Condition)
+pairs(MDmarginal, adjust="tukey")
+```
+
+
+```{r}
+PDmarginal = emmeans(PD_Aov, ~Block:Condition)
+pairs(PDmarginal, adjust="tukey")
+
+```
+
+
+```{r}
+TDmarginal = emmeans(TD_Aov, ~Block:Condition)
+pairs(TDmarginal, adjust="tukey")
+
+```
+
+```{r}
+OPmarginal = emmeans(OP_Aov, ~Block:Condition)
+pairs(OPmarginal, adjust="tukey")
+
+```
+
+```{r}
+EFmarginal = emmeans(EF_Aov, ~Block:Condition)
+pairs(EFmarginal, adjust="tukey")
+
+```
+
+```{r}
+FRmarginal = emmeans(FR_Aov, ~Block:Condition)
+pairs(FRmarginal, adjust="tukey")
+
 ```
 

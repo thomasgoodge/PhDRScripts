@@ -12,6 +12,7 @@ knitr::opts_chunk$set(root.dir = 'D:/Qualtrics_Data/Study1/CSQ', echo = TRUE)
   library(tidyverse)
   library(readr)
   library(janitor)
+  library(emmeans)
 
 ```
 
@@ -80,6 +81,8 @@ CSQdataOrg[,2] = toupper(CSQdataOrg[,2]) %>%
 
 
 ```{r}
+
+#Recode Values so they are computable
 CSQdata <- CSQdataOrg %>% 
   rename(Timepoint = `Which timepoint is this?`)
 CSQdata[CSQdata== '0 - None at all'] <- '0'
@@ -91,6 +94,8 @@ CSQdata[CSQdata== 'Pre-Experiment'] <- '1'
 CSQdata[CSQdata== 'End of Control'] <- '2'
 CSQdata[CSQdata== 'End of Experiment'] <- '3'
 
+CSQdata[CSQdata== "G"] <- "Global"
+CSQdata[CSQdata== "L"] <- "Local"
 
 #Convert columns with ratings in to numeric
 CSQdata[4:19] = lapply(CSQdata[4:19], FUN = function(y){as.numeric(y)})
@@ -99,12 +104,10 @@ CSQdata[4:19] = lapply(CSQdata[4:19], FUN = function(y){as.numeric(y)})
 
 
 ```{r}
-CSQConversion <- CSQdata %>% 
-#Remove outlier participant
-subset(ID != "P21")
-
-
 #Calculate the CSQ score weightings according to Kennedy et al 1993
+CSQConversion <- CSQdata 
+
+
 CSQConversion <- CSQConversion %>% 
   mutate(NauseaSum = 
            (CSQConversion$`General Discomfort` + 
@@ -131,7 +134,7 @@ CSQConversion <- CSQConversion %>%
             CSQConversion$`Dizzy ( Eyes Closed)`+
             CSQConversion$Vertigo)) 
 
-
+#Calculate the final weighted CSQ scores
 
   CSQConversion <- CSQConversion %>% 
       mutate(NauseaWeight = (CSQConversion$NauseaSum * 9.54)) %>% 
@@ -163,6 +166,8 @@ CSQConversionSummary <- CSQConversion %>%
 
 
 ```{r}
+
+#Summarise the descriptives for the converted  Nausea scores
 CSQNauseaSummary <- CSQConversion %>% 
   
   group_by(Condition, Timepoint) %>% 
@@ -177,6 +182,8 @@ CSQNauseaSummary <- CSQConversion %>%
 ```
             
 ```{r}
+
+#Summarise the descriptives for the converted Oculomotor scores
 CSQOculoSummary <- CSQConversion %>% 
   
   group_by(Condition, Timepoint) %>% 
@@ -192,6 +199,8 @@ CSQOculoSummary <- CSQConversion %>%
             
             
 ```{r}
+
+#Summarise the descriptives for the converted Disorientation scores
 CSQDisoriSummary <- CSQConversion %>% 
   
   group_by(Condition, Timepoint) %>% 
@@ -210,7 +219,7 @@ CSQDisoriSummary <- CSQConversion %>%
 ```{r}
 #Visualise the spread of the data
 ggplot(CSQConversion, aes(x = TotalCSQScore, fill = Timepoint ))+
-  geom_histogram(binwidth = 10)
+  geom_histogram(binwidth = 5)
 
 
 ```
@@ -223,19 +232,102 @@ ggplot(CSQConversion, aes(x = TotalCSQScore, fill = Timepoint ))+
 ```{r}
 #Create violin plots for each of the Weighted totals to show the spread of the data
 ggplot(CSQConversion, aes(Condition, TotalCSQScore, fill = Timepoint ))+
-  geom_violin(alpha = 0.5)
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total CSQ Score")
 ggplot(CSQConversion, aes(Condition, OculomotorWeight, fill = Timepoint ))+
-  geom_violin(alpha = 0.5)
+  geom_violin(alpha = 0.5) +
+  labs(title = "Oculomotor Score")
 ggplot(CSQConversion, aes(Condition, NauseaWeight, fill = Timepoint ))+
-  geom_violin(alpha = 0.5)
+  geom_violin(alpha = 0.5) +
+  labs(title = "Nausea score")
 ggplot(CSQConversion, aes(Condition, DisorientationWeight, fill = Timepoint ))+
-  geom_violin(alpha = 0.5)
+  geom_violin(alpha = 0.5)+
+  labs(title = "Disorientation Score")
+```
+ 
+
+```{r}
+#Create interaction plots for the mean of each condition at each of the 3 timepoints
+#**pch = type of shape on the point graph
+interaction.plot(x.factor =  CSQConversion$Timepoint,
+                 trace.factor = CSQConversion$Condition,
+                 response = CSQConversion$TotalCSQScore,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversion$Timepoint,
+                 trace.factor = CSQConversion$Condition,
+                 response = CSQConversion$NauseaWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversion$Timepoint,
+                 trace.factor = CSQConversion$Condition,
+                 response = CSQConversion$OculomotorWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversion$Timepoint,
+                 trace.factor = CSQConversion$Condition,
+                 response = CSQConversion$DisorientationWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+```
+```{r}
+# Generate linear modeals for each of the weighted scores
+CSQModel = lm(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversion)
+
+Anova(CSQModel,
+      type = "II")
 ```
  
  
 ```{r}
 
-quantile(CSQConversion$TotalCSQScore, probs=c(.25,.50,.75, .90), na.rm = FALSE)
+OcuModel = lm(OculomotorWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversion)
+
+Anova(OcuModel,
+      type = "II")
+
+```
+ 
+```{r}
+NauModel = lm(NauseaWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversion)
+
+Anova(NauModel,
+      type = "II")
+```
+ 
+```{r}
+DisModel = lm(DisorientationWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversion)
+
+Anova(DisModel,
+      type = "II")
+```
+ 
+ 
+ 
+ 
+```{r}
+
+quantile(CSQConversion$TotalCSQScore, probs=c(.25,.50,.75, .90, .98), na.rm = FALSE)
 IQR(CSQConversion$TotalCSQScore)
 
 ```
@@ -243,8 +335,19 @@ IQR(CSQConversion$TotalCSQScore)
 
 ```{r}
 
-CSQDataZScores <- CSQdata %>% 
-  group_by(Condition, Timepoint) 
+CSQConversionOutliersRM <- CSQConversion %>%  
+#Remove outlier participants
+subset(TotalCSQScore < quantile(CSQConversion$TotalCSQScore, probs = .90), na.rm = F)
+       
+       
+# subset(ID != "P07") %>% 
+# subset(ID != "P13") %>% 
+# subset(ID != "P16") %>% 
+# subset(ID != "P19") %>% 
+# subset(ID != "P21")
+
+# CSQDataZScores <- CSQdata %>% 
+#   group_by(Condition, Timepoint) 
 
 
 #z_scores <- as.data.frame(sapply(df, function(df) (abs(df-mean(df))/sd(df))))
@@ -254,7 +357,106 @@ CSQDataZScores <- CSQdata %>%
 ```
 
 
-
+```{r}
+ggplot(CSQConversionOutliersRM, aes(x = TotalCSQScore, fill = Timepoint ))+
+  geom_histogram(binwidth = 5)
 
 ```
 
+
+```{r}
+ggplot(CSQConversionOutliersRM, aes(Condition, TotalCSQScore, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total CSQ Score")
+ggplot(CSQConversionOutliersRM, aes(Condition, OculomotorWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Oculomotor Score")
+ggplot(CSQConversionOutliersRM, aes(Condition, NauseaWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Nausea score")
+ggplot(CSQConversionOutliersRM, aes(Condition, DisorientationWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Disorientation Score")
+```
+```{r}
+interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
+                 trace.factor = CSQConversionOutliersRM$Condition,
+                 response = CSQConversionOutliersRM$TotalCSQScore,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
+                 trace.factor = CSQConversionOutliersRM$Condition,
+                 response = CSQConversionOutliersRM$NauseaWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
+                 trace.factor = CSQConversionOutliersRM$Condition,
+                 response = CSQConversionOutliersRM$OculomotorWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQConversionOutliersRM$Timepoint,
+                 trace.factor = CSQConversionOutliersRM$Condition,
+                 response = CSQConversionOutliersRM$DisorientationWeight,
+                 fun = mean,
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 fixed=T,
+                 leg.bty ="o")
+```
+
+
+```{r}
+CSQModel2 = lm(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM)
+
+Anova(CSQModel2,
+      type = "II")
+```
+ 
+ 
+```{r}
+
+OcuModel2 = lm(OculomotorWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM)
+
+Anova(OcuModel2,
+      type = "II")
+
+```
+ 
+```{r}
+NauModel2 = lm(NauseaWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM)
+
+Anova(NauModel2,
+      type = "II")
+```
+ 
+```{r}
+DisModel2 = lm(DisorientationWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversionOutliersRM)
+
+Anova(DisModel2,
+      type = "II")
+```
+ 
+```{r}
+Dis2marginal = emmeans(DisModel2, ~Timepoint:Condition)
+pairs(Dis2marginal, adjust="tukey")
+
+
+```
+ 

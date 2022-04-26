@@ -108,7 +108,9 @@ datasetMeanRT <- datasetRT %>%
 
 ```{r}
 
-ggboxplot(datasetRT, x = "Condition",  y = "Block_resp.rt", color = "Block", size = 0.5, ylim = c(0, 1.0))
+ggplot(datasetRT, aes(x = Block,  y = Block_resp.rt, colour = Condition, )) +
+  geom_boxplot()
+ 
 
 ```
 ```{r}
@@ -118,8 +120,9 @@ datasetMeanRT %>%
   geom_point (size = 4.5, aes(color = Condition), shape = 4) +
   labs(title = "Mean Reaction Time between Standard and Augmented conditions",
       x = "Trial Type",
-      y = "Mean Reaction Time",
-      tag = "")+
+      y = "Mean Reaction Time (s)",
+      tag = "",)+
+      ylim(0.4,0.7)+
   theme_bw()
 
 ```
@@ -127,22 +130,59 @@ datasetMeanRT %>%
 
 ```{r}
 
-RT_Aov = aov(Block_resp.rt ~ Condition * Block, data = datasetRT) 
-summary(RT_Aov)
+RTAovInt = aov(Block_resp.rt ~ Condition * Block, data = datasetRT) 
 
+summary(RTAovInt)
 ```
+```{r}
+
+TukeyPH <- TukeyHSD((RTAovInt))
+
+TukeyPH
+```
+
+```{r}
+RTLM = lm(Block_resp.rt ~ Condition + Block + Condition:Block, data = datasetRT) 
+
+Anova(RTLM,
+      type = "II")
+
+RTmarginal = emmeans(RTLM, ~Condition:Block)
+pairs(RTmarginal, adjust="tukey")
+```
+
 
 
 
 ```{r}
 
+
 datasetCorr <- dataset %>% 
+ group_by(ID, Block) %>% 
+  mutate(PercentCorrect = (sum(Block_resp.corr) / n() )* 100
+    ) 
+
+  datasetCorr <- datasetCorrWhole %>% 
+  group_by(ID, Block, Condition, PercentCorrect) %>% 
+    summarise()
+  
+  datasetCorrSumm <- dataset %>% 
  group_by(Condition, Block) %>% 
   summarise(
     n =n(),
-    Correct = (sum(Block_resp.corr) / n() )* 100
+    Correct = (sum(Block_resp.corr) / n() )* 100,
+    Incorrect = 100 -(sum(Block_resp.corr) / n() )* 100
     )
 
+
+
+```
+
+
+```{r}
+
+CorrAovInt = aov(PercentCorrect ~ Condition * Block, data = datasetCorrWhole) 
+summary(CorrAovInt)
 
 ```
 
