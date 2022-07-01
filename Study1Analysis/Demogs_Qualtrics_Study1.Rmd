@@ -81,7 +81,21 @@ DemogDataOrg$VideoGamesTime = as.numeric(DemogDataOrg$VideoGamesTime)
 ```
 
 ```{r}
-DemogSummary <- DemogDataOrg %>% 
+DemogSummaryTotal <- DemogDataOrg %>% 
+  
+  summarise(
+  n = n(),
+  AgeMean = mean(Age),
+  AgeSD = sd(Age),
+  Male = sum(Gender == 'Male'),
+  Female = sum(Gender == "Female"),
+  meanVG = mean(VideoGamesTime)
+  )   
+```
+
+
+```{r}
+DemogSummaryGroup <- DemogDataOrg %>% 
   
   group_by(Condition) %>% 
   summarise(
@@ -100,10 +114,6 @@ ARExp <- table(DemogDataOrg$ARExp)
 ARExpType <- table(DemogDataOrg$ARHeadsets)
 VRExp <- table(DemogDataOrg$VRExp)
 VRExpType <- table(DemogDataOrg$VRExpHeadset)
-
-View(ARExp) 
-View(VRExp) 
-
 
 
 ```

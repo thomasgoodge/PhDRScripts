@@ -54,3 +54,15 @@ for(i in 1:length(file_list))
 
 ```
 
+
+```{r}
+
+P01GProc <- noise_reduction(P01G, method = median, window_size = 3)
+
+P01GProc <- gap_fill(P01GProc, max_gap_length = 75)
+
+test<- as.data.frame(classify_iaoi(P01GProc))
+
+```
+
+
