@@ -65,7 +65,12 @@ TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>%
   TLXdataOrg[TLXdataOrg == "G"] <- "Wider"
   TLXdataOrg[TLXdataOrg == "L"] <- "Focused" 
 
-
+  TLXdataOrg[TLXdataOrg == "Control"] <- "Cognitive Only"
+  TLXdataOrg[TLXdataOrg == "Experiment"] <- "Dual Cognitive-AR" 
+  
+  
+  
+  
 #Convert to wrangled dataset
 TLXdata <- TLXdataOrg
 
