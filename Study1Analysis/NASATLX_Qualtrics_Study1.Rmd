@@ -62,43 +62,14 @@ TLXdataOrg <- TLXdataOrg[,-1] %>%
 TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>% 
   trimws(which = c("both"))
 
-  TLXdataOrg[TLXdataOrg == "G"] <- "Global"
-  TLXdataOrg[TLXdataOrg == "L"] <- "Local" 
+  TLXdataOrg[TLXdataOrg == "G"] <- "Wider"
+  TLXdataOrg[TLXdataOrg == "L"] <- "Focused" 
 
 
 #Convert to wrangled dataset
 TLXdata <- TLXdataOrg
 
 ```
-
-###Need to choose a weighting method and work out how to calculate it!
-
-
-```{r}
-# #Condition the data and summarise the descriptives
-# TLXWeighted <- TLXdata 
-# 
-# TLXWeighted$`Mental Demand` <- TLXWeighted$`Mental Demand` * 3
-# TLXWeighted$`Physical Demand` <- TLXWeighted$`Physical Demand` * 0
-# TLXWeighted$`Temporal Demand` <- TLXWeighted$`Temporal Demand` * 5
-# TLXWeighted$`Overall Performance` <- TLXWeighted$`Overall Performance` * 1
-# TLXWeighted$Frustration <- TLXWeighted$Frustration*3
-# TLXWeighted$Effort <- TLXWeighted$Effort * 3
-# 
-# TLXWeighted <- TLXWeighted %>% 
-#   mutate(Total = 
-#            TLXWeighted$`Mental Demand` +
-#            TLXWeighted$`Physical Demand`+
-#            TLXWeighted$`Temporal Demand`+
-#            TLXWeighted$`Overall Performance` +
-#            TLXWeighted$Frustration +
-#            TLXWeighted$Effort
-#            )
-#   
-
-
-```
-
 
 
 ```{r}

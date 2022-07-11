@@ -195,6 +195,40 @@ CSQDisoriSummary <- CSQConversion %>%
   min = min(DisorientationWeight),
   max = max(DisorientationWeight)) 
 ```
+
+
+
+```{r}
+CSQExtremeRM <- CSQConversion %>% 
+  
+  subset(ID !="P03") %>% 
+  subset(ID !="P07") %>% 
+  subset(ID !="P13") %>% 
+  subset(ID !="P16") %>% 
+  subset(ID !="P19") %>% 
+  subset(ID !="P21") %>% 
+  subset(ID !="P37") 
+
+CSQExtremeRM$Condition <- gsub("Global", "Wider", CSQExtremeRM$Condition)
+CSQExtremeRM$Condition <- gsub("Local", "Focused", CSQExtremeRM$Condition)
+
+
+
+CSQExtremeRMSummary <- CSQExtremeRM %>% 
+  
+  group_by(Condition, Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(TotalCSQScore),
+  sd = sd(TotalCSQScore),
+  min = min(TotalCSQScore),
+  max = max(TotalCSQScore))  
+ 
+
+```
+
+
+
 ```{r}
   ########################END OF DATA WRANGLING########################
   #####################################################################
@@ -235,7 +269,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  trace.factor = CSQConversion$Condition,
                  response = CSQConversion$TotalCSQScore,
                  fun = mean,
-                 ylim = (c(0,20)),
+                 ylim = (c(0,15)),
                  xlab = "Timepoint",
                  ylab = "Total CSQ Score",
                  type= "b",
@@ -261,7 +295,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  trace.factor = CSQConversion$Condition,
                  response = CSQConversion$OculomotorWeight,
                  fun = mean,
-                 ylim = (c(0,20)),
+                 ylim = (c(0,15)),
                  xlab = "Timepoint",
                  ylab = "Oculomotor subscale",
                  type= "b",
@@ -290,6 +324,12 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
 # Generate linear modals for each of the weighted scores
 CSQModel = lm(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
               data = CSQConversion)
+
+
+test = aov(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQConversion)
+
+summary(test)
 
 Anova(CSQModel,
       type = "II")
@@ -367,7 +407,122 @@ pairs(Dismarginal, adjust="tukey")
   ######################## REMOVING OUTLIERS #########################
   ####################################################################
 ```
+       
+           
+```{r}
+#Visualise the spread of the data
+ggplot(CSQExtremeRM, aes(x = TotalCSQScore, fill = Timepoint))+
+  geom_histogram(binwidth = 4.5)
+
+```
+
+    
+```{r}
+#Create violin plots for each of the Weighted totals to show the spread of the data
+ggplot(CSQExtremeRM, aes(Condition, TotalCSQScore, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total CSQ Score")
+ggplot(CSQExtremeRM, aes(Condition, OculomotorWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Oculomotor Score")
+ggplot(CSQExtremeRM, aes(Condition, NauseaWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Nausea score")
+ggplot(CSQExtremeRM, aes(Condition, DisorientationWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Disorientation Score")
+```
  
+
+```{r}
+#Create interaction plots for the mean of each condition at each of the 3 timepoints
+#**pch = type of shape on the point graph
+interaction.plot(x.factor =  CSQExtremeRM$Timepoint,
+                 trace.factor = CSQExtremeRM$Condition,
+                 response = CSQExtremeRM$TotalCSQScore,
+                 fun = mean,
+                 ylim = (c(0,15)),
+                 xlab = "Timepoint",
+                 ylab = "Total SSQ Score",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQExtremeRM$Timepoint,
+                 trace.factor = CSQExtremeRM$Condition,
+                 response = CSQExtremeRM$NauseaWeight,
+                 fun = mean,
+                 ylim = (c(0,15)),
+                 xlab = "Timepoint",
+                 ylab = "Nausea subscale",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQExtremeRM$Timepoint,
+                 trace.factor = CSQExtremeRM$Condition,
+                 response = CSQExtremeRM$OculomotorWeight,
+                 fun = mean,
+                 ylim = (c(0,15)),
+                 xlab = "Timepoint",
+                 ylab = "Oculomotor subscale",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition`",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  CSQExtremeRM$Timepoint,
+                 trace.factor = CSQExtremeRM$Condition,
+                 response = CSQExtremeRM$DisorientationWeight,
+                 fun = mean,
+                 ylim = (c(0,15)),
+                 xlab = "Timepoint",
+                 ylab = "Disorientation subscale",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition",
+                 fixed=T,
+                 leg.bty ="o")
+```
+
+
+```{r}
+# Generate linear modals for each of the weighted scores
+CSQERMModel = lm(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQExtremeRM)
+
+NauseaERMModel = lm(NauseaWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQExtremeRM)
+
+OculoERMModel = lm(OculomotorWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQExtremeRM)
+
+DisoriERMModel = lm(DisorientationWeight ~ Timepoint + Condition + Timepoint:Condition,
+              data = CSQExtremeRM)
+
+Anova(CSQModel,
+      type = "II")
+Anova(NauseaERMModel,
+      type = "II")
+Anova(OculoERMModel,
+      type = "II")
+Anova(DisoriERMModel,
+      type = "II")
+
+```
+
+```{r}
+#Calculate comparison means for Overall scores
+CSQmarginal = emmeans(DisoriERMModel, ~Condition:Timepoint)
+pairs(CSQmarginal, adjust="tukey")
+```
+
 ```{r}
 # Calculate quartiles for outlier removal
 quantile(CSQConversion$TotalCSQScore, probs=c(.25,.50,.75, .90, .98), na.rm = FALSE)
@@ -387,7 +542,7 @@ subset(TotalCSQScore < quantile(CSQConversion$TotalCSQScore, probs = .75), na.rm
 
 # Visualise data after removing outliers
 ggplot(CSQConversionOutliersRM75, aes(x = TotalCSQScore, fill = Timepoint ))+
-  geom_histogram(binwidth = 1, )
+  geom_histogram(binwidth = 3)
 
 ```
 
@@ -418,12 +573,12 @@ interaction.plot(x.factor =  CSQConversionOutliersRM75$Timepoint,
                  response = CSQConversionOutliersRM75$TotalCSQScore,
                  fun = mean,
                  xlab = "Timepoint",
-                 ylab = "Score",
-                 ylim = c(0, 7),
+                 ylab = "Total CSQ Score",
+                 ylim = c(0, 10),
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
-                 trace.label = "Total CSQ Score",
+                 trace.label = " ",
                  fixed=T,
                  leg.bty ="o")
 interaction.plot(x.factor =  CSQConversionOutliersRM75$Timepoint,
@@ -470,6 +625,8 @@ interaction.plot(x.factor =  CSQConversionOutliersRM75$Timepoint,
 
 
 ```{r}
+#Linear models for  CSQ scores and subscales
+
 CSQModel3 = lm(TotalCSQScore ~ Timepoint + Condition + Timepoint:Condition,
               data = CSQConversionOutliersRM75)
 
@@ -492,10 +649,7 @@ DisModel3 = lm(DisorientationWeight ~ Timepoint + Condition + Timepoint:Conditio
 
 Anova(DisModel3,
       type = "II")
-```
 
-
-```{r}
 Nau3marginal = emmeans(NauModel3, ~Timepoint:Condition)
 pairs(Nau3marginal, adjust="tukey")
 ```
@@ -547,7 +701,8 @@ CSQKPConversionTotal <- CSQKPConversion %>%
 ```
 
 ```{r}
-  
+## Reformat data and wrtie csv file to to be read in JASP  
+
 CSQKPConversionTotalCSQ <- pivot_longer(data = CSQKPConversionTotal,
                           cols = c(3:4)) %>% 
   select(c(1,2,9,10))
@@ -645,19 +800,6 @@ ggplot(CSQKPConversionOculo, aes(Condition, Value, fill = Timepoint ))+
   geom_violin(alpha = 0.5)+
   labs(title = "Total CSQ Score")
 
-interaction.plot(x.factor =  CSQKPConversionOculoSummary$Timepoint,
-                 trace.factor = CSQKPConversionOculoSummary$Condition,
-                 response = CSQKPConversionOculoSummary$mean,
-                 fun = mean,
-                 ylim = c(-3,6),
-                 xlab = "Timepoint",
-                 ylab = "Score",
-                 type= "b",
-                 col=c("red","blue"),
-                 pch=c(19,17,15),
-                 trace.label = "Oculomotor",
-                 fixed=F,
-                 leg.bty ="o")
 ```
 
 ```{r}

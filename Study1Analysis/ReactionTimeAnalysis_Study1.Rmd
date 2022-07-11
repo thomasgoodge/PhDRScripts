@@ -67,8 +67,8 @@ dataset <- dataset[,-7] %>%
   select(c(ID, Condition, 1:6))
 
 #Convert the two colums with block number into one label
-  dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "Control", "")
-  dataset$Block2.thisRepN <- ifelse(grepl("[0-9]", dataset$Block2.thisRepN), "Experiment", "")
+  dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "Cognitive Only", "")
+  dataset$Block2.thisRepN <- ifelse(grepl("[0-9]", dataset$Block2.thisRepN), "Dual Cognitive-AR", "")
   
   dataset <-dataset %>% 
     mutate( Block =  paste(dataset$Block1.thisRepN, 
@@ -76,8 +76,10 @@ dataset <- dataset[,-7] %>%
     select(-c(4,5))
   
   
-dataset[dataset== 'G'] <- 'Global'
-dataset[dataset== 'L'] <- 'Local'
+dataset[dataset== 'G'] <- 'Wider'
+dataset[dataset== 'L'] <- 'Focused'
+
+
 
 ```
 
@@ -105,6 +107,8 @@ datasetMeanRT <- datasetRT %>%
     sd_total = sd(Block_resp.rt, na.rm = T) 
         ) 
 
+
+
 ```
 
 ```{r}
@@ -119,13 +123,27 @@ datasetMeanRT %>%
   ggplot(aes(reorder(Block, avg), avg, ))+
   geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
   geom_point (size = 4.5, aes(color = Condition), shape = 4) +
-  labs(title = "Mean Reaction Time between Standard and Augmented conditions",
-      x = "Trial Type",
+  labs(x = "Block",
       y = "Mean Reaction Time (s)",
       tag = "",)+
       ylim(0.4,0.7)+
   theme_bw()
 
+```
+```{r}
+interaction.plot(x.factor =  datasetMeanRT$Block,
+                 trace.factor = datasetMeanRT$Condition,
+                 response = datasetMeanRT$avg,
+                 fun = mean,
+                 ylim = (c(0,0.7)),
+                 xlab = "Timepoint",
+                 ylab = "Disorientation subscale",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition",
+                 fixed=T,
+                 leg.bty ="o")
 ```
 
 
