@@ -13,6 +13,7 @@ library(tidyverse)
 library(readr)
 library(stringr)
 library(plyr)
+library(splitstackshape)
 
 ```
 
@@ -46,7 +47,7 @@ for (i in 1:length(file_list)){
 ```
 
 ```{r}
-  
+  #clean up dataset to only include hazard response data and reorganise
   datasetHazard <- datasetRaw %>% 
     select(idx, video_file, hazard_resp.rt) 
    datasetHazard$video_file <- gsub('.{4}$', '', datasetHazard$video_file)
@@ -54,3 +55,12 @@ for (i in 1:length(file_list)){
              
 
 ```
+
+
+```{r}
+#Split the column with all responses into multiple columns per participants
+datasetHazard <- cSplit(datasetHazard, "hazard_resp.rt", sep=",")
+#splitstackshape
+
+```
+
