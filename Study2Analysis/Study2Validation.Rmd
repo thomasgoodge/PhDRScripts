@@ -13,6 +13,7 @@ library(tidyverse)
 library(readr)
 library(stringr)
 library(plyr)
+library(dplyr)
 library(splitstackshape)
 library(readxl)
 
@@ -51,25 +52,92 @@ for (i in 1:length(file_list)){
   #clean up dataset to only include hazard response data and reorganise
   datasetHazard <- datasetRaw %>% 
     select(idx, video_file, hazard_resp.rt) 
-   datasetHazard$video_file <- gsub('.{4}$', '', datasetHazard$video_file)
-   datasetHazard <- datasetHazard[-which(datasetHazard$hazard_resp.rt == ""), ]
-             
-
-```
-
-
-```{r}
+    
+#magic line that gets rid of [ ] without using regex
+  datasetHazard$hazard_resp.rt <-stringr::str_remove_all(datasetHazard$hazard_resp.rt,"[\\[\\]]")
+   
+   
+   datasetHazard$video_file <- gsub('.{4}$', '', datasetHazard$video_file) 
+   datasetHazard <- datasetHazard[-which(datasetHazard$hazard_resp.rt == "")] %>% 
+   
+     dplyr::rename(PilotClips = video_file)
+   
+   
+   #remove empty rows by changing blank spaces to NA then remvoing incomplete cases
+  datasetHazard$PilotClips[datasetHazard$PilotClips == ""] <- NA
+  
+  datasetHazard <- datasetHazard[complete.cases(datasetHazard$PilotClips), ]  
+              
 #Split the column with all responses into multiple columns per participants
-datasetHazard <- cSplit(datasetHazard, "hazard_resp.rt", sep=",")
-#splitstackshape
+  datasetHazard <-  cSplit(datasetHazard, "hazard_resp.rt", sep=",")   
+
 
 ```
 
 
 ```{r}
+#Read in onset times spreadsheet
 
 setwd('C:/Users/thoma/OneDrive - University of Glasgow/Documents')
-onsetTimes = read_excel("Study2HazardSheet.xlsx" )
+onsetTimes = read_excel("Study2HazardSheet.xlsx" ) %>% 
+  select(-3)
 
 ```
+
+
+```{r}
+#Combine dataframes
+
+datasetHazardSorted<- left_join(datasetHazard, onsetTimes, by='PilotClips')
+
+```
+
+```{r}
+#Create summary table
+
+HazardRespSummary <- datasetHazardSorted %>% 
+  #remove participants with low responses rates
+   subset(idx !="1") %>% 
+   subset(idx !="4") %>% 
+ 
+  group_by(idx, `ClipOnset(s)`) %>% 
+    summarise(mean = mean(hazard_resp.rt_01, na.rm = T))
+
+```
+
+
+
+```{r}
+
+# if i in columns 3 : 15 == Onset time || Onsettime + 2,
+# 
+# 
+# mutate into (hazard resp)
+# 
+# average(hazard resp)
+# 
+# 
+# 
+# 
+# group by PIlot clip) and hazardResp
+# if i in columns 3 : 15 
+# 
+# == Onset time or Onsettime + 2,
+# 
+# 
+# mutate into (hazard resp)
+# 
+# average(hazard resp)
+# 
+# 
+# 
+# 
+# group by Pilot clip) and hazardResp
+
+###
+
+```
+
+
+
 
