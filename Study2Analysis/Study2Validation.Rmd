@@ -16,6 +16,7 @@ library(plyr)
 library(dplyr)
 library(splitstackshape)
 library(readxl)
+library(xlsx)
 
 ```
 
@@ -91,207 +92,71 @@ datasetHazardSorted <- left_join(datasetHazard, onsetTimes, by='PilotClips')
 datasetHazardSorted$HazardOnset <- 0
   
 datasetHazardSorted <- datasetHazardSorted %>% 
-    select(c(1,2,Hazard, `Hazard Location`,HazardOnset, ClipOnset,3:15))
+    select(c(1,2,Hazard, `Hazard Location`,HazardOnset, ClipOnset, ClipOffset, 3:15))
+
+```
+
+
+```{r}
+
+# ## iterate through each column and remove values not close to the exp hazard onset
+# ##Hard coded because the automated way doesn't work
+# 
+# for (i in 1:nrow(datasetHazardSorted))
+#   {
+#     datasetHazardSorted$hazard_resp.rt_01[i] <- 
+#     ifelse(datasetHazardSorted$hazard_resp.rt_01[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
+#            datasetHazardSorted$hazard_resp.rt_01[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
+#            NA, datasetHazardSorted$hazard_resp.rt_01[i])
+#   }
+# 
 
 ```
 
 ```{r}
+#Iterate through all the colums and all the rows removing the numbrs not around
+#the hazard onset
 
-IsolateHazardResponse <- function(dataset, hazardColumn, ClipOnsetColumn)
+
+###McKenna et al (2006) - exlcuding those after the hazard
+
+for (c in c(8:ncol(datasetHazardSorted)))
 {
-  for (i in 1:nrow(dataset))
+
+  for (r in 1:nrow(datasetHazardSorted))
     {
-      ifelse(dataset$hazardColumn[i] <= dataset$ClipOnsetColumn[i] - 2||
-             dataset$hazardColumn[i] >= dataset$ClipOnsetColumn[i] + 2,
-             NA, dataset$hazardColumn[i])
-  }
-  dataset
-}
-```
-
-```{r}
-  
-test <- IsolateHazardResponse(datasetHazardSorted, hazard_resp.rt_01, ClipOnset)
-
-
-```
-
-
-```{r}
-
-## iterate through each column and remove values not close to the exp hazard onset
-##Hard coded because the automated way doesn't work
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_01[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_01[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_01[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_01[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_02[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_02[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_02[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_02[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_03[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_03[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_03[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_03[i])
-  }
-
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_04[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_04[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_04[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_04[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_05[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_05[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_05[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_05[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_06[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_06[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_06[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_06[i])
+      datasetHazardSorted[[c]][r] <- 
+      ifelse(datasetHazardSorted[[c]][r] < datasetHazardSorted$ClipOnset[r] - 1  ||
+             datasetHazardSorted[[c]][r] >  datasetHazardSorted$ClipOffset[r] , 
+             NA, datasetHazardSorted[[c]][r])
+    }
 }
 
 
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_07[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_07[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_07[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_07[i])
-  }
+# for (c in c(8:ncol(datasetHazardSorted)))
+# {
+# 
+#   for (r in 1:nrow(datasetHazardSorted))
+#     {
+#       datasetHazardSorted[[c]][r] <- 
+#        ifelse(datasetHazardSorted[[c]][r] < datasetHazardSorted$ClipOnset[r] - 2  ||
+#              datasetHazardSorted[[c]][r] >  datasetHazardSorted$ClipOnset[r] + 2 , 
+#              NA, datasetHazardSorted[[c]][r])
+#     }
+# }
 
-
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_08[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_08[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_08[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_08[i])
-  }
-
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_08[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_09[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_09[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_09[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_10[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_10[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_10[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_10[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_11[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_11[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_11[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_11[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_12[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_12[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_12[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_12[i])
-}
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_13[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_13[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_13[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_13[i])
-}
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_14[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_14[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_14[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_14[i])
-}
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_15[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_15[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_15[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_15[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_16[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_16[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_16[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_16[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_17[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_17[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_17[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_17[i])
-  }
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_18[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_18[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_18[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_18[i])
-}
-
-
-for (i in 1:nrow(datasetHazardSorted))
-  {
-    datasetHazardSorted$hazard_resp.rt_19[i] <- 
-    ifelse(datasetHazardSorted$hazard_resp.rt_19[i] <= datasetHazardSorted$ClipOnset[i] -2 ||
-           datasetHazardSorted$hazard_resp.rt_19[i] >= datasetHazardSorted$ClipOnset[i] + 2 , 
-           NA, datasetHazardSorted$hazard_resp.rt_19[i])
-}
 
 
 #iterate through and average the hazard responses
 for (i in 1:length(datasetHazardSorted$idx))
 {
-     datasetHazardSorted$HazardOnset[i] <- rowMeans(datasetHazardSorted[i,c(7:19)], na.rm = T )
+     datasetHazardSorted$HazardOnset[i] <- rowMeans(datasetHazardSorted[i,c(8:19)], na.rm = T )
 }
 
   datasetHazardSorted <- datasetHazardSorted %>% 
   #remove participants with low responses rates
    subset(idx !="1") %>% 
    subset(idx !="4") 
-
 
 ```
 
@@ -306,12 +171,51 @@ datasetHazardWide <- datasetHazardSorted %>%
     values_from = HazardOnset,
     
     
-  ) %>% 
+  ) 
   
-  select(1:4, 24:47) 
+  datasetHazardWide <- datasetHazardWide %>% 
+    select(1:4, 18:ncol(datasetHazardWide)) 
 
 #recode(datasetHazardWide,(NaN = NA))
+```
 
+```{r}
+#Create a data frame with the number of responses per clip to be mutated later
+
+RespCounts <- data.frame(
+  PilotClip1 = sum(!is.na(datasetHazardWide$PilotClip1)),
+  PilotClip2 = sum(!is.na(datasetHazardWide$PilotClip2)),
+  PilotClip3 = sum(!is.na(datasetHazardWide$PilotClip3)),
+  PilotClip4 = sum(!is.na(datasetHazardWide$PilotClip4)),
+  PilotClip5 = sum(!is.na(datasetHazardWide$PilotClip5)),
+  PilotClip6 = sum(!is.na(datasetHazardWide$PilotClip6)),
+  PilotClip7 = sum(!is.na(datasetHazardWide$PilotClip7)),
+  PilotClip8 = sum(!is.na(datasetHazardWide$PilotClip8)),
+  PilotClip9 = sum(!is.na(datasetHazardWide$PilotClip9)),
+  PilotClip10 = sum(!is.na(datasetHazardWide$PilotClip10)),
+  PilotClip11 = sum(!is.na(datasetHazardWide$PilotClip11)),
+  PilotClip12 = sum(!is.na(datasetHazardWide$PilotClip12)),
+  PilotClip13 = sum(!is.na(datasetHazardWide$PilotClip13)),
+  PilotClip14 = sum(!is.na(datasetHazardWide$PilotClip14)),
+  PilotClip15 = sum(!is.na(datasetHazardWide$PilotClip15)),
+  PilotClip16 = sum(!is.na(datasetHazardWide$PilotClip16)),
+  PilotClip17 = sum(!is.na(datasetHazardWide$PilotClip17)),
+  PilotClip18 = sum(!is.na(datasetHazardWide$PilotClip18)),
+  PilotClip19 = sum(!is.na(datasetHazardWide$PilotClip19)),
+  PilotClip20 = sum(!is.na(datasetHazardWide$PilotClip20)),
+  PilotClip21 = sum(!is.na(datasetHazardWide$PilotClip21)),
+  PilotClip22 = sum(!is.na(datasetHazardWide$PilotClip22)),
+  PilotClip23 = sum(!is.na(datasetHazardWide$PilotClip23)),
+  PilotClip24 = sum(!is.na(datasetHazardWide$PilotClip24))
+    ) %>% 
+  pivot_longer(cols = 1:24,
+               names_to = "ClipNumber",
+               values_to = "RespCount")
+```
+
+
+```{r}
+#SUmmarise the mean of each Pilot Clip response into a final table
 
 datasetHazardWideSummary <- datasetHazardWide %>% 
   group_by(idx) %>% 
@@ -345,12 +249,20 @@ datasetHazardWideSummary <- datasetHazardWide %>%
                values_to = "HazardResponse"
                
                ) %>% 
+  #add descriptive columns
+  mutate(Hazard = onsetTimes$Hazard) %>% 
   mutate( OriginalOnset = onsetTimes$ClipOnset) %>% 
-  mutate(Difference = HazardResponse - OriginalOnset)
-
-
+  mutate(Difference = HazardResponse - OriginalOnset) %>% 
+  mutate(RespCount = RespCounts$RespCount) %>% 
+  mutate(PercentageResponses = (RespCount / 24) * 100 ) %>% 
+  mutate(AcceptReject = (ifelse(PercentageResponses >= 50, T, F)))
 ```
 
+
+```{r}
+#Write finla table to excel file
+write.xlsx(datasetHazardWideSummary, "Study2ValidationOnsetTimes.xlsx")
+```
 
 
 
