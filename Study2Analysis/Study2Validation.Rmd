@@ -25,10 +25,10 @@ library(xlsx)
 ### Read in the Data Files ###
 
 #set the working directory to the data folder
-setwd("D:/Python Scripts/")
+setwd("K:/PsychoPyExperiments/Study 2 Clips")
 
 #Define the filepath for where the data is coming from
-dataFolder <- "D:/Road Footage/PavloviaData/data"
+dataFolder <- "K:/Road Footage/PavloviaData/data"
 
 #Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
 file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
@@ -78,7 +78,7 @@ for (i in 1:length(file_list)){
 ```{r}
 #Read in onset times spreadsheet
 
-setwd('C:/Users/thoma/OneDrive - University of Glasgow/Documents')
+#setwd('C:/Users/thoma/OneDrive - University of Glasgow/Documents')
 onsetTimes = read_excel("Study2HazardSheet.xlsx" ) %>% 
   select(-3)
 
