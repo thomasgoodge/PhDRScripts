@@ -46,14 +46,94 @@ for (i in 1:length(file_list)){
   
   datasetRaw <- rbind.fill(datasetRaw, temp_data) %>% 
     mutate(idx = as.integer(factor(participant))) 
+    
 }
+
+datasetRaw <- datasetRaw %>% 
+  select(-"participant") %>% 
+  select(-"participant.")
+
 ```
+
+
+```{r}
+
+#Standardise age inputs
+
+datasetRaw$Age.Years..months.. <- gsub("81 years 1 month", "81.83", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("72 yrs 8 months", "72.67", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("29, 4", "29.33", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("56 years 8 months", "56.67", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("71/09", "71.75", as.character(datasetRaw$Age.Years..months..)) 
+
+datasetRaw$Age.Years..months.. <- gsub("62 years 11 months", "62.92", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("80y 9m", "80.75", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("66 years and 8 months", "66.67", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("38, 8", "38.67", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("54 yrs  1 month", "54.83", as.character(datasetRaw$Age.Years..months..)) 
+datasetRaw$Age.Years..months.. <- gsub("41, 9", "41.75", as.character(datasetRaw$Age.Years..months..)) 
+
+
+datasetRaw$Age.Years..months.. <- gsub("years", "", as.character(datasetRaw$Age.Years..months..)) 
+
+
+datasetRaw$Age.Years..months.. <- as.numeric(datasetRaw$Age.Years..months..)
+
+mean(datasetRaw$Age.Years..months.., na.rm = T)
+  
+```
+
+```{r}
+
+#standardise driving experience inputs
+
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("54yrs 5mths", "54.42", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("62y 0m", "62.0", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("24, 1", "24.83", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("19,8", "19.67", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("7,8", "7.67", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("47 years 8 months", "47.67", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("38 years 4 months ", "38.33", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("81 years 1 month", "81.83", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+
+
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("years experience", "", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("years", "", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("Year", "", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+datasetRaw$Years.driving.experience..Years..months.. <- gsub("yrs", "", as.character(datasetRaw$Years.driving.experience..Years..months..)) 
+
+
+
+
+datasetRaw$Years.driving.experience..Years..months.. <- as.numeric(datasetRaw$Years.driving.experience..Years..months..)
+
+
+
+demogs <- group_by(datasetRaw, idx, Age.Years..months..) %>% 
+summarise(Age = Age.Years..months.. > 75,
+          idx = idx)
+
+
+
+
+  
+```
+
 
 ```{r}
   #clean up dataset to only include hazard response data and reorganise
   datasetHazard <- datasetRaw %>% 
-    select(idx, video_file, hazard_resp.rt) 
-    
+  #Remove drivers older then 75 - according to Horswill et al 2009 - A comparison of the hazard perception ability of matched #groups of healthy drivers aged 35 to 55, 65 to 74, and 75 to 84 years
+ 
+  subset(Age.Years..months..< 75) 
+  meanAge <- mean(datasetHazard$Age.Years..months..)
+  sdAge <- sd(datasetHazard$Age.Years..months..) 
+  meanDrExp <- mean(datasetHazard$Years.driving.experience..Years..months.., na.rm = T)
+  sdDrExp <- sd(datasetHazard$Years.driving.experience..Years..months.., na.rm = T)
+                
+  datasetHazard <- datasetHazard %>%   
+  select(idx, video_file, hazard_resp.rt) 
+
 #magic line that gets rid of [ ] without using regex
   datasetHazard$hazard_resp.rt <-stringr::str_remove_all(datasetHazard$hazard_resp.rt,"[\\[\\]]")
    
@@ -254,8 +334,8 @@ datasetHazardWideSummary <- datasetHazardWide %>%
   mutate( OriginalOnset = onsetTimes$ClipOnset) %>% 
   mutate(Difference = HazardResponse - OriginalOnset) %>% 
   mutate(RespCount = RespCounts$RespCount) %>% 
-  mutate(PercentageResponses = (RespCount / 24) * 100 ) %>% 
-  mutate(AcceptReject = (ifelse(PercentageResponses >= 50, T, F)))
+  mutate(PercentageResponses = (RespCount / length(unique(datasetHazardWide$idx))) * 100 ) %>% 
+  mutate(AcceptReject = (ifelse(PercentageResponses >= 90, 1, 0)))
 ```
 
 
