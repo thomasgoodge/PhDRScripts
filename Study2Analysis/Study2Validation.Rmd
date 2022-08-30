@@ -25,10 +25,10 @@ library(xlsx)
 ### Read in the Data Files ###
 
 #set the working directory to the data folder
-setwd("K:/PsychoPyExperiments/Study 2 Clips")
+setwd("D:/PsychoPyExperiments/Study 2 Clips")
 
 #Define the filepath for where the data is coming from
-dataFolder <- "K:/Road Footage/PavloviaData/data"
+dataFolder <- "D:/Road Footage/PavloviaData/data"
 
 #Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
 file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
@@ -108,14 +108,6 @@ datasetRaw$Years.driving.experience..Years..months.. <- gsub("yrs", "", as.chara
 datasetRaw$Years.driving.experience..Years..months.. <- as.numeric(datasetRaw$Years.driving.experience..Years..months..)
 
 
-
-demogs <- group_by(datasetRaw, idx, Age.Years..months..) %>% 
-summarise(Age = Age.Years..months.. > 75,
-          idx = idx)
-
-
-
-
   
 ```
 
@@ -149,7 +141,10 @@ summarise(Age = Age.Years..months.. > 75,
   datasetHazard <- datasetHazard[complete.cases(datasetHazard$PilotClips), ]  
               
 #Split the column with all responses into multiple columns per participants
-  datasetHazard <-  cSplit(datasetHazard, "hazard_resp.rt", sep=",")   
+  datasetHazard <-  cSplit(datasetHazard, "hazard_resp.rt", sep=",") 
+  
+   datasetHazard <- subset(datasetHazard, idx !="4")
+    
 
 
 ```
@@ -206,13 +201,26 @@ for (c in c(8:ncol(datasetHazardSorted)))
   for (r in 1:nrow(datasetHazardSorted))
     {
       datasetHazardSorted[[c]][r] <- 
-      ifelse(datasetHazardSorted[[c]][r] < datasetHazardSorted$ClipOnset[r] - 1  ||
+      ifelse(datasetHazardSorted[[c]][r] < datasetHazardSorted$ClipOnset[r] - 0.5  ||
              datasetHazardSorted[[c]][r] >  datasetHazardSorted$ClipOffset[r] , 
              NA, datasetHazardSorted[[c]][r])
     }
 }
 
 
+resp1 <- data.frame(datasetHazardSorted$hazard_resp.rt_01)
+resp2 <- data.frame(datasetHazardSorted$hazard_resp.rt_02)
+resp3 <- data.frame(datasetHazardSorted$hazard_resp.rt_03)
+resp4 <- data.frame(datasetHazardSorted$hazard_resp.rt_04)
+resp5 <- data.frame(datasetHazardSorted$hazard_resp.rt_05)
+resp6 <- data.frame(datasetHazardSorted$hazard_resp.rt_06)
+
+Responses <- data.frame(resp1, resp2,resp3,resp4, resp5, resp6)
+
+Responses <- Responses %>% 
+  mutate(A = coalesce(datasetHazardSorted.hazard_resp.rt_01, datasetHazardSorted.hazard_resp.rt_02, datasetHazardSorted.hazard_resp.rt_03, datasetHazardSorted.hazard_resp.rt_04, datasetHazardSorted.hazard_resp.rt_05, datasetHazardSorted.hazard_resp.rt_06))
+  
+datasetHazardSorted$HazardOnset <- Responses$A
 # for (c in c(8:ncol(datasetHazardSorted)))
 # {
 # 
@@ -226,17 +234,17 @@ for (c in c(8:ncol(datasetHazardSorted)))
 # }
 
 
-
-#iterate through and average the hazard responses
-for (i in 1:length(datasetHazardSorted$idx))
-{
-     datasetHazardSorted$HazardOnset[i] <- rowMeans(datasetHazardSorted[i,c(8:19)], na.rm = T )
-}
-
-  datasetHazardSorted <- datasetHazardSorted %>% 
-  #remove participants with low responses rates
-   subset(idx !="1") %>% 
-   subset(idx !="4") 
+# 
+# #iterate through and average the hazard responses
+# for (i in 1:length(datasetHazardSorted$idx))
+# {
+#      datasetHazardSorted$HazardOnset[i] <- rowMeans(datasetHazardSorted[i,c(8:19)], na.rm = T )
+# }
+# 
+#   datasetHazardSorted <- datasetHazardSorted %>% 
+#   #remove participants with low responses rates
+#    subset(idx !="1") %>% 
+#    subset(idx !="4") 
 
 ```
 
@@ -254,7 +262,7 @@ datasetHazardWide <- datasetHazardSorted %>%
   ) 
   
   datasetHazardWide <- datasetHazardWide %>% 
-    select(1:4, 18:ncol(datasetHazardWide)) 
+    select(1:4, 19:ncol(datasetHazardWide)) 
 
 #recode(datasetHazardWide,(NaN = NA))
 ```
@@ -335,12 +343,12 @@ datasetHazardWideSummary <- datasetHazardWide %>%
   mutate(Difference = HazardResponse - OriginalOnset) %>% 
   mutate(RespCount = RespCounts$RespCount) %>% 
   mutate(PercentageResponses = (RespCount / length(unique(datasetHazardWide$idx))) * 100 ) %>% 
-  mutate(AcceptReject = (ifelse(PercentageResponses >= 90, 1, 0)))
+  mutate(AcceptReject = (ifelse(PercentageResponses >= 75, 1, 0)))
 ```
 
 
 ```{r}
-#Write finla table to excel file
+#Write final table to excel file
 write.xlsx(datasetHazardWideSummary, "Study2ValidationOnsetTimes.xlsx")
 ```
 
