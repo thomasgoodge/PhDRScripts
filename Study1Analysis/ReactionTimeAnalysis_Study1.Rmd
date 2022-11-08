@@ -23,10 +23,10 @@ library(emmeans)
 ### Read in the Data Files ###
 
 #set the working directory to the data folder
-setwd("D:/Python Scripts/")
+setwd("D:/PsychoPyExperiments/Study 1 GoNoGo/")
 
 #Define the filepath for where the data is coming from
-dataFolder <- "D:/Python Scripts/RTData"
+dataFolder <- "D:/PsychoPyExperiments/Study 1 GoNoGo/RTData"
 
 #Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
 file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
@@ -202,6 +202,14 @@ datasetCorr <- dataset %>%
 
 CorrAovInt = aov(PercentCorrect ~ Condition * Block, data = datasetCorr) 
 summary(CorrAovInt)
+
+```
+```{r}
+NullModel <- lmer(Block_resp.rt ~ 1 + (1|ID) + Condition, data = datasetRT)
+
+summary(NullModel)
+
+
 
 ```
 

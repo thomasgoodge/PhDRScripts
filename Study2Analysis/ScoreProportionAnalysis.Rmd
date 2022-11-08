@@ -1,0 +1,61 @@
+---
+title: "ScoreProportionAnalysis"
+author: "TGoodge"
+date: '2022-11-01'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+
+
+```
+
+
+```{r}
+
+dataFolder = "D:/Study2Data/score_data/"
+
+fileList <- list.files(path = dataFolder, pattern = "..txt$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+```
+
+```{r}
+#Loop through the files and create one large dataset
+scoreDatasetRaw <- data.frame() 
+  
+scoreDatasetRaw <- scoreDatasetRaw %>% 
+  mutate("ID") %>% 
+  mutate("DiamondProportion") %>% 
+  mutate("EmeraldProportion") %>% 
+  mutate("Average Proportion")
+# datasetRaw[nrow(datasetRaw) + 1,] = c(1,1,1)
+  
+
+
+for (file in fileList)
+{
+    tempData <- read.csv(file, header = F)
+    tempData["ID"] = substr(file, start = 26,stop = 28)
+    
+    
+    nlast <- 1
+    DiamondScore <- as.numeric(substr(tempData[1,1], nchar(tempData[1,1]) - nlast, nchar(tempData[1,1])))
+    EmeraldScore <- as.numeric(substr(tempData[2,1], nchar(tempData[2,1]) - nlast, nchar(tempData[2,1])))
+  
+    mlast <- 2
+    DiamondTotal <- as.numeric(substr(tempData[3,1], nchar(tempData[3,1]) - mlast, nchar(tempData[3,1])))
+    EmeraldTotal <- as.numeric(substr(tempData[4,1], nchar(tempData[4,1]) - mlast, nchar(tempData[4,1])))
+    
+    DiamondProportion = DiamondScore/ DiamondTotal * 100
+    EmeraldProportion = EmeraldScore/ EmeraldTotal * 100
+    
+    AverageProportion = (DiamondProportion + EmeraldProportion) / 2
+    
+    scoreDatasetRaw[nrow(scoreDatasetRaw) + 1,] = c(tempData[1,2],DiamondProportion,EmeraldProportion, AverageProportion)
+  
+}
+```
+
+

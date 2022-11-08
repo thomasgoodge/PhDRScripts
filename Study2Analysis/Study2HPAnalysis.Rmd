@@ -1,0 +1,45 @@
+---
+title: "Study2HPAnalysis"
+author: "TGoodge"
+date: '2022-11-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+
+```
+
+
+```{r}
+
+dataFolder = "D:/Study2Data/hp_data/"
+
+file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+```
+
+```{r}
+HPDatasetRaw <- data.frame()
+
+for (file in file_list){
+  tempData <- read.csv(file, header = T)
+  HPDatasetRaw <- rbind(HPDatasetRaw, tempData)
+}
+```
+
+```{r}
+
+HPDatasetSort <- HPDatasetRaw %>% 
+  select(participant, video_file, trials_3.thisTrialN, button_resp.rt)
+
+#need to read in onset and offset times
+
+```
+
