@@ -9,37 +9,403 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 ```{r}
-knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-library(dplyr)
 
+library(tidyverse)
+library(splitstackshape)
+library(stringr)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
 ```
 
 
 ```{r}
+#Set the folder where the data is stored
 
 dataFolder = "D:/Study2Data/hp_data/"
 
+#Create a list of all the csv files in the folder
 file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
 
 ```{r}
-HPDatasetRaw <- data.frame()
-
+RawHPDataset <- data.frame()
+#loop through all the fills, create a temporary container, remove the first, second and last rows and then add 1 to the trials counter. Then bind it to the dataset
 for (file in file_list){
-  tempData <- read.csv(file, header = T)
-  HPDatasetRaw <- rbind(HPDatasetRaw, tempData)
+  tempData <- read.csv(file, header = T) %>% 
+    slice(c(-1, -2, -23)) 
+    tempData$trials_3.thisTrialN <- tempData$trials_3.thisTrialN + 1
+  RawHPDataset <- rbind(RawHPDataset, tempData)
+}
+```
+
+```{r}
+#Sorted dataset with relevant columns selected
+SortedHPDataset <- RawHPDataset %>% 
+  select(participant, video_file, trials_3.thisTrialN, button_resp.rt)
+
+
+#Remove th e/mp4 tail from the clip number so it can be joined to hazard data table
+SortedHPDataset <- SortedHPDataset %>%  separate(video_file, c('ClipNumber', 'del')) %>% 
+  select(-3)
+
+SortedHPDataset$Block <- 'Control'  
+SortedHPDataset$Block[SortedHPDataset$trials_3.thisTrialN > 10] <- "Exp" 
+
+
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip2"] <- "PilotClip02"
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip3"] <- "PilotClip03"
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip4"] <- "PilotClip04"
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip5"] <- "PilotClip05"
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip6"] <- "PilotClip06"
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip7"] <- "PilotClip07"
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip8"] <- "PilotClip08"
+SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip9"] <- "PilotClip09"
+  
+
+
+```
+
+
+```{r}
+# 
+# ExpRTData <- SortedHPDataset %>% filter(Block == "Exp")
+# 
+# ExpRTData$button_resp.rt <-stringr::str_remove_all(ExpRTData$button_resp.rt,"[\\[\\]]")
+# 
+# ExpRTData <- ExpRTData %>% 
+#   separate_rows(button_resp.rt, sep = ",")
+# 
+# ExpRTData$button_resp.rt <- as.numeric(ExpRTData$button_resp.rt)
+# #Split the data frame into individual ones based on each clip
+# ExpRTList <- split(ExpRTData, f= ExpRTData$ClipNumber)
+# # add each item in the list into it's own dataframe
+# #list2env(ExpRTList, envir = globalenv())
+# # tempClipData <- item %>% 
+#   #   mutate(ClipNumber = item$ClipNumber) %>% 
+#   # group_by(Condition, Block) %>% 
+#   #   summarise(clip = ClipNumber,
+#   #             meanRT = mean(RT, na.rm = T),
+#   #             meanRespCount = mean(RespCount, na.rm = T))
+#   # ClipData <- rbind(ClipData, tempClipData)
+# 
+# 
+# ExpRTPlots <- lapply(ExpRTList, ggplotRT)
+# lapply(ExpRTList, ggplotRT)
+
+
+```
+
+```{r}
+#Read in onset and offset times
+
+HazardData <- read.csv("D:/Study2Data/FinalStudy2HazardSheet.csv")
+
+#Rename clip numbers so there are sequential
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip2"] <- "PilotClip02"
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip3"] <- "PilotClip03"
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip4"] <- "PilotClip04"
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip5"] <- "PilotClip05"
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip6"] <- "PilotClip06"
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip7"] <- "PilotClip07"
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip8"] <- "PilotClip08"
+HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip9"] <- "PilotClip09"
+  
+
+```
+
+
+```{r}
+
+FullHPDataset <- left_join(SortedHPDataset, HazardData, by = "ClipNumber") %>% 
+  select(-6,-7)
+
+FullHPDataset$button_resp.rt <-stringr::str_remove_all(FullHPDataset$button_resp.rt,"[\\[\\]]")
+
+FullHPDataset$Condition <- FullHPDataset$participant
+
+FullHPDataset$Condition[as.numeric(str_sub(FullHPDataset$Condition, -1))%%2 == 0] <- "Wider"
+
+FullHPDataset$Condition[as.numeric(str_sub(FullHPDataset$Condition, -1))%%2 == 1] <- "Focused"
+
+
+```
+
+
+```{r}
+#prep data
+RTData <- FullHPDataset 
+
+#RTData$button_resp.rt <-stringr::str_remove_all(RTData$button_resp.rt,"[\\[\\]]")
+
+RTData <- RTData %>% 
+  separate_rows(button_resp.rt, sep = ",")
+
+RTData$button_resp.rt <- as.numeric(RTData$button_resp.rt)
+
+
+```
+
+```{r}
+ggplotRT <- function(lm.input) {
+  x <- ggplot(lm.input, aes(button_resp.rt, fill = Block, na.rm = T))+
+    labs(x = lm.input$ClipNumber)+
+    geom_histogram(binwidth = 0.5, colour = 'black', na.rm = T) +
+    #xlim(0, lm.input$Offset)+
+    geom_vline(xintercept = lm.input$Onset, linetype = "dotted", colour = "black", size = 1.0)
+   # geom_density()
+  return(x)
+}
+```
+
+
+```{r}
+#Split the data frame into individual ones based on each clip
+RTList <- split(RTData, f= RTData$ClipNumber)
+
+RTPlots <- lapply(RTList, ggplotRT)
+
+for (p in RTPlots){
+  print(p)
+}
+
+```
+
+```{r}
+
+#Add Split the condition column into focused and wider for the xperimental condition
+RTExpData <- RTData %>% 
+  mutate(Condition = if_else(Block != "Control", Condition, Block ))
+
+```
+
+```{r}
+
+#Create a function over to loop through data and plot it
+ggplotExpRT <- function(lm.input) {
+  x <- ggplot(lm.input, aes(button_resp.rt, fill = Condition, na.rm = T))+
+    labs(x = lm.input$ClipNumber)+
+    geom_histogram(binwidth = 0.5, colour = 'black', na.rm = T) +
+    #xlim(0, lm.input$Offset)+
+    geom_vline(xintercept = lm.input$Onset, linetype = "dotted", colour = "black", size = 1.0)
+   # geom_density()
+  return(x)
+}
+```
+
+
+```{r}
+
+RTExpList <- split(RTExpData, f= RTExpData$ClipNumber)
+RTExpPlots <- lapply(RTExpList, ggplotExpRT)
+
+for (p in RTExpPlots){
+  print(p)
+}
+
+
+```
+
+```{r}
+RTHazardData <- RTExpData
+
+RTHazardData <- RTHazardData[RTHazardData$button_resp.rt <= RTHazardData$Offset,]
+RTHazardData <- RTHazardData[RTHazardData$button_resp.rt >= RTHazardData$Onset -1.0,]
+
+RTHazardData <- na.omit(RTHazardData) 
+
+
+RTHazardData$RTStandard <- RTHazardData$button_resp.rt - RTHazardData$Onset
+
+#Remove duplicate responses from each participant, taking only the first one
+RTHazardData <-  subset(RTHazardData, !duplicated(subset(RTHazardData, select = c(participant, ClipNumber))))
+
+  
+```
+
+
+```{r}
+ggplotHazRT <- function(lm.input) {
+  x <- ggplot(lm.input, aes(RTStandard, fill = Condition, na.rm = T))+
+    labs(x = lm.input$ClipNumber)+
+    geom_histogram(binwidth = 0.1, colour = 'black', na.rm = T, position = "stack")+
+    #xlim(0, lm.input$Offset)+
+    geom_vline(xintercept = 0, linetype = "dotted", colour = "black", size = 1.0)
+   # geom_density()
+  return(x)
+}
+```
+
+```{r}
+RTHazardList <- split(RTHazardData, f= RTHazardData$ClipNumber)
+RTHazardPlots <- lapply(RTHazardList, ggplotHazRT)
+
+#list2env(RTHazardList, envir=globalenv())
+
+for (p in RTHazardPlots){
+  print(p)
+}
+```
+
+
+```{r}
+RTHazardSummary <- RTHazardData %>% 
+group_by(Condition, Block, ClipNumber) %>% 
+  summarise(
+    mean = mean(RTStandard)
+  ) 
+
+RTOverallSummary <- RTHazardData %>% 
+group_by(Condition, Block, ) %>% 
+  summarise(
+    mean = mean(RTStandard),
+    sd = sd(RTStandard)
+  ) 
+
+```
+```{r}
+PivotRTHazardSummary<- RTHazardSummary %>% 
+  pivot_wider(names_from = ClipNumber, values_from =mean)
+```
+
+
+```{r}
+
+#Function for interaction plots
+ggplotIntRT <- function(lm.input) {
+  x <-  ggplot(lm.input,  aes(x = Block, y = RTStandard, colour = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  #geom_line() +
+  geom_boxplot()+
+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      title = lm.input$ClipNumber, 
+      subtitle =  lm.input$Hazard.Location,
+      tag = "",)+  
+  geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)
+  theme_bw()
+  return(x)
+}
+```
+
+
+```{r}
+
+#Print out the interaction plots for each clip
+
+RTHazList <- split(RTHazardData, f= RTHazardData$ClipNumber)
+RTHazPlots <- lapply(RTHazList, ggplotIntRT)
+
+for (p in RTHazPlots){
+  print(p)
+}
+
+```
+```{r}
+ggplot(RTOverallSummary,  aes(x = Block, y = mean, colour = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  #geom_line() +
+  geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_point (size = 4.5, aes(color = Condition), shape = 4) +
+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      title = "Overall",
+      tag = "")+  
+  geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+  theme_bw()
+```
+```{r}
+ggplot(RTHazardData,  aes(x = Block, y = RTStandard, colour = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  #geom_line() +
+  geom_boxplot()
+  geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+  ylim(, 2)+
+  theme_bw()
+```
+
+
+
+
+```{r}
+ANOVA <- aov(RTStandard ~ Condition, data = RTHazardData)
+summary(ANOVA)
+
+TukeyPH <- TukeyHSD((ANOVA))
+
+TukeyPH
+```
+
+
+```{r}
+list2env(RTHazardList, envir = globalenv())
+
+```
+
+
+```{r}
+ClipAnova <-function(lm.input){
+  a <- aov(RTStandard ~ Condition, data = lm.input)
+  summary(a)
+  TukeyHSD(a)
+  
+}
+lapply(RTHazList, ClipAnova)
+
+```
+
+```{r}
+##################Response Count#############################
+
+#Split the column with all responses into multiple columns per participants
+RespCountDataset <-  cSplit(FullHPDataset, "button_resp.rt", sep=",") 
+TotalResponse <- sum(str_detect(colnames(RespCountDataset), 'button_resp.rt'))
+
+RespCountDataset$RespCount <- TotalResponse - rowSums(is.na(RespCountDataset[,9:ncol(RespCountDataset)]))
+  
+RespCountDataset <- RespCountDataset %>% 
+    mutate(Condition = if_else(Block != "Control", Condition, Block )) %>% 
+  select(c(1:8, ncol(RespCountDataset))) %>% 
+  subset(participant !="P21")
+#remove P21 for pressing too many times
+
+
+```
+
+```{r}
+ggplotRespCount <- function(lm.input) {
+  x <- ggplot(lm.input, aes(fill = Condition))+
+    geom_histogram(aes(RespCount), position = "dodge", colour = "black", binwidth = 1.0)+
+    labs(x = lm.input$ClipNumber)
+  return(x)
 }
 ```
 
 ```{r}
 
-HPDatasetSort <- HPDatasetRaw %>% 
-  select(participant, video_file, trials_3.thisTrialN, button_resp.rt)
+RespCountOverall <- RespCountDataset %>% 
+  group_by(Condition) %>% 
+  summarise(RespCount = mean(RespCount))
 
-#need to read in onset and offset times
+RespCountGroup <- RespCountDataset %>% 
+  group_by(ClipNumber, Condition)  %>%  
+  summarise(RespCount = mean(RespCount))
 
 ```
 
+```{r}
+PivotRespCountHazardSummary<- RespCountGroup %>% 
+  pivot_wider(names_from = ClipNumber, values_from = RespCount)
+```
+
+
+```{r}
+RespCountList <- split(RespCountDataset, f= RespCountDataset$ClipNumber)
+RespCountPlots <- lapply(RespCountList, ggplotRespCount)
+
+for (p in RespCountPlots){
+  print(p)
+}
+```

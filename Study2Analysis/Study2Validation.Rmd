@@ -189,11 +189,11 @@ datasetHazardSorted <- datasetHazardSorted %>%
 ```
 
 ```{r}
-#Iterate through all the colums and all the rows removing the numbrs not around
+#Iterate through all the columns and all the rows removing the numbers not around
 #the hazard onset
 
 
-###McKenna et al (2006) - exlcuding those after the hazard
+###McKenna et al (2006) - excluding those after the hazard
 
 for (c in c(8:ncol(datasetHazardSorted)))
 {
@@ -339,7 +339,7 @@ datasetHazardWideSummary <- datasetHazardWide %>%
                ) %>% 
   #add descriptive columns
   mutate(Hazard = onsetTimes$Hazard) %>% 
-  mutate( OriginalOnset = onsetTimes$ClipOnset) %>% 
+  mutate(OriginalOnset = onsetTimes$ClipOnset) %>% 
   mutate(Difference = HazardResponse - OriginalOnset) %>% 
   mutate(RespCount = RespCounts$RespCount) %>% 
   mutate(PercentageResponses = (RespCount / length(unique(datasetHazardWide$idx))) * 100 ) %>% 
