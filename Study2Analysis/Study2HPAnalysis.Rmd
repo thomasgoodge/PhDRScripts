@@ -18,13 +18,17 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 library(gridExtra)
+library(lme4)
+library(lmerTest)
+
 ```
 
 
 ```{r}
 #Set the folder where the data is stored
 
-dataFolder = "D:/Study2Data/hp_data/"
+#dataFolder = "D:/Study2Data/hp_data/"
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/Study2Data/hp_data"
 
 #Create a list of all the csv files in the folder
 file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
@@ -51,8 +55,8 @@ SortedHPDataset <- RawHPDataset %>%
 SortedHPDataset <- SortedHPDataset %>%  separate(video_file, c('ClipNumber', 'del')) %>% 
   select(-3)
 
-SortedHPDataset$Block <- 'Control'  
-SortedHPDataset$Block[SortedHPDataset$trials_3.thisTrialN > 10] <- "Exp" 
+SortedHPDataset$Block <- 'Baseline HP'  
+SortedHPDataset$Block[SortedHPDataset$trials_3.thisTrialN > 10] <- "Experiment AR" 
 
 
 SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip2"] <- "PilotClip02"
@@ -101,7 +105,7 @@ SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip9"] <- "Pilot
 ```{r}
 #Read in onset and offset times
 
-HazardData <- read.csv("D:/Study2Data/FinalStudy2HazardSheet.csv")
+HazardData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/Study2Data/FinalStudy2HazardSheet.csv")
 
 #Rename clip numbers so there are sequential
 HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip2"] <- "PilotClip02"
@@ -205,6 +209,10 @@ for (p in RTExpPlots){
   print(p)
 }
 
+arg_list <- c(RTExpPlots, list(ncol=2))
+#jpeg('histogram', width=1024, height=968)
+#grid.arrange(grobs = RTExpPlots, ncol = 2, nrow = 4)
+#graphics.off()
 
 ```
 
@@ -229,9 +237,10 @@ RTHazardData <-  subset(RTHazardData, !duplicated(subset(RTHazardData, select = 
 ```{r}
 ggplotHazRT <- function(lm.input) {
   x <- ggplot(lm.input, aes(RTStandard, fill = Condition, na.rm = T))+
-    labs(x = lm.input$ClipNumber)+
-    geom_histogram(binwidth = 0.1, colour = 'black', na.rm = T, position = "stack")+
-    #xlim(0, lm.input$Offset)+
+    labs(x = lm.input$ClipNumber, )+
+    geom_histogram(binwidth = 0.1, colour = 'black', na.rm = T, position = "stack", show.legend = F)+
+    xlim(-2.0, 2.0)+
+    ylim(0,7)+
     geom_vline(xintercept = 0, linetype = "dotted", colour = "black", size = 1.0)
    # geom_density()
   return(x)
@@ -242,11 +251,15 @@ ggplotHazRT <- function(lm.input) {
 RTHazardList <- split(RTHazardData, f= RTHazardData$ClipNumber)
 RTHazardPlots <- lapply(RTHazardList, ggplotHazRT)
 
-#list2env(RTHazardList, envir=globalenv())
+#list2env(RTHazardPlots, envir=globalenv())
 
 for (p in RTHazardPlots){
   print(p)
 }
+
+#grid.arrange(grobs = RTHazardPlots, ncol = 2, legend())
+
+
 ```
 
 
@@ -263,6 +276,8 @@ group_by(Condition, Block, ) %>%
     mean = mean(RTStandard),
     sd = sd(RTStandard)
   ) 
+
+
 
 ```
 ```{r}
@@ -308,29 +323,30 @@ ggplot(RTOverallSummary,  aes(x = Block, y = mean, colour = Condition))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
   #geom_line() +
   geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
-  geom_point (size = 4.5, aes(color = Condition), shape = 4) +
+  geom_point (size = 4.5, aes(color = Condition), shape = 2) +
   labs(x = "Block",
       y = "Mean Reaction Time (s)",
       title = "Overall",
       tag = "")+  
+  ylim(0,1.0) +
   geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+
+
   theme_bw()
 ```
 ```{r}
 ggplot(RTHazardData,  aes(x = Block, y = RTStandard, colour = Condition))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
   #geom_line() +
-  geom_boxplot()
+  geom_boxplot()+
   geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
-  ylim(, 2)+
+  ylab("Reaction Time difference from Hazard Onset")+
+  xlab("Condition")
   theme_bw()
 ```
 
-
-
-
 ```{r}
-ANOVA <- aov(RTStandard ~ Condition, data = RTHazardData)
+ANOVA <- aov(RTStandard ~ Condition * Block, data = RTHazardData)
 summary(ANOVA)
 
 TukeyPH <- TukeyHSD((ANOVA))
@@ -340,25 +356,152 @@ TukeyPH
 
 
 ```{r}
-list2env(RTHazardList, envir = globalenv())
+tg <- lm(RTStandard ~ Condition * Block, data = RTHazardData)
+
+summary(tg)
+
+t2g <- lm(RTStandard ~ Condition + Block, data = RTHazardData)
+
+summary(t2g)
+
+anova(tg, t2g)
 
 ```
 
 
 ```{r}
+mm <- lme4::lmList(RTStandard~Block|Condition,RTHazardData)
+coef(mm)
+
+summary(mm)
+```
+
+```{r}
+mm2 <- lme4::lmList(RTStandard~Condition|Block,RTHazardData, pool =  T)
+coef(mm2)
+
+summary(mm2)
+```
+
+
+
+```{r}
+RTHazardData <- RTHazardData %>% 
+  mutate(
+    Condition = as.factor(Condition),
+    Block = as.factor(Block)
+  ) %>%
+  mutate(
+    Condition = relevel(Condition, ref = "Wider"),
+    Block = relevel(Block, ref = "Baseline HP")
+  )
+
+model1 <- lm(RTStandard ~ Condition * Block, data = RTHazardData)
+summary(model1)
+```
+
+```{r}
+
+RTHazardData <- RTHazardData %>% 
+  mutate(
+    Condition = as.factor(Condition),
+    Block = as.factor(Block)
+  ) %>%
+  mutate(
+    Condition = relevel(Condition, ref = "Focused"),
+    Block = relevel(Block, ref = "Experiment AR")
+  )
+
+model2 <- lm(RTStandard ~ Condition*Block, data = RTHazardData)
+summary(model2)
+```
+
+```{r}
+
+library(effects)
+
+plot(allEffects(model1))
+plot(predictorEffect("Block", model1))
+
+plot(allEffects(model2))
+plot(predictorEffect("Block", model2))
+
+```
+
+```{r}
+hats <- as.data.frame(hatvalues(model1))
+
+hats <- hats[order(-hats['hatvalues(model1)']), ]
+
+##hats
+```
+```{r}
+plot(hatvalues(model1), type = 'h')
+```
+
+
+```{r}
+#list2env(RTHazardList, envir = globalenv())
+
+```
+
+```{r}
 ClipAnova <-function(lm.input){
-  a <- aov(RTStandard ~ Condition, data = lm.input)
+  a <- aov(RTStandard ~ Condition * Block, data = lm.input)
   summary(a)
   TukeyHSD(a)
   
 }
-lapply(RTHazList, ClipAnova)
+#lapply(RTHazList, ClipAnova)
 
 ```
 
 ```{r}
-##################Response Count#############################
+NullModel <- lmer(data = RTHazardData, formula = RTStandard ~  (1|participant))
 
+summary(NullModel)
+
+```
+
+```{r}
+Model1 = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + Block * Condition + (1|participant))
+
+summary(Model1)
+
+#anova(Model1)
+```
+
+```{r}
+
+RTIntModel = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + Block*Condition + (1|participant) + (1|ClipNumber))
+
+RTMainModel = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + (1|participant) + (1|ClipNumber))
+
+anova(RTMainModel, RTIntModel)
+
+summary(RTIntModel)
+
+```
+
+
+```{r}
+plot(predictorEffect("Block", RTIntModel))
+```
+
+
+
+```{r}
+library(report)
+results <- report(RTMainModel, CI = 95)
+
+print(results)
+```
+
+```{r}
+##################Response Count#############################
+```
+
+```{r}
 #Split the column with all responses into multiple columns per participants
 RespCountDataset <-  cSplit(FullHPDataset, "button_resp.rt", sep=",") 
 TotalResponse <- sum(str_detect(colnames(RespCountDataset), 'button_resp.rt'))
@@ -409,3 +552,10 @@ for (p in RespCountPlots){
   print(p)
 }
 ```
+```{r}
+RespIntModel = lmer(data = RespCountDataset, formula = RespCount ~ Block*Condition + (1|participant) + (1|ClipNumber))
+
+summary(RespIntModel)
+
+```
+

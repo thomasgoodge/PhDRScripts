@@ -18,9 +18,10 @@ library(emmeans)
 
 
 ```{r}
-setwd("D:/Qualtrics_Data/Study1/NASATLX")
+setwd("D://Study2Data/qualtrics_data/TLX")
+
 #Read in the data
-TLXdataRaw <- read.csv("TGExp1NasaTLX.csv") %>%
+TLXdataRaw <- read.csv("D:/Study2Data/qualtrics_data/TLX/TGExp2NasaTLX.csv") %>%
 
 # Tidy the data - select scores,
   select(starts_with('Q'))
@@ -32,14 +33,7 @@ TLXdataRaw <- read.csv("TGExp1NasaTLX.csv") %>%
   
   #Remove Pilot data rows
   TLXdataOrg <- TLXdataOrg[-c(1:9),]
-  
-  #Change incorrect entries
-  TLXdataOrg[TLXdataOrg == 'P04'] <- 'P04L'
-  TLXdataOrg[TLXdataOrg == 'P118'] <- 'P11G'
-  TLXdataOrg[TLXdataOrg == '13g'] <- 'P13G'
-  TLXdataOrg[TLXdataOrg == 'G19p'] <- 'P19G'
-  TLXdataOrg[TLXdataOrg == '21g'] <- 'P21G'
-  
+
 
 ```
 ```{r}
@@ -65,22 +59,32 @@ TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>%
   TLXdataOrg[TLXdataOrg == "G"] <- "Wider"
   TLXdataOrg[TLXdataOrg == "L"] <- "Focused" 
 
-  TLXdataOrg[TLXdataOrg == "Control"] <- "Cognitive Only"
-  TLXdataOrg[TLXdataOrg == "Experiment"] <- "Dual Cognitive-AR"
+  TLXdataOrg[TLXdataOrg == "Control"] <- "Hazard Perception"
+  TLXdataOrg[TLXdataOrg == "Experiment"] <- "Hazard Perception-AR" 
+  
+  TLXdataOrg$Condition <- TLXdataOrg$ID
+
+  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 0] <- "Wider"
+
+  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 1] <- "Focused"
 ```
 
 
 ```{r}
 #Convert to wrangled dataset
-TLXdata <- TLXdataOrg
+TLXdata <- TLXdataOrg %>% 
+  subset(ID !="P22")
+
 
 TLXdata$Performance <- 100 - TLXdata$`Overall Performance` 
 
 TLXdata <- TLXdata %>%  select(-`Overall Performance`)
 
 TLXdata$Total = rowSums(TLXdata[,c(4,9)], na.rm = T)
-  
+
+
 ```
+
 
 ```{r}
 TLXdataTotalSum <- TLXdata %>% 
@@ -92,8 +96,8 @@ TLXdataTotalSum <- TLXdata %>%
   )
 ```
 
-```{r}
 
+```{r}
 TLXdataSumm <- TLXdata %>% 
   
   group_by(Block, Condition) %>% 
@@ -117,15 +121,11 @@ TLXdataSumm <- TLXdata %>%
 
 ```
 
-
 ```{r}
 ggplot(TLXdata, aes(Condition, Total, fill = Block ))+
   geom_violin(alpha = 0.5)+
-  ylim(0,100)+
-  labs(title = "Mental Demand")
+  labs(title = "Total")
 ```
-
-
 
 
 ```{r}
@@ -159,7 +159,9 @@ ggplot(TLXdata, aes(Condition, Frustration, fill = Block ))+
   ylim (0,100)+
     labs(title = "Frustration")
 
+
 ```
+
 
 ```{r}
 
@@ -167,9 +169,9 @@ interaction.plot(x.factor = TLXdata$Block,
                  trace.factor = TLXdata$Condition,
                  response = TLXdata$Total,
                  fun = mean,
-                 ylim = (c(0,100)),
-                 xlab = "Block",
+                 xlab = "Timepoint",
                  ylab = "Total TLX Score",
+                 ylim = c(0,150),
                  type = "b",
                  col = c("red", "blue"),
                  pch = c(19,17),
@@ -178,6 +180,9 @@ interaction.plot(x.factor = TLXdata$Block,
                  xpd = T,
                  leg.bty="o"
                  )
+```
+
+```{r}
 
 interaction.plot(x.factor = TLXdata$Block,
                  trace.factor = TLXdata$Condition,
@@ -273,13 +278,15 @@ interaction.plot(x.factor = TLXdata$Block,
 
 ```
 
-
 ```{r}
 Total_Aov = lm(Total ~ Block + Condition + Block:Condition, data = TLXdata) 
+print("Total")
 
-Anova(Total_Aov)
+Anova(Total_Aov,
+      type = "II")
 
 ```
+
 
 
 ```{r}
@@ -359,22 +366,22 @@ pairs(FRmarginal, adjust="tukey")
 
 ```
 
+
 ```{r}
 TLXTotalmodel <- lmer(data = TLXdata, Total ~Block+Condition + (1|ID))
+TLXTotalmodel2 <- lmer(data = TLXdata, Total ~Block*Condition + (1|ID))
+
+anova(TLXTotalmodel,TLXTotalmodel2)
 
 summary(TLXTotalmodel)
+```
 
+
+```{r}
 Totalresults <- report(TLXTotalmodel, CI = 95)
 
 print(Totalresults)
 ```
-```{r}
-TLXTotalmodel2 <- lmer(data = TLXdata, Total ~Block*Condition + (1|ID))
-summary(TLXTotalmodel2)
-
-anova(TLXTotalmodel, TLXTotalmodel2)
-```
-
 
 ```{r}
 
@@ -382,7 +389,7 @@ TLXMentalmodel <- lmer(data = TLXdata, `Mental Demand` ~Block+Condition + (1|ID)
 
 TLXMentalmodel2 <- lmer(data = TLXdata, `Mental Demand` ~Block*Condition + (1|ID))
 
-anova(TLXMentalmodel2, TLXMentalmodel)
+anova(TLXMentalmodel, TLXMentalmodel2)
 
 summary(TLXMentalmodel)
 
@@ -391,22 +398,35 @@ Mentalresults <- report(TLXMentalmodel, CI = 95)
 print(Mentalresults)
 ```
 ```{r}
-TLXPhysmodel <- lmer(data = TLXdata, `Physical Demand` ~Block*Condition + (1|ID))
-TLXPhysmodel2 <- lmer(data = TLXdata, `Physical Demand` ~Block+Condition + (1|ID))
+TLXPhysmodel <- lmer(data = TLXdata, `Physical Demand` ~Block+Condition + (1|ID))
 
-anova(TLXPhysmodel2, TLXPhysmodel)
+
+TLXPhysmodel2 <- lmer(data = TLXdata, `Physical Demand` ~Block*Condition + (1|ID))
+
+TLXPhysmodel3 <- lmer(data = TLXdata, `Physical Demand` ~Condition + (1|ID))
+
+
+
+summary(TLXPhysmodel2)
+
+anova (TLXPhysmodel, TLXPhysmodel2)
+
 
 summary(TLXPhysmodel)
 
-Physresults <- report(TLXPhysmodel, CI = 95)
+Physresults <- report(TLXPhysmodel2, CI = 95)
 
-summary(Physresults)
 print(Physresults)
 ```
 ```{r}
-TLXTempmodel <- lmer(data = TLXdata, `Temporal Demand` ~Block*Condition + (1|ID))
-TLXTempmodel2 <- lmer(data = TLXdata, `Temporal Demand` ~Block+Condition + (1|ID))
+TLXTempmodel <- lmer(data = TLXdata, `Temporal Demand` ~Block+Condition + (1|ID))
+
+
+TLXTempmodel2 <- lmer(data = TLXdata, `Temporal Demand` ~Block*Condition + (1|ID))
+
+
 anova(TLXTempmodel, TLXTempmodel2)
+
 summary(TLXTempmodel)
 
 Tempresults <- report(TLXTempmodel, CI = 95)
@@ -445,4 +465,3 @@ Perfresults <- report(TLXPerfmodel, CI = 95)
 
 print(Perfresults)
 ```
-

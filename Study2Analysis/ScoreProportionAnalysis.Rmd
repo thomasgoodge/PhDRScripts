@@ -56,6 +56,47 @@ for (file in fileList)
     scoreDatasetRaw[nrow(scoreDatasetRaw) + 1,] = c(tempData[1,2],DiamondProportion,EmeraldProportion, AverageProportion)
   
 }
+
+
+
+```
+
+
+```{r}
+ scoreDatasetRaw$Condition <-  scoreDatasetRaw$`"ID"`
+
+ scoreDatasetRaw$Condition[as.numeric(str_sub( scoreDatasetRaw$Condition, -1))%%2 == 0] <- "Wider"
+
+ scoreDatasetRaw$Condition[as.numeric(str_sub( scoreDatasetRaw$Condition, -1))%%2 == 1] <- "Focused"
+ 
+scoreDatasetRaw$`"DiamondProportion"` <- as.numeric( scoreDatasetRaw$`"DiamondProportion"`)
+scoreDatasetRaw$`"EmeraldProportion"` <- as.numeric( scoreDatasetRaw$`"EmeraldProportion"`)
+scoreDatasetRaw$`"Average Proportion"` <- as.numeric( scoreDatasetRaw$`"Average Proportion"`)
+
+```
+
+```{r}
+
+summaryScoreDataset <-scoreDatasetRaw %>% 
+  group_by(Condition) %>% 
+  summarise(mean = mean(`"Average Proportion"`, na.rm = T),
+            sd = sd(`"Average Proportion"`),
+            meanDiamond = mean(`"DiamondProportion"`),
+            sdDiamond = sd(`"DiamondProportion"`),
+            meanEmerald = mean(`"EmeraldProportion"`),
+            sdEmerald = sd(`"EmeraldProportion"`))
+```
+
+```{r}
+scoreAnova <- aov(`"Average Proportion"` ~ Condition, data = scoreDatasetRaw)
+summary(scoreAnova)
+
+diaAnova <- aov(`"DiamondProportion"` ~ Condition, data = scoreDatasetRaw)
+summary(diaAnova)
+
+emeAnova <- aov(`"EmeraldProportion"` ~ Condition, data = scoreDatasetRaw)
+summary(emeAnova)
+
 ```
 
 

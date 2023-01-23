@@ -15,6 +15,7 @@ library(stringr)
 library(car)
 library(ggpubr)
 library(lme4)
+library(lmerTest)
 library(emmeans)
 ```
 
@@ -48,6 +49,7 @@ for (i in 1:length(file_list)){
 
 #Change a data naming error
 datasetRaw[datasetRaw == 'P04'] <- 'P04L'
+colnames(datasetRaw)[colnames(datasetRaw) == "ï..cue_file"]<- "Cue"
 
 ```
 
@@ -67,7 +69,7 @@ dataset <- dataset[,-7] %>%
   select(c(ID, Condition, 1:6))
 
 #Convert the two colums with block number into one label
-  dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "Cognitive Only", "")
+  dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), " Cognitive Only", "")
   dataset$Block2.thisRepN <- ifelse(grepl("[0-9]", dataset$Block2.thisRepN), "Dual Cognitive-AR", "")
   
   dataset <-dataset %>% 
@@ -87,10 +89,23 @@ dataset[dataset== 'L'] <- 'Focused'
 ```{r}
 #Create a dataset with only the RT data for the target stimulus
   datasetRT <- dataset %>% 
+  rename("ReactionTime" = "Block_resp.rt") %>% 
 # #   #Remove all NA values
-  drop_na(Block_resp.rt)
+  drop_na(ReactionTime)
 # Delete all rows where the stimulus isn't red ( Participants were not correct)
 datasetRT <- datasetRT[!(datasetRT$Block_resp.corr == 0),]
+
+datasetRT <- datasetRT %>% 
+  mutate(
+    Condition = as.factor(Condition),
+    Block = as.factor(Block)
+  ) 
+
+
+levels(datasetRT$Block)
+
+
+
 ```
 
 
@@ -103,8 +118,8 @@ datasetMeanRT <- datasetRT %>%
 
   summarise(
     n = n(),
-    avg = mean(Block_resp.rt, na.rm = T),
-    sd_total = sd(Block_resp.rt, na.rm = T) 
+    avg = mean(ReactionTime, na.rm = T),
+    sd_total = sd(ReactionTime, na.rm = T) 
         ) 
 
 
@@ -113,8 +128,8 @@ datasetMeanRT <- datasetRT %>%
 
 ```{r}
 
-ggplot(datasetRT, aes(reorder(Block, Block_resp.rt), Block_resp.rt,) ) +
-  geom_violin(aes(x = Block,  y = Block_resp.rt, colour = Condition, fill = Condition))
+ggplot(datasetRT, aes(reorder(Block, ReactionTime), ReactionTime,) ) +
+  geom_violin(aes(x = Block,  y = ReactionTime, colour = Condition, fill = Condition))
  
 
 ```
@@ -122,7 +137,7 @@ ggplot(datasetRT, aes(reorder(Block, Block_resp.rt), Block_resp.rt,) ) +
 datasetMeanRT %>% 
   ggplot(aes(reorder(Block, avg), avg, ))+
   geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
-  geom_point (size = 4.5, aes(color = Condition), shape = 4) +
+  geom_point (size = 4.5, aes(color = Condition), shape = 2) +
   labs(x = "Block",
       y = "Mean Reaction Time (s)",
       tag = "",)+
@@ -135,9 +150,9 @@ interaction.plot(x.factor =  datasetMeanRT$Block,
                  trace.factor = datasetMeanRT$Condition,
                  response = datasetMeanRT$avg,
                  fun = mean,
-                 ylim = (c(0,0.7)),
-                 xlab = "Timepoint",
-                 ylab = "Disorientation subscale",
+                 ylim = (c(0,1.0)),
+                 xlab = "Block",
+                 ylab = "Reaction time (s)",
                  type= "b",
                  col=c("red","blue"),
                  pch=c(19,17,15),
@@ -149,7 +164,10 @@ interaction.plot(x.factor =  datasetMeanRT$Block,
 
 ```{r}
 
-RTAovInt = aov(Block_resp.rt ~ Condition * Block, data = datasetRT) 
+RTAovInt = aov(ReactionTime ~ Condition * Block, data = datasetRT) 
+
+RTAovIntLM = lm(ReactionTime ~ Condition * Block, data = datasetRT) 
+summary(RTAovIntLM)
 
 summary(RTAovInt)
 ```
@@ -161,7 +179,7 @@ TukeyPH
 ```
 
 ```{r}
-RTLM = lm(Block_resp.rt ~ Condition + Block + Condition:Block, data = datasetRT) 
+RTLM = lm(ReactionTime ~ Condition + Block + Condition:Block, data = datasetRT) 
 
 Anova(RTLM,
       type = "II")
@@ -170,11 +188,7 @@ RTmarginal = emmeans(RTLM, ~Condition:Block)
 pairs(RTmarginal, adjust="tukey")
 ```
 
-
-
-
 ```{r}
-
 
 datasetCorr <- dataset %>% 
  group_by(ID, Block) %>% 
@@ -205,12 +219,198 @@ summary(CorrAovInt)
 
 ```
 ```{r}
-NullModel <- lmer(Block_resp.rt ~ 1 + (1|ID) + Condition, data = datasetRT)
+NullModel <- lmer(ReactionTime ~ 1 + (1|ID) + Condition, data = datasetRT)
 
 summary(NullModel)
+
+```
+```{r}
+RTModelNull = lmer(data = datasetRT, formula =  ReactionTime ~ (1|ID))
+summary(RTModelNull)
+```
+
+```{r}
+
+RTModel1 = lmer(data = datasetRT, formula = ReactionTime ~ Condition*Block + (1|ID))
+summary(RTModel1)
+anova(RTModelNull, RTModel1)
+```
+```{r}
+RTModel2 = lmer(data = datasetRT, formula = ReactionTime ~ Block + Condition + (1|ID))
+summary(RTModel1)
+
+```
+```{r}
+anova(RTModel1, RTModel2)
+```
+
+
+```{r}
+library(effects)
+plot(predictorEffect("Block", RTModel1))
+```
+
+
+
+```{r}
+
+results <- report(RTModel1, CI = 95)
+
+print(results)
+```
+```{r}
+RTModel2 = lmer(data = datasetRT, formula = ReactionTime ~Condition*Block + (1|ID) + (1|Block))
+summary(RTModel2)
+
+```
+
+
+```{r}
+
+plot(predictorEffect("Block", RTModel1), 
+     title = "",
+     ylab = "Reaction time",
+ 
+) 
+
+```
+```{r}
+###################   SIGNAL DETECTION ANALYSIS   ###############################
+```
+
+
+```{r}
+datasetSD <- dataset %>% 
+  rename("ReactionTime" = "Block_resp.rt")
+```
+
+
+```{r}
+datasetSD[datasetSD== 'images/StopIcon.png'] <- 'Go'
+datasetSD[datasetSD== 'images/OrangeIcon.png'] <- 'NoGo'
+datasetSD[datasetSD== 'images/YellowIcon.png'] <- 'NoGo'
+
+datasetSD <- datasetSD %>% 
+  mutate(SigDet = ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$Cue == "Go", "Hit", 
+                    ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$Cue == "NoGo", "FA",
+                      ifelse(is.na(datasetSD$ReactionTime) & datasetSD$Cue == "Go", "Miss",
+                        ifelse(is.na(datasetSD$ReactionTime) & datasetSD$Cue == "NoGo", "CR", ""
+                         ))))) #%>% 
+ # mutate(SigDet = ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$Cue == "NoGo", "FA","")) 
+ # mutate(SigDet = ifelse(is.na(datasetSD$ReactionTime)) & datasetSD$Cue == "Go", "Miss","")
+  #dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "Cognitive Only", "")
+
+
+```
+
+```{r}
+
+library(psycho)
+
+datasetSDSumm <- datasetSD %>% 
+  group_by(ID, SigDet, Block, Condition) %>% 
+  
+  summarise(
+  Count = n(),
+  ) 
+
+datasetSDSumm <- datasetSDSumm %>% 
+  pivot_wider(names_from = SigDet, values_from = Count)
+
+datasetSDSumm[is.na(datasetSDSumm)] <- 0
+
+indices <- psycho::dprime(datasetSDSumm$Hit, datasetSDSumm$FA,datasetSDSumm$Miss, datasetSDSumm$CR)
+
+datasetSDSumm <- cbind(datasetSDSumm, indices) 
+
 
 
 
 ```
+
+
+```{r}
+datasetSDSummary <- datasetSDSumm %>% 
+  group_by(Block, Condition) %>% 
+  summarise(n = n(),
+            CR = mean(CR),
+            Hit = mean(Hit),
+            Miss= mean(Miss),
+            FA = mean(FA)
+            
+            )
+```
+
+
+```{r}
+ggplot(data = datasetSDSummary)+
+  geom_col(aes(Block, CR,)) +
+  geom_col(aes(Block, FA))
+   geom_point(aes(Block, Hit, colour = Condition)) +
+   geom_point(aes(Block, Miss, colour = Condition)) +
+   geom_point(aes(Block, FA, colour = Condition)) +
+  labs(x = "Block",
+      y = "Mean Reaction Time (s)")+
+  theme_bw()
+
+```
+
+
+```{r}
+SDCRModel <- lmer(data = datasetSDSumm, formula = CR ~ Block+Condition + (1|ID))
+SDCRModel2 <- lmer(data = datasetSDSumm, formula = CR ~ Block * Condition + (1|ID))
+anova(SDCRModel, SDCRModel2)
+summary(SDCRModel2)
+
+summary(SDCRModel)
+```
+```{r}
+SDCRresults <- report(SDCRModel2, CI = 95)
+
+print(SDCRresults)
+```
+```{r}
+plot(predictorEffect("Block", SDCRModel2), 
+     title = "",
+     ylab = "Reaction time",
+ 
+) 
+```
+
+
+```{r}
+SDHitModel <- lmer(data = datasetSDSumm, formula = Hit ~ Condition +Block + (1|ID))
+
+SDHitModel2 <- lmer(data = datasetSDSumm, formula = Hit ~ Condition *Block + (1|ID))
+
+anova(SDHitModel, SDHitModel2)
+
+summary(SDHitModel2)
+```
+
+```{r}
+SDMissModel <- lmer(data = datasetSDSumm, formula = Miss ~ Condition +Block + (1|ID))
+summary(SDMissModel)
+```
+
+
+```{r}
+SDFAModel <- lmer(data = datasetSDSumm, formula = FA ~ Block + Condition + (1|ID))
+SDFAModel2 <- lmer(data = datasetSDSumm, formula = FA ~ Block * Condition + (1|ID))
+anova(SDFAModel2, SDFAModel)
+summary(SDFAModel)
+summary(SDFAModel2)
+```
+
+
+
+```{r}
+SDFAresults <- report(SDFAModel2, CI = 95)
+
+print(SDFAresults)
+```
+
+
+
 
 

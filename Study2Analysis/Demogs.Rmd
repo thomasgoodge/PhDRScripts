@@ -1,0 +1,118 @@
+---
+title: "Study1_Demogs"
+output: html_document
+date: '2022-04-24'
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(root.dir = 'D:/Qualtrics_Data/Study1/Demographics', echo = TRUE)
+```
+
+```{r}
+  library(tidyverse)
+  library(readr)
+  library(janitor)
+
+```
+
+```{r}
+#Set the working directory of the data ***HARD CODED ***
+ setwd("D:/Study2Data/qualtrics_data/Demogs")
+
+```
+
+```{r}
+  list.files()
+  #Read in the data
+  DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/qualtrics_data/Demogs/TGExperiment2_DemogData.csv") %>%  
+    select(starts_with('Q')) 
+```
+```{r}
+#Change the first row into column headers
+DemogDataOrg <- row_to_names(DemogDataRaw, row_number = 1)
+#Remove pilot data and consent form columns
+DemogDataOrg <- DemogDataOrg[-c(1:7),-c(1:7)]
+
+  
+  DemogDataOrg[DemogDataOrg == 'female'] <- 'Female'
+  DemogDataOrg[DemogDataOrg == 'Man'] <- 'Male'
+  
+
+DemogDataOrg <- DemogDataOrg %>% 
+  rename(Age = `What is your age?`) %>% 
+  rename(Gender = `Which gender do you identify with?`) %>% 
+  rename(UKLicense = `Do you have a UK driving license?`) %>%
+  rename(CountryLicense = `Which country did you get your driving license in?`) %>%
+  rename(YearsExp = `How many years driving experience do you have, either from when you passed your driving test or when you started driving regularly? - (years/months)`) %>%
+  rename(UKYearsExp = `How many years driving experience do you have driving in the UK? (years, months)`) %>%
+  rename(HazPerTest = `Did you take a Hazard Perception test as part of getting your driver's license?(Or another video-based hazard awareness assessment tool?)`) %>%
+  rename(ARExp = `Have you had any experience with Augmented Reality (AR) before?`) %>% 
+  rename(ARHeadsets = `Which of these AR devices, if any, have you interacted with before? - Selected Choice`) %>% 
+  rename(ARHeadsetsText = `Which of these AR devices, if any, have you interacted with before? - Other (Please describe) - Text`) %>% 
+  rename(VRExp = `Have you had any experience with Virtual Reality (VR) before?`) %>% 
+  rename(VRExpHeadset = `Which of these VR devices, if any, have you interacted with before? - Selected Choice`) %>%
+  rename(VRExpHeadsetText = `Which of these VR devices, if any, have you interacted with before? - Other (Please describe) - Text`) %>% 
+  rename(VideoGamesTime = `Roughly how many hours do you play video games for in an average week?`) %>% 
+  rename(MotionSickness = `Do you have any history of motion sickness? - Selected Choice`) %>% 
+  rename(MotionSicknessText = `Do you have any history of motion sickness? - Other (Please describe) - Text`) %>% 
+  select(-9)
+
+```
+
+
+```{r}
+DemogDataOrg$Condition <- DemogDataOrg$`Enter your Participant ID:`
+
+DemogDataOrg$Condition[as.numeric(str_sub(DemogDataOrg$Condition, -1))%%2 == 0] <- "Wider"
+
+DemogDataOrg$Condition[as.numeric(str_sub(DemogDataOrg$Condition, -1))%%2 == 1] <- "Focused"
+
+DemogDataOrg$Age = as.numeric(DemogDataOrg$Age)
+DemogDataOrg$VideoGamesTime = as.numeric(DemogDataOrg$VideoGamesTime)
+
+DemogDataOrg$YearsExp = as.numeric(DemogDataOrg$YearsExp)
+
+DemogDataOrg$UKYearsExp = as.numeric(DemogDataOrg$UKYearsExp)
+
+```
+
+```{r}
+DemogSummaryTotal <- DemogDataOrg %>% 
+  
+  summarise(
+  n = n(),
+  AgeMean = mean(Age),
+  AgeSD = sd(Age),
+  Male = sum(Gender == 'Male'),
+  Female = sum(Gender == "Female"),
+  meanVG = mean(VideoGamesTime, na.rm = T),
+  meanExp = mean(YearsExp, na.rm = T)
+
+  )   
+```
+
+
+```{r}
+DemogSummaryGroup <- DemogDataOrg %>% 
+  
+  group_by(Condition) %>% 
+  summarise(
+  n = n(),
+  AgeMean = mean(Age),
+  AgeSD = sd(Age),
+  Male = sum(Gender == 'Male'),
+  Female = sum(Gender == "Female"),
+  meanVG = mean(VideoGamesTime, na.rm = T),
+  meanExp = mean(YearsExp, na.rm = T)
+  )   
+```
+
+
+```{r}
+ARExp <- table(DemogDataOrg$ARExp)
+ARExpType <- table(DemogDataOrg$ARHeadsets)
+VRExp <- table(DemogDataOrg$VRExp)
+VRExpType <- table(DemogDataOrg$VRExpHeadset)
+
+
+```
+
