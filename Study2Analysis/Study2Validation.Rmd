@@ -25,10 +25,12 @@ library(xlsx)
 ### Read in the Data Files ###
 
 #set the working directory to the data folder
-setwd("D:/PsychoPyExperiments/Study 2 Clips")
+#setwd("D:/PsychoPyExperiments/Study 2 Clips")
 
 #Define the filepath for where the data is coming from
-dataFolder <- "D:/Road Footage/PavloviaData/data"
+#dataFolder <- "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/data"
+
+dataFolder <- "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/data"
 
 #Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
 file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
@@ -201,7 +203,7 @@ for (c in c(8:ncol(datasetHazardSorted)))
   for (r in 1:nrow(datasetHazardSorted))
     {
       datasetHazardSorted[[c]][r] <- 
-      ifelse(datasetHazardSorted[[c]][r] < datasetHazardSorted$ClipOnset[r] - 0.5  ||
+      ifelse(datasetHazardSorted[[c]][r] < datasetHazardSorted$ClipOnset[r] -1.0  ||
              datasetHazardSorted[[c]][r] >  datasetHazardSorted$ClipOffset[r] , 
              NA, datasetHazardSorted[[c]][r])
     }
@@ -257,8 +259,6 @@ datasetHazardWide <- datasetHazardSorted %>%
   pivot_wider(
     names_from = PilotClips,
     values_from = HazardOnset,
-    
-    
   ) 
   
   datasetHazardWide <- datasetHazardWide %>% 

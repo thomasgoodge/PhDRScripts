@@ -204,6 +204,8 @@ CSQExtremeRM <- CSQConversion %>%
   subset(ID !="P21") %>% 
   subset(ID !="P37") 
 
+## search ID %in% list of bad subjects
+
 CSQExtremeRM$Condition <- gsub("Global", "Wider", CSQExtremeRM$Condition)
 CSQExtremeRM$Condition <- gsub("Local", "Focused", CSQExtremeRM$Condition)
 

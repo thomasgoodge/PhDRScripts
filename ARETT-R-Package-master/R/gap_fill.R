@@ -34,7 +34,7 @@ gap_fill <- function(data, max_gap_length = 75) {
     data$modified <- FALSE
   }
 
-  lastValidRow <- 0
+  lastValidRow <- 1
   wasGap <- FALSE
 
   for (row in 1:nrow(data)) {

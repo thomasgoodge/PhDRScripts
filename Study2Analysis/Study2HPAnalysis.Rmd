@@ -22,7 +22,7 @@ library(lme4)
 library(lmerTest)
 
 ```
-
+####DATA WRANGLING#####
 
 ```{r}
 #Set the folder where the data is stored
@@ -72,36 +72,6 @@ SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip9"] <- "Pilot
 
 ```
 
-
-```{r}
-# 
-# ExpRTData <- SortedHPDataset %>% filter(Block == "Exp")
-# 
-# ExpRTData$button_resp.rt <-stringr::str_remove_all(ExpRTData$button_resp.rt,"[\\[\\]]")
-# 
-# ExpRTData <- ExpRTData %>% 
-#   separate_rows(button_resp.rt, sep = ",")
-# 
-# ExpRTData$button_resp.rt <- as.numeric(ExpRTData$button_resp.rt)
-# #Split the data frame into individual ones based on each clip
-# ExpRTList <- split(ExpRTData, f= ExpRTData$ClipNumber)
-# # add each item in the list into it's own dataframe
-# #list2env(ExpRTList, envir = globalenv())
-# # tempClipData <- item %>% 
-#   #   mutate(ClipNumber = item$ClipNumber) %>% 
-#   # group_by(Condition, Block) %>% 
-#   #   summarise(clip = ClipNumber,
-#   #             meanRT = mean(RT, na.rm = T),
-#   #             meanRespCount = mean(RespCount, na.rm = T))
-#   # ClipData <- rbind(ClipData, tempClipData)
-# 
-# 
-# ExpRTPlots <- lapply(ExpRTList, ggplotRT)
-# lapply(ExpRTList, ggplotRT)
-
-
-```
-
 ```{r}
 #Read in onset and offset times
 
@@ -117,9 +87,21 @@ HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip7"] <- "PilotClip07"
 HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip8"] <- "PilotClip08"
 HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip9"] <- "PilotClip09"
   
-
 ```
 
+```{r}
+# onsetTimes = read_excel("Study2HazardSheet.xlsx" ) %>% 
+#   select(-3)
+# 
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip2"] <- "PilotClip02"
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip3"] <- "PilotClip03"
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip4"] <- "PilotClip04"
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip5"] <- "PilotClip05"
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip6"] <- "PilotClip06"
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip7"] <- "PilotClip07"
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip8"] <- "PilotClip08"
+# onsetTimes$PilotClips[onsetTimes$PilotClips == "PilotClip9"] <- "PilotClip09"
+```
 
 ```{r}
 
@@ -137,7 +119,6 @@ FullHPDataset$Condition[as.numeric(str_sub(FullHPDataset$Condition, -1))%%2 == 1
 
 ```
 
-
 ```{r}
 #prep data
 RTData <- FullHPDataset 
@@ -151,7 +132,7 @@ RTData$button_resp.rt <- as.numeric(RTData$button_resp.rt)
 
 
 ```
-
+###Plot number of responses
 ```{r}
 ggplotRT <- function(lm.input) {
   x <- ggplot(lm.input, aes(button_resp.rt, fill = Block, na.rm = T))+
@@ -163,8 +144,7 @@ ggplotRT <- function(lm.input) {
   return(x)
 }
 ```
-
-
+#Number of responses per clip
 ```{r}
 #Split the data frame into individual ones based on each clip
 RTList <- split(RTData, f= RTData$ClipNumber)
@@ -177,12 +157,23 @@ for (p in RTPlots){
 
 ```
 
+
 ```{r}
 
 #Add Split the condition column into focused and wider for the xperimental condition
 RTExpData <- RTData %>% 
   mutate(Condition = if_else(Block != "Control", Condition, Block ))
 
+```
+
+```{r}
+RTExpDataSumm <- RTExpData %>%
+  group_by(participant, trials_3.thisTrialN, Block, Condition, ClipNumber) %>%
+  dplyr::summarise(n = n()) %>%
+  group_by(ClipNumber) %>% 
+  dplyr::summarise(mean = mean(n),
+                   median = median(n),
+                   round = round(mean(n)))
 ```
 
 ```{r}
@@ -198,7 +189,6 @@ ggplotExpRT <- function(lm.input) {
   return(x)
 }
 ```
-
 
 ```{r}
 
@@ -218,21 +208,152 @@ arg_list <- c(RTExpPlots, list(ncol=2))
 
 ```{r}
 RTHazardData <- RTExpData
-
-RTHazardData <- RTHazardData[RTHazardData$button_resp.rt <= RTHazardData$Offset,]
-RTHazardData <- RTHazardData[RTHazardData$button_resp.rt >= RTHazardData$Onset -1.0,]
+RTHazardData$Group <- paste(RTHazardData$Block, RTHazardData$Condition, sep=" ")
 
 RTHazardData <- na.omit(RTHazardData) 
-
-
 RTHazardData$RTStandard <- RTHazardData$button_resp.rt - RTHazardData$Onset
 
+RTHazardData<- RTHazardData[RTHazardData$button_resp.rt <= RTHazardData$Offset ,]
+
+RTHazardData$PreWindow <- 0
+RTHazardData$PreWindow <- if_else(RTHazardData$RTStandard > 0, FALSE, TRUE)
+
+RTPreWindowSumm <- RTHazardData %>%
+  group_by(ClipNumber) %>%
+  dplyr::summarise(n = n(),
+            sdRT = sd(RTStandard, na.rm = T))
+            
+
+RTHazardData <- RTHazardData[RTHazardData$button_resp.rt >= RTHazardData$Onset -1.0,] #######
+
+
+table(RTHazardData$PreWindow)
 #Remove duplicate responses from each participant, taking only the first one
 RTHazardData <-  subset(RTHazardData, !duplicated(subset(RTHazardData, select = c(participant, ClipNumber))))
+RTHazardData$Group <- paste(RTHazardData$Block, RTHazardData$Condition, sep=" ")
 
-  
 ```
 
+```{r}
+
+# RTHazardDataStrict <- na.omit(RTHazardDataStrict) 
+# 
+# RTHazardDataStrict$RTStandard <- RTHazardDataStrict$button_resp.rt - RTHazardDataStrict$Onset  
+# RTHazardDataStrict$PreWindow <- 0
+# RTHazardDataStrict$PreWindow <- if_else(RTHazardDataStrict$RTStandard > 0, FALSE, TRUE)
+# 
+# RTPreWindowSumm <- RTHazardDataStrict %>% 
+#   group_by(Block, PreWindow, Condition) %>% 
+#   summarise(n = n(),
+#             mean = mean(RTStandard))
+# #Remove duplicate responses from each participant, taking only the first one
+# RTHazardDataStrict <-  subset(RTHazardDataStrict, !duplicated(subset(RTHazardDataStrict, select = c(participant, ClipNumber))))
+```
+
+```{r}
+
+RTPreHazardData<- RTHazardData %>% 
+  filter(PreWindow == TRUE)
+
+RTPreHazardDataSum <- RTPreHazardData %>% 
+   group_by(Block, Condition, ClipNumber) %>% 
+  summarise(n = n(),
+            mean = mean(RTStandard),
+            sd = sd(RTStandard))
+```
+```{r}
+# RTPostHazardData<- RTHazardData %>% 
+#   filter(PreWindow == FALSE) %>% 
+#   groupb
+#   summarise(sd = sd(RTStandard))
+# 
+# RTPostHazardDataSum <- RTPostHazardData %>% 
+#    group_by(ClipNumber) %>% 
+#   summarise(n = n(),
+#             mean = mean(RTStandard),
+#             sd = sd(RTStandard))
+```
+
+```{r}
+RTHazardDataCorr <- RTHazardData %>% 
+  group_by(Block, Condition) %>% 
+  summarise(count = n())
+RTHazardDataCorr$Group <- paste(RTHazardDataCorr$Block, RTHazardDataCorr$Condition, sep=" ")
+
+
+ClipCount <- table(RTHazardData$ClipNumber)
+
+ClipCount
+
+ggplot(RTHazardDataCorr, aes(x = Condition, y = count, fill = Block ))+
+  geom_col(position = 'dodge')+
+  ylim(0,140)+
+  geom_hline(yintercept = 140)
+
+
+```
+
+```{r}
+# RTHazardDataCorr <- RTHazardDataStrict %>% 
+#   group_by(Block, Condition) %>% 
+#   summarise(count = n())
+# RTHazardDataCorr$Group <- paste(RTHazardDataCorr$Block, RTHazardDataCorr$Condition, sep=" ")
+# 
+# 
+# ClipCount <- table(RTHazardData$ClipNumber)
+# 
+# ClipCount
+# 
+# ggplot(RTHazardDataCorr, aes(x = Condition, y = count, fill = Block ))+
+#   geom_col(position = 'dodge')+
+#   ylim(0,140)+
+#   geom_hline(yintercept = 140)
+# 
+
+```
+
+```{r}
+RTHazardDataClip <- RTHazardData %>% 
+  group_by(ClipNumber, Block, Condition) %>% 
+  summarise(resp = mean(button_resp.rt),
+            onset = Onset,
+            RT = resp - onset)
+
+RTHazardDataClip <- RTHazardDataClip[!duplicated(RTHazardDataClip),]
+RTHazardDataClip$Group <- paste(RTHazardDataClip$Block, RTHazardDataClip$Condition, sep=" ")
+
+```
+```{r}
+# RTHazardDataClipStrict <- RTHazardDataStrict %>% 
+#   group_by(ClipNumber, Block, Condition) %>% 
+#   summarise(resp = mean(button_resp.rt),
+#             onset = Onset,
+#             RT = resp - onset)
+# 
+# RTHazardDataClipStrict <- RTHazardDataClipStrict[!duplicated(RTHazardDataClipStrict),]
+# RTHazardDataClipStrict$Group <- paste(RTHazardDataClipStrict$Block, RTHazardDataClipStrict$Condition, sep=" ")
+```
+
+```{r}
+ggplot(RTHazardData, aes(x = ClipNumber, y = button_resp.rt, colour = Block))+
+   # geom_point(shape = 4, size = 2)+
+  geom_boxplot()+
+  geom_point(aes(x = ClipNumber, y = Onset), colour = 'black', shape = 4)
+   # geom_density(
+```
+
+
+```{r}
+
+# ggplot(RTHazardDataStrict, aes(x = ClipNumber, y = button_resp.rt, colour = Block))+
+#    # geom_point(shape = 4, size = 2)+
+#   geom_boxplot()+
+#   geom_point(aes(x = ClipNumber, y = Onset), colour = 'black', shape = 4)
+#    # geom_density(
+# 
+
+
+```
 
 ```{r}
 ggplotHazRT <- function(lm.input) {
@@ -277,14 +398,12 @@ group_by(Condition, Block, ) %>%
     sd = sd(RTStandard)
   ) 
 
-
-
 ```
+
 ```{r}
 PivotRTHazardSummary<- RTHazardSummary %>% 
   pivot_wider(names_from = ClipNumber, values_from =mean)
 ```
-
 
 ```{r}
 
@@ -305,7 +424,6 @@ ggplotIntRT <- function(lm.input) {
 }
 ```
 
-
 ```{r}
 
 #Print out the interaction plots for each clip
@@ -325,23 +443,28 @@ ggplot(RTOverallSummary,  aes(x = Block, y = mean, colour = Condition))+
   geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
   geom_point (size = 4.5, aes(color = Condition), shape = 2) +
   labs(x = "Block",
-      y = "Mean Reaction Time (s)",
+      y = "Mean Reaction Time for hazard windows",
       title = "Overall",
       tag = "")+  
-  ylim(0,1.0) +
+  ylim(-1.0,1.5) +
   geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
-
+  geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
+#geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
 
   theme_bw()
 ```
+
+
 ```{r}
+
+
 ggplot(RTHazardData,  aes(x = Block, y = RTStandard, colour = Condition))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
   #geom_line() +
   geom_boxplot()+
   geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
   ylab("Reaction Time difference from Hazard Onset")+
-  xlab("Condition")
+  xlab("Condition")+
   theme_bw()
 ```
 
@@ -353,37 +476,6 @@ TukeyPH <- TukeyHSD((ANOVA))
 
 TukeyPH
 ```
-
-
-```{r}
-tg <- lm(RTStandard ~ Condition * Block, data = RTHazardData)
-
-summary(tg)
-
-t2g <- lm(RTStandard ~ Condition + Block, data = RTHazardData)
-
-summary(t2g)
-
-anova(tg, t2g)
-
-```
-
-
-```{r}
-mm <- lme4::lmList(RTStandard~Block|Condition,RTHazardData)
-coef(mm)
-
-summary(mm)
-```
-
-```{r}
-mm2 <- lme4::lmList(RTStandard~Condition|Block,RTHazardData, pool =  T)
-coef(mm2)
-
-summary(mm2)
-```
-
-
 
 ```{r}
 RTHazardData <- RTHazardData %>% 
@@ -401,7 +493,6 @@ summary(model1)
 ```
 
 ```{r}
-
 RTHazardData <- RTHazardData %>% 
   mutate(
     Condition = as.factor(Condition),
@@ -457,29 +548,47 @@ ClipAnova <-function(lm.input){
 ```
 
 ```{r}
-NullModel <- lmer(data = RTHazardData, formula = RTStandard ~  (1|participant))
+NullModel <- lmer(data = RTHazardData, formula = button_resp.rt ~  (1|participant))
 
 summary(NullModel)
 
 ```
 
 ```{r}
-Model1 = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + Block * Condition + (1|participant))
+Model1 = lmer(data = RTHazardData, formula = button_resp.rt ~ Block + Condition + Block * Condition + (1|participant))
 
 summary(Model1)
+```
+
+
+```{r}
+anova(NullModel, Model1)
+
 
 #anova(Model1)
 ```
 
 ```{r}
-
 RTIntModel = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + Block*Condition + (1|participant) + (1|ClipNumber))
 
 RTMainModel = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + (1|participant) + (1|ClipNumber))
+```
 
-anova(RTMainModel, RTIntModel)
+
+```{r}
+anova(RTMainModel, NullModel)
+```
+
+
+```{r}
+summary(RTMainModel)
 
 summary(RTIntModel)
+```
+
+
+```{r}
+anova(RTIntModel, RTMainModel)
 
 ```
 
@@ -514,7 +623,6 @@ RespCountDataset <- RespCountDataset %>%
   subset(participant !="P21")
 #remove P21 for pressing too many times
 
-
 ```
 
 ```{r}
@@ -530,7 +638,7 @@ ggplotRespCount <- function(lm.input) {
 
 RespCountOverall <- RespCountDataset %>% 
   group_by(Condition) %>% 
-  summarise(RespCount = mean(RespCount))
+  dplyr::summarise(RespCount = mean(RespCount))
 
 RespCountGroup <- RespCountDataset %>% 
   group_by(ClipNumber, Condition)  %>%  
@@ -557,5 +665,49 @@ RespIntModel = lmer(data = RespCountDataset, formula = RespCount ~ Block*Conditi
 
 summary(RespIntModel)
 
+```
+```{r}
+RTHazardStrictSummary <- RTHazardDataStrict %>% 
+group_by(Condition, Block, ClipNumber) %>% 
+  summarise(
+    mean = mean(button_resp.rt)
+  ) 
+
+RTOverallStrictSummary <- RTHazardDataStrict %>% 
+group_by(Condition, Block, ) %>% 
+  summarise(
+    mean = mean(button_resp.rt),
+    sd = sd(button_resp.rt)
+  ) 
+
+
+table(RTHazardDataStrict$ClipNumber)
+
+```
+
+```{r}
+PivotRTHazardStrictSummary<- RTHazardStrictSummary %>% 
+  pivot_wider(names_from = ClipNumber, values_from =mean) 
+
+
+```
+
+
+```{r}
+ggplot(RTOverallStrictSummary,  aes(x = Block, y = mean, colour = Condition, na.omit()))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  #geom_line() +
+  geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_point (size = 4.5, aes(color = Condition), shape = 2) +
+  labs(x = "Block",
+      y = "Mean Reaction Time for hazard windows",
+      title = "Overall",
+      tag = "")+  
+  ylim(-1.0,1.0) +
+  geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+  geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
+
+
+  theme_bw()
 ```
 

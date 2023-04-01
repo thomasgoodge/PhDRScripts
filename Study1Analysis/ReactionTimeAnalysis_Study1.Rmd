@@ -141,7 +141,9 @@ datasetMeanRT %>%
   labs(x = "Block",
       y = "Mean Reaction Time (s)",
       tag = "",)+
-      ylim(0.4,0.7)+
+      
+
+      ylim(0,1)+
   theme_bw()
 
 ```
@@ -150,7 +152,7 @@ interaction.plot(x.factor =  datasetMeanRT$Block,
                  trace.factor = datasetMeanRT$Condition,
                  response = datasetMeanRT$avg,
                  fun = mean,
-                 ylim = (c(0,1.0)),
+                 ylim = (c(0.3,0.8)),
                  xlab = "Block",
                  ylab = "Reaction time (s)",
                  type= "b",
@@ -171,6 +173,7 @@ summary(RTAovIntLM)
 
 summary(RTAovInt)
 ```
+
 ```{r}
 
 TukeyPH <- TukeyHSD((RTAovInt))
