@@ -1,0 +1,144 @@
+---
+title: "Study3WHNAnalysis"
+author: "TGoodge"
+date: '2023-03-24'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(splitstackshape)
+library(stringr)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(lme4)
+library(lmerTest)
+
+```
+
+####Data Wrangling
+
+```{r}
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data"
+
+file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+```
+
+```{r}
+RawWHNDataset <- data.frame()
+#loop through all the fills, create a temporary container, remove the first, second and last rows and then add 1 to the trials counter. Then bind it to the dataset
+for (file in file_list){
+  tempData <- read.csv(file, header = T)  
+    
+  RawWHNDataset <- bind_rows(RawWHNDataset, tempData)
+}
+
+```
+
+```{r}
+SortedWHNDataset <- RawWHNDataset %>% 
+  select(participant,image_file,Correct,trials_3.thisTrialN, conf_slider.response, conf_slider.rt, MiseryScale.response, Attention_slider.response, trialResp.keys, trialResp.corr)
+
+SortedWHNDataset$Attention_slider.response <- as.numeric(SortedWHNDataset$Attention_slider.response)
+```
+
+```{r}
+Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/Study3Counterbalancing.csv", header = T)
+
+Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Fourth)
+```
+
+
+```{r}
+OrderWHNDataset <- left_join(SortedWHNDataset, Counterbalancing, by = 'participant') 
+OrderWHNDataset$Block <- 'Baseline' 
+
+OrderWHNDataset$Block <- if_else(OrderWHNDataset$trials_3.thisTrialN > 29, OrderWHNDataset$Fourth, 
+                                 if_else(OrderWHNDataset$trials_3.thisTrialN >19, OrderWHNDataset$Third,
+                                         if_else(OrderWHNDataset$trials_3.thisTrialN >9, OrderWHNDataset$Second, 'Baseline')))
+
+
+WHNDataset <- OrderWHNDataset
+WHNDataset <- WHNDataset[!is.na(WHNDataset$Correct),]
+
+```
+
+
+```{r}
+
+NoPpts <- n_distinct(WHNDataset$participant)
+
+WHNSummary <- WHNDataset %>% 
+  group_by(Block) %>% 
+  summarise(n = n()/NoPpts,
+            WHN = sum(trialResp.corr) / NoPpts,
+            sdWHN = sd(trialResp.corr),
+            meanConf = mean(conf_slider.response),
+            sdConf = sd(conf_slider.response),
+            meanMISC = mean(MiseryScale.response),
+            sdMISC = sd(MiseryScale.response),
+            meanAttention = mean(Attention_slider.response),
+            sdAttention = sd(Attention_slider.response)
+            )
+```
+
+###End of Data Wrangling####
+
+```{r}
+
+ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
+  geom_col()+
+  geom_errorbar(aes(ymin = WHN - sdWHN, ymax = WHN + sdWHN),
+                width = 0.2, 
+                position = position_dodge(0.9))+
+  labs(title = "WHN Score", xlim(0,10))
+
+```
+
+```{r}
+ggplot(data = WHNSummary, aes(x = Block, y = meanConf, fill = Block))+
+  geom_col()+
+  geom_errorbar(aes(ymin = meanConf - sdConf/2, ymax = meanConf + sdConf/2),
+                width = 0.2, 
+                position = position_dodge(0.9))+
+  labs(title = "Confidence Score", xlim(0,1.0))
+```
+```{r}
+ggplot(data = WHNSummary, aes(x = Block, y = meanMISC, fill = Block))+
+  geom_col()+
+    geom_errorbar(aes(ymin = meanMISC - (sdMISC/2), ymax = meanMISC + (sdMISC/2)),
+                width = 0.2, 
+                position = position_dodge(0.9))+
+  labs(title = "MISC Score")
+```
+
+```{r}
+MISCDataset <- WHNDataset %>%
+  group_by(trials_3.thisTrialN, Block) %>%
+  summarise(mean = mean(MiseryScale.response),
+            sd = sd(MiseryScale.response))
+  
+
+ggplot(data = MISCDataset, aes(x = trials_3.thisTrialN, y = mean))+
+  geom_line(aes(colour  = factor(Block)))+
+  geom_ribbon(aes(ymin =MISCDataset$mean - MISCDataset$sd, ymax = MISCDataset$mean + MISCDataset$sd, fill = Block),alpha= 0.2) +  
+  labs(title = "MISC Score")
+```
+
+```{r}
+
+ANOVA <- aov(trialResp.corr ~ Block , data = WHNDataset)
+
+summary(ANOVA)
+
+
+
+
+```
+
