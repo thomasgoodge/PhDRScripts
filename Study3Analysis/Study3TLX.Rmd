@@ -19,66 +19,34 @@ library(emmeans)
 
 ```{r}
 #Read in the data
-TLXdataRaw <- read.csv("C:\Users\thoma\OneDrive - University of Glasgow\Desktop\Study3\data\Qualtrics\TLX\Study3TLX") %>%
+TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/Qualtrics/TLX/Study3TLX.csv") %>% 
 
 # Tidy the data - select scores,
   select(starts_with('Q'))
   TLXdataOrg <- TLXdataRaw[-c(1:2),]
   colnames(TLXdataOrg) <- c('Ppt_ID','Block', 'Mental Demand', 'Physical Demand', 'Temporal Demand', 'Overall Performance', 'Effort', 'Frustration')
-  TLXdataOrg <- TLXdataOrg[-c(1:2),]
   #Convert columns with ratings in to numeric
   TLXdataOrg[3:8] = lapply(TLXdataOrg[3:8], FUN = function(y){as.numeric(y)})
   
-  #Remove Pilot data rows
-  TLXdataOrg <- TLXdataOrg[-c(1:9),]
-
-
-```
-```{r}
-#Reorganise the columns
-
-#Split up the IDs and groups
-TLXdataOrg<- TLXdataOrg %>%
-    mutate(ID = substr(Ppt_ID,
-                     start = 1,
-                     stop = 3)) %>%
-  mutate(Condition = substr(Ppt_ID,
-                            start = 4,
-                           stop  = 5))
-#Rearrange the columns and remove extra ID column
-TLXdataOrg <- TLXdataOrg[,-1] %>% 
-  select(c(ID, Condition, 1:7))
-
-#Change the conditions to upper case and remove whitespace
-
-TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>% 
-  trimws(which = c("both"))
-
-  TLXdataOrg[TLXdataOrg == "G"] <- "Wider"
-  TLXdataOrg[TLXdataOrg == "L"] <- "Focused" 
-
-  TLXdataOrg[TLXdataOrg == "Control"] <- "Hazard Perception"
-  TLXdataOrg[TLXdataOrg == "Experiment"] <- "Hazard Perception-AR" 
+  TLXdataOrg$Block <- str_sub(TLXdataOrg$Block, 1,7)
   
-  TLXdataOrg$Condition <- TLXdataOrg$ID
-
-  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 0] <- "Wider"
-
-  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 1] <- "Focused"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1"] <- "HUD - ARD"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2"] <- "HUD - AR Cued"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3"] <- "HDD - Tablet"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 4"] <- "HDD - AR"
+  
 ```
 
 
 ```{r}
 #Convert to wrangled dataset
-TLXdata <- TLXdataOrg %>% 
-  subset(ID !="P22")
-
+TLXdata <- TLXdataOrg 
 
 TLXdata$Performance <- 100 - TLXdata$`Overall Performance` 
 
 TLXdata <- TLXdata %>%  select(-`Overall Performance`)
 
-TLXdata$Total = rowSums(TLXdata[,c(4,9)], na.rm = T)
+TLXdata$Total = rowSums(TLXdata[,c(3,8)], na.rm = T)
 
 
 ```
@@ -86,7 +54,7 @@ TLXdata$Total = rowSums(TLXdata[,c(4,9)], na.rm = T)
 
 ```{r}
 TLXdataTotalSum <- TLXdata %>% 
-  group_by(Block, Condition) %>% 
+  group_by(Block) %>% 
   summarise(
     n = n(),
     mean = mean(Total),
@@ -98,7 +66,7 @@ TLXdataTotalSum <- TLXdata %>%
 ```{r}
 TLXdataSumm <- TLXdata %>% 
   
-  group_by(Block, Condition) %>% 
+  group_by(Block) %>% 
   summarise(
     n = n(),
     Mental_mean = mean(`Mental Demand`),
@@ -120,39 +88,46 @@ TLXdataSumm <- TLXdata %>%
 ```
 
 ```{r}
-ggplot(TLXdata, aes(Condition, Total, fill = Block ))+
-  geom_violin(alpha = 0.5)+
+ggplot(TLXdata, aes(Block, Total, fill = Block ))+
+  geom_boxplot(width = 0.3, fill = 0.1)+
+  geom_violin(alpha = 0.4, colour = 0)+
   labs(title = "Total")
 ```
 
 
 ```{r}
-ggplot(TLXdata, aes(Condition, `Mental Demand`, fill = Block ))+
+ggplot(TLXdata, aes(Block, `Mental Demand`, fill = Block ))+
+  geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
   labs(title = "Mental Demand")
 
-ggplot(TLXdata, aes(Condition, `Physical Demand`, fill = Block ))+
+ggplot(TLXdata, aes(Block, `Physical Demand`, fill = Block ))+
+  geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Physical Demand")
 
-ggplot(TLXdata, aes(Condition, `Temporal Demand`, fill = Block ))+
+ggplot(TLXdata, aes(Block, `Temporal Demand`, fill = Block ))+
+  geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Temporal Demand")
 
-ggplot(TLXdata, aes(Condition,Performance, fill = Block ))+
+ggplot(TLXdata, aes(Block,Performance, fill = Block ))+
+  geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim (100,0)+
     labs(title = "Overall Performance (Inverted)")
 
-ggplot(TLXdata, aes(Condition, Effort, fill = Block ))+
+ggplot(TLXdata, aes(Block, Effort, fill = Block ))+
+  geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim (0,100)+
     labs(title = "Effort")
   
-ggplot(TLXdata, aes(Condition, Frustration, fill = Block ))+
+ggplot(TLXdata, aes(Block, Frustration, fill = Block ))+
+  geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim (0,100)+
     labs(title = "Frustration")
@@ -161,123 +136,9 @@ ggplot(TLXdata, aes(Condition, Frustration, fill = Block ))+
 ```
 
 
-```{r}
-
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$Total,
-                 fun = mean,
-                 xlab = "Timepoint",
-                 ylab = "Total TLX Score",
-                 ylim = c(0,150),
-                 type = "b",
-                 col = c("red", "blue"),
-                 pch = c(19,17),
-                 trace.label = " ",
-                 fixed = T,
-                 xpd = T,
-                 leg.bty="o"
-                 )
-```
 
 ```{r}
-
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$`Mental Demand`,
-                 fun = mean,
-                 ylim = (c(0,100)),
-                 xlab = "Block",
-                 ylab = "Mental Demand TLX Score",
-                 type = "b",
-                 col = c("red", "blue"),
-                 pch = c(19,17),
-                 trace.label = " ",
-                 fixed = T,
-                 xpd = T,
-                 leg.bty="o"
-                 )
-
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$`Physical Demand`,
-                 fun = mean,
-                 ylim = (c(0,100)),
-                 xlab = "Block",
-                 ylab = "Physical Demand TLX Score",
-                 type = "b",
-                 col = c("red", "blue"),
-                 pch = c(19,17),
-                 trace.label = " ", 
-                 fixed = T,
-                 leg.bty="o"
-                 )
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$`Temporal Demand`,
-                 fun = mean,
-                 ylim = (c(0,100)),
-                 xlab = "Block",
-                 ylab = "Temporal Demand TLX Score",
-                 type = "b",
-                 col = c("red", "blue"),
-                 pch = c(19,17),
-                 trace.label = " ",
-                 fixed = T,
-                 leg.bty="o"
-                 )
-
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$Performance,
-                 fun = mean,
-                 ylim = (c(0,100)),
-                 xlab = "Block",
-                 ylab = "Overall Performance TLX Score",
-                 type = "b",
-                 col = c("red", "blue"),
-                 pch = c(19,17),
-                 trace.label = " ",
-                 fixed = T,
-                 leg.bty="o"
-                 )
-
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$Effort,
-                 fun = mean,
-                 ylim = (c(0,100)),
-                 xlab = "Block",
-                 ylab = "Effort TLX Score",
-                 type = "b",
-                 col = c("red", "blue"),
-                 pch = c(19,17),
-                 trace.label = " ",
-                 fixed = T,
-                 leg.bty="o"
-                 )
-
-
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$Frustration,
-                 fun = mean,
-                 ylim = (c(0,100)),
-                 xlab = "Block",
-                 ylab = "Frustration TLX Score",
-                 type = "b",
-                 col = c("red", "blue"),
-                 pch = c(19,17),
-                 trace.label = " ",
-                 fixed = T,
-                 leg.bty="o"
-                 )
-
-
-```
-
-```{r}
-Total_Aov = lm(Total ~ Block + Condition + Block:Condition, data = TLXdata) 
+Total_Aov = lm(Total ~ Block, data = TLXdata) 
 print("Total")
 
 Anova(Total_Aov,
@@ -289,37 +150,37 @@ Anova(Total_Aov,
 
 ```{r}
 
-MD_Aov = lm(`Mental Demand` ~ Block + Condition + Block:Condition, data = TLXdata) 
+MD_Aov = lm(`Mental Demand` ~ Block , data = TLXdata) 
 print("Mental Demand")
 
 Anova(MD_Aov,
       type = "II")
 
 print("Physical Demand")
-PD_Aov = lm(`Physical Demand` ~ Block + Condition + Block:Condition, data = TLXdata) 
+PD_Aov = lm(`Physical Demand` ~ Block , data = TLXdata) 
 
 Anova(PD_Aov,
       type = "II")
 
-TD_Aov = lm(`Temporal Demand` ~ Block + Condition + Block:Condition, data = TLXdata) 
+TD_Aov = lm(`Temporal Demand` ~ Block , data = TLXdata) 
 print("Temporal Demand")
 
 Anova(TD_Aov,
       type = "II")
 
-OP_Aov = lm(Performance ~ Block + Condition + Block:Condition, data = TLXdata) 
+OP_Aov = lm(Performance ~ Block , data = TLXdata) 
 print("Overall Performance")
 
 Anova(OP_Aov,
       type = "II")
 
-EF_Aov = lm(Effort ~ Block + Condition + Block:Condition, data = TLXdata) 
+EF_Aov = lm(Effort ~ Block , data = TLXdata) 
 print("Effort")
 
 Anova(EF_Aov,
       type = "II")
 
-FR_Aov = lm(Frustration ~ Block + Condition + Block:Condition, data = TLXdata)
+FR_Aov = lm(Frustration ~ Block , data = TLXdata)
 print("Frustration")
 
 Anova(FR_Aov,
@@ -328,48 +189,48 @@ Anova(FR_Aov,
 
 
 ```{r}
-MDmarginal = emmeans(MD_Aov, ~Block:Condition)
+MDmarginal = emmeans(MD_Aov, ~Block)
 pairs(MDmarginal, adjust="tukey")
 ```
 
 
 ```{r}
-PDmarginal = emmeans(PD_Aov, ~Block:Condition)
+PDmarginal = emmeans(PD_Aov, ~Block)
 pairs(PDmarginal, adjust="tukey")
 
 ```
 
 
 ```{r}
-TDmarginal = emmeans(TD_Aov, ~Block:Condition)
+TDmarginal = emmeans(TD_Aov, ~Block)
 pairs(TDmarginal, adjust="tukey")
 
 ```
 
 ```{r}
-OPmarginal = emmeans(OP_Aov, ~Block:Condition)
+OPmarginal = emmeans(OP_Aov, ~Block)
 pairs(OPmarginal, adjust="tukey")
 
 ```
 
 ```{r}
-EFmarginal = emmeans(EF_Aov, ~Block:Condition)
+EFmarginal = emmeans(EF_Aov, ~Block)
 pairs(EFmarginal, adjust="tukey")
 
 ```
 
 ```{r}
-FRmarginal = emmeans(FR_Aov, ~Block:Condition)
+FRmarginal = emmeans(FR_Aov, ~Block)
 pairs(FRmarginal, adjust="tukey")
 
 ```
 
 
 ```{r}
-TLXTotalmodel <- lmer(data = TLXdata, Total ~Block+Condition + (1|ID))
-TLXTotalmodel2 <- lmer(data = TLXdata, Total ~Block*Condition + (1|ID))
+TLXTotalNullmodel <- lmer(data = TLXdata, Total + (1|ID))
+TLXTotalmodel1 <- lmer(data = TLXdata, Total ~Block + (1|ID))
 
-anova(TLXTotalmodel,TLXTotalmodel2)
+anova(TLXTotalNullmodel,TLXTotalmodel1)
 
 summary(TLXTotalmodel)
 ```

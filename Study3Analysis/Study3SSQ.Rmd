@@ -1,0 +1,786 @@
+---
+title: "Study3SSQ"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, include=FALSE}
+  library(tidyverse)
+  library(readr)
+  library(janitor)
+  library(emmeans)
+  library(car)
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(lme4)
+
+```
+
+
+```{r, include=FALSE}
+#Set the working directory of the data ***HARD CODED ***
+ #setwd("D:/Study2Data/qualtrics_data/SSQ")
+SSQdataRaw = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/Qualtrics/SSQ/Study3SSQ.csv") %>%  
+    select(starts_with('Q')) 
+  
+  #Format the column names by removing excess characters
+  
+SSQdataRaw[1,] <- sub(".*- ", "", SSQdataRaw[1,])
+    
+#change the row names to the column headers
+SSQdataOrg <- row_to_names(SSQdataRaw, row_number = 1)
+   
+#remove pilot and test data  ***HARD-CODED***
+SSQdataOrg <- SSQdataOrg[-c(1),]
+
+
+```
+
+
+```{r,include=FALSE}
+
+#Recode Values so they are computable
+SSQdata <- SSQdataOrg %>% 
+  rename(Timepoint = `Which timepoint is this?`)
+SSQdata[SSQdata== '0 - None at all'] <- '0'
+SSQdata[SSQdata== '1 - Mild'] <- '1'
+SSQdata[SSQdata== '2 - Moderate'] <- '2'
+SSQdata[SSQdata== '3 - Severe'] <- '3'
+
+SSQdata[SSQdata== 'Pre-Experiment'] <- '1'
+SSQdata[SSQdata== 'End of Control'] <- '2'
+SSQdata[SSQdata== 'End of Block 1'] <- '3'
+SSQdata[SSQdata== 'End of Block 2'] <- '4'
+SSQdata[SSQdata== 'End of Block 3'] <- '5'
+SSQdata[SSQdata== 'End of Experiment'] <- '6'
+
+#Convert columns with ratings in to numeric
+SSQdata[3:18] = lapply(SSQdata[3:18], FUN = function(y){as.numeric(y)})
+
+```
+
+
+```{r}
+#Calculate the SSQ score weightings according to Kennedy et al 1993
+SSQConversion <- SSQdata 
+
+SSQConversion <- SSQConversion %>% 
+  mutate(NauseaSum = 
+           (SSQConversion$`General Discomfort` + 
+            SSQConversion$`Increased Salivation` + 
+            SSQConversion$Sweating + 
+            SSQConversion$Nausea + 
+            SSQConversion$`Difficulty Concentrating`+
+            SSQConversion$`Stomach Awareness` +
+            SSQConversion$Burping)) %>% 
+  mutate(OculomotorSum = 
+           (SSQConversion$`General Discomfort` +
+            SSQConversion$Fatigue +
+            SSQConversion$Headache +
+            SSQConversion$`Eye Strain` +
+            SSQConversion$`Difficulty Focusing` +
+            SSQConversion$`Difficulty Concentrating`+
+            SSQConversion$`Blurred Vision`)) %>% 
+  mutate(DisorientationSum =
+           (SSQConversion$`Difficulty Focusing` +
+            SSQConversion$Nausea +
+            SSQConversion$`Fullness of Head` +
+            SSQConversion$`Blurred Vision` +
+            SSQConversion$`Dizzy (Eyes Open)` +
+            SSQConversion$`Dizzy ( Eyes Closed)`+
+            SSQConversion$Vertigo)) 
+
+#Calculate the final weighted SSQ scores
+
+  SSQConversion <- SSQConversion %>% 
+      mutate(NauseaWeight = (SSQConversion$NauseaSum * 9.54)) %>% 
+      mutate(OculomotorWeight = (SSQConversion$OculomotorSum*7.58)) %>% 
+      mutate(DisorientationWeight = (SSQConversion$DisorientationSum *13.92)) %>% 
+      mutate(TotalSSQScore = 
+               (SSQConversion$NauseaSum +
+               SSQConversion$OculomotorSum +
+               SSQConversion$DisorientationSum)*
+               3.74)
+  
+ # write.csv(SSQConversion,"D:/Qualtrics_Data/Study1/SSQ/EXP1SSQSort.csv", row.names = FALSE)
+  
+```
+
+```{r}
+#Summarise the descriptives for the converted scores
+SSQConversionSummary <- SSQConversion %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(TotalSSQScore),
+  sd = sd(TotalSSQScore),
+  min = min(TotalSSQScore),
+  max = max(TotalSSQScore))   
+#Summarise the descriptives for the converted  Nausea scores
+SSQNauseaSummary <- SSQConversion %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(NauseaWeight),
+  sd = sd(NauseaWeight),
+  min = min(NauseaWeight),
+  max = max(NauseaWeight))   
+#Summarise the descriptives for the converted Oculomotor scores
+SSQOculoSummary <- SSQConversion %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(OculomotorWeight),
+  sd = sd(OculomotorWeight),
+  min = min(OculomotorWeight),
+  max = max(OculomotorWeight))  
+#Summarise the descriptives for the converted Disorientation scores
+SSQDisoriSummary <- SSQConversion %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(DisorientationWeight),
+  sd = sd(DisorientationWeight),
+  min = min(DisorientationWeight),
+  max = max(DisorientationWeight)) 
+```
+
+
+```{r}
+  ########################END OF DATA WRANGLING########################
+  #####################################################################
+```
+
+        
+```{r}
+#Visualise the spread of the data
+ggplot(SSQConversion, aes(x = TotalSSQScore, fill = Timepoint))+
+  geom_histogram(binwidth = 5)
+
+```
+           
+```{r}
+#Create violin plots for each of the Weighted totals to show the spread of the data
+ggplot(SSQConversion, aes(Timepoint, TotalSSQScore, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total SSQ Score")
+
+ggplot(SSQConversion, aes(Timepoint, OculomotorWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Oculomotor Score")
+ggplot(SSQConversion, aes(Timepoint, NauseaWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5) +
+  labs(title = "Nausea score")
+ggplot(SSQConversion, aes(Timepoint, DisorientationWeight, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Disorientation Score")
+```
+```{r}
+ggplot(SSQConversionSummary, aes(Timepoint, mean, colour = Timepoint))+ 
+  geom_point()+
+  geom_line()+
+  labls(xlim(0,20))
+```
+
+
+```{r}
+ggplot(SSQConversionSummary,  aes(x = Timepoint, y = mean, colour = Timepoint, group = 1))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_point (size = 3.5) +
+  labs(x = "Block",
+      y = "Total SSQ Score",
+      title = "Total SSQ Score",
+      tag = "")+  
+  ylim(-10,20) +
+    geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
+                width = 0.2, 
+                position = position_dodge(0.9))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+
+  theme_bw()
+```
+
+
+
+
+```{r}
+#Create interaction plots for the mean of each condition at each of the 3 timepoints
+#**pch = type of shape on the point graph
+interaction.plot(x.factor =  SSQConversion$Timepoint,
+                 trace.factor = SSQConversion$Timepoint,
+                 response = SSQConversion$TotalSSQScore,
+                 fun = mean,
+                 ylim = (c(0,20)),
+                 xlab = "Timepoint",
+                 ylab = "Total SSQ Score",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Total SSQ Score",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  SSQConversion$Timepoint,
+                 trace.factor = SSQConversion$Timepoint,
+                 response = SSQConversion$NauseaWeight,
+                 fun = mean,
+                 ylim = (c(0,20)),
+                 xlab = "Timepoint",
+                 ylab = "Nausea subscale",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Nausea",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  SSQConversion$Timepoint,
+                 trace.factor = SSQConversion$Timepoint,
+                 response = SSQConversion$OculomotorWeight,
+                 fun = mean,
+                 ylim = (c(0,20)),
+                 xlab = "Timepoint",
+                 ylab = "Oculomotor subscale",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Oculomotor",
+                 fixed=T,
+                 leg.bty ="o")
+interaction.plot(x.factor =  SSQConversion$Timepoint,
+                 trace.factor = SSQConversion$Timepoint,
+                 response = SSQConversion$DisorientationWeight,
+                 fun = mean,
+                 ylim = (c(0,20)),
+                 xlab = "Timepoint",
+                 ylab = "Disorientation subscale",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Disorientation",
+                 fixed=T,
+                 leg.bty ="o")
+```
+
+```{r}
+# Generate linear modals for each of the weighted scores
+SSQModel = lm(TotalSSQScore ~ Timepoint,data = SSQConversion)
+
+
+test = aov(TotalSSQScore ~ Timepoint,data = SSQConversion)
+
+summary(test)
+
+Anova(SSQModel,
+      type = "II")
+
+```
+```{r}
+#Calculate comparison means for Overall scores
+SSQmarginal = emmeans(SSQModel,~Timepoint)
+pairs(SSQmarginal, adjust="tukey")
+
+```
+ 
+```{r}
+# Generate linear modals for Oculomotor subscale
+
+OcuModel = lm(OculomotorWeight ~ Timepoint, data = SSQConversion)
+
+Anova(OcuModel,
+      type = "II")
+
+```
+
+```{r}
+#Calculate comparison means for Oculomotor subscale
+
+Ocumarginal = emmeans(OcuModel, ~Timepoint)
+pairs(Ocumarginal, adjust="tukey")
+
+```
+ 
+```{r}
+# Generate linear modals for Nausea subscale
+NauModel = lm(NauseaWeight ~ Timepoint,data = SSQConversion)
+
+Anova(NauModel,
+      type = "II")
+```
+
+```{r}
+#Calculate comparison means for Nausea subscale
+
+Naumarginal = emmeans(NauModel, ~Timepoint)
+pairs(Naumarginal, adjust="tukey")
+
+#Significatn effect of conidtion, but is meaningless in the comparisons
+
+```
+ 
+```{r}
+#Generate linear modals for Disorientation  subscale
+DisModel = lm(DisorientationWeight ~ Timepoint,data = SSQConversion)
+
+Anova(DisModel,
+      type = "II")
+```
+
+```{r}
+#Calculate comparison means for Disorientation subscale
+
+Dismarginal = emmeans(DisModel, ~Timepoint)
+pairs(Dismarginal, adjust="tukey")
+
+```
+
+
+```{r}
+##################  CONVERT DATA TO LOOK AT DIFFERENCES OVER TIME ###########
+#############################################################################
+```
+
+```{r}
+#Convert the dataset to look out differences over time
+
+SSQKPConversion <- SSQConversion %>% 
+  
+  pivot_wider(names_from = Timepoint, values_from = 3:25)
+SSQKPConversionTotal <- SSQKPConversion %>% 
+  
+  mutate(TotalSSQ_Base = 
+            (0)) %>% 
+
+   mutate(TotalSSQ_T1 = 
+            (SSQKPConversion$TotalSSQScore_2 -
+             SSQKPConversion$TotalSSQScore_1)) %>% 
+   mutate(TotalSSQ_T2 = 
+            (SSQKPConversion$TotalSSQScore_3 -
+             SSQKPConversion$TotalSSQScore_2)) %>% 
+   mutate(TotalSSQ_T3 = 
+            (SSQKPConversion$TotalSSQScore_4 -
+             SSQKPConversion$TotalSSQScore_3)) %>% 
+   mutate(TotalSSQ_T4 = 
+            (SSQKPConversion$TotalSSQScore_5 -
+             SSQKPConversion$TotalSSQScore_4)) %>%
+   mutate(TotalSSQ_T5 = 
+            (SSQKPConversion$TotalSSQScore_6 -
+             SSQKPConversion$TotalSSQScore_5)) %>% 
+  mutate(TotalSSQ_T6 = SSQKPConversion$TotalSSQScore_6) %>% 
+
+mutate(Oculo_Base = 
+            (0)) %>% 
+ 
+   mutate(Oculo_T1 = 
+            (SSQKPConversion$OculomotorWeight_2 -
+             SSQKPConversion$OculomotorWeight_1)) %>% 
+   mutate(Oculo_T2 = 
+            (SSQKPConversion$OculomotorWeight_3 -
+             SSQKPConversion$OculomotorWeight_2)) %>% 
+   mutate(Oculo_T3 = 
+            (SSQKPConversion$OculomotorWeight_4 -
+             SSQKPConversion$OculomotorWeight_3)) %>% 
+   mutate(Oculo_T4 = 
+            (SSQKPConversion$OculomotorWeight_5 -
+             SSQKPConversion$OculomotorWeight_4)) %>% 
+   mutate(Oculo_T5 = 
+            (SSQKPConversion$OculomotorWeight_6 -
+             SSQKPConversion$OculomotorWeight_5)) %>% 
+  mutate(Oculo_T6 = 
+            (SSQKPConversion$OculomotorWeight_6)) %>% 
+  
+    mutate(Nausea_Base = 
+            (0)) %>% 
+
+   mutate(Nausea_T1 = 
+            (SSQKPConversion$NauseaWeight_2 -
+             SSQKPConversion$NauseaWeight_1)) %>% 
+   mutate(Nausea_T2 = 
+            (SSQKPConversion$NauseaWeight_3 -
+             SSQKPConversion$NauseaWeight_2)) %>% 
+   mutate(Nausea_T3 = 
+            (SSQKPConversion$NauseaWeight_4 -
+             SSQKPConversion$NauseaWeight_3)) %>% 
+   mutate(Nausea_T4 = 
+            (SSQKPConversion$NauseaWeight_5 -
+             SSQKPConversion$NauseaWeight_4)) %>% 
+   mutate(Nausea_T5 = 
+            (SSQKPConversion$NauseaWeight_6 -
+             SSQKPConversion$NauseaWeight_5)) %>%
+  mutate(Nausea_T6 =
+           SSQKPConversion$NauseaWeight_6) %>% 
+  
+    mutate(Disori_Base = 
+            (0)) %>% 
+
+   mutate(Disori_T1 = 
+            (SSQKPConversion$DisorientationWeight_2 -
+             SSQKPConversion$DisorientationWeight_1)) %>% 
+   mutate(Disori_T2 = 
+            (SSQKPConversion$DisorientationWeight_3 -
+             SSQKPConversion$DisorientationWeight_2)) %>% 
+   mutate(Disori_T3 = 
+            (SSQKPConversion$DisorientationWeight_4 -
+             SSQKPConversion$DisorientationWeight_3)) %>% 
+    mutate(Disori_T4 = 
+            (SSQKPConversion$DisorientationWeight_5 -
+             SSQKPConversion$DisorientationWeight_4)) %>% 
+    mutate(Disori_T5 = 
+            (SSQKPConversion$DisorientationWeight_6 -
+             SSQKPConversion$DisorientationWeight_5)) %>% 
+    mutate(Disori_T6 = 
+            (SSQKPConversion$DisorientationWeight_6)) %>% 
+  
+  select(`Participant ID:`, 140:167) 
+
+```
+
+```{r}
+## Reformat data and wrtie csv file to to be read in JASP  
+
+SSQKPConversionTotalSSQ <- pivot_longer(data = SSQKPConversionTotal,
+                          cols = c(2:8)) %>% 
+  select(c(1,23,24))
+
+colnames(SSQKPConversionTotalSSQ)[colnames(SSQKPConversionTotalSSQ) %in% c("name", "value")] <- c("Timepoint", "Value") 
+  
+SSQKPConversionTotalSSQ[c('Measure', "Timepoint")] <- str_split_fixed(SSQKPConversionTotalSSQ$Timepoint, "_", 2)
+
+SSQKPConversionTotalSSQ[SSQKPConversionTotalSSQ== 'Base'] <- 'Baseline'
+SSQKPConversionTotalSSQ[SSQKPConversionTotalSSQ== 'T1'] <- 'Hazard Perception'
+SSQKPConversionTotalSSQ[SSQKPConversionTotalSSQ== 'Exp'] <- 'Hazard Perception + AR'
+
+  #write.csv(SSQKPConversionTotalSSQ,"D:/Qualtrics_Data/Study1/SSQ/EXP1SSQSortKP.csv", row.names = FALSE)
+
+
+```
+
+
+```{r}
+##Create summary tables for the Total SSQ 
+#'
+SSQKPConversionTotalSSQSummary <- SSQKPConversionTotalSSQ %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(Value, na.rm = T),
+  sd = sd(Value, na.rm = T)
+  )   
+
+
+```
+
+```{r}
+ggplot(SSQKPConversionTotalSSQ, aes(Timepoint, Value, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total SSQ Score")
+
+interaction.plot(x.factor =  SSQKPConversionTotalSSQSummary$Timepoint,
+                 trace.factor = SSQKPConversionTotalSSQSummary$Timepoint,
+                 response = SSQKPConversionTotalSSQSummary$mean,
+                 fun = mean,
+                 ylim = c(-10, 10),
+                 xlab = "Timepoint",
+                 ylab = "Change in Total SSQ Score",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Total SSQ Score",
+                 fixed=F,
+                 leg.bty ="o")
+```
+
+
+```{r}
+ggplot(SSQKPConversionTotalSSQSummary,  aes(x = Timepoint, y = mean, colour = Timepoint, group = 1))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_point (size = 3.5, shape = 13) +
+  labs(x = "Block",
+      y = "Change in Total SSQ Score",
+      title = "Total SSQ Score",
+      tag = "")+  
+  ylim(-10,20) +
+    geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
+                width = 0.2, 
+                position = position_dodge(0.9))+
+  geom_hline(yintercept = 0, linetype = "dashed")+
+
+  theme_bw()
+```
+
+```{r}
+KPSSQModelTotalSSQ = aov(Value ~ Timepoint,
+              data = SSQKPConversionTotalSSQ)
+
+Anova(KPSSQModelTotalSSQ,
+      type = "II")
+```
+
+```{r}
+KPSSQModelTotalSSQ = emmeans(KPSSQModelTotalSSQ, ~Timepoint)
+pairs(KPSSQModelTotalSSQ, adjust="tukey")
+
+```
+
+
+```{r}
+TotalSSQNullmodel <- lmer(data = SSQKPConversionTotalSSQ, Value ~ (1|`Participant ID:`))
+TotalSSQmodel1 <- lmer(data = SSQKPConversionTotalSSQ, Value ~Timepoint + (1|`Participant ID:`))
+
+anova(TotalSSQNullmodel, TotalSSQmodel1)
+
+summary(TotalSSQmodel1)
+
+```
+```{r}
+library(report)
+TotalSSQresults <- report(TotalSSQmodel1, CI = 95)
+
+print(TotalSSQresults)
+
+
+```
+
+
+
+```{r}
+#############################################################################
+```
+
+```{r}
+SSQKPConversionOculo <- pivot_longer(data = SSQKPConversionTotal,
+                          cols = c(9:15)) %>% 
+  select(c(1,23,24))
+
+colnames(SSQKPConversionOculo)[colnames(SSQKPConversionOculo) %in% c("name", "value")] <- c("Timepoint", "Value") 
+  
+SSQKPConversionOculo[c('Measure', "Timepoint")] <- str_split_fixed(SSQKPConversionOculo$Timepoint, "_", 2)
+
+  #write.csv(SSQKPConversionOculo,"D:/Qualtrics_Data/Study2/SSQ/EXP1SSQSortKPOculo.csv", row.names = FALSE)
+
+```
+
+```{r}
+
+SSQKPConversionOculoSummary <- SSQKPConversionOculo %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(Value, na.rm = T),
+  sd = sd(Value, na.rm = T)
+  )   
+
+
+```
+
+```{r}
+ggplot(SSQKPConversionOculo, aes(Timepoint, Value, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total SSQ Score")
+
+interaction.plot(x.factor =  SSQKPConversionOculoSummary$Timepoint,
+                 trace.factor = SSQKPConversionOculoSummary$Timepoint,
+                 response = SSQKPConversionOculoSummary$mean,
+                 fun = mean,
+                 ylim = c(0, 10),
+                 xlab = "Timepoint",
+                 ylab = "Change in Oculomotor subscore",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Oculomotor",
+                 fixed=F,
+                 leg.bty ="o")
+
+```
+
+```{r}
+KPSSQModelOculo = lm(Value ~ Timepoint,data = SSQKPConversionOculo)
+
+Anova(KPSSQModelOculo,
+      type = "II")
+
+```
+
+
+```{r}
+OculoNullmodel <- lmer(data = SSQKPConversionOculo, Value ~ (1|`Participant ID:`))
+
+Oculomodel1 <- lmer(data = SSQKPConversionOculo, Value ~Timepoint + (1|`Participant ID:`))
+
+anova(Oculomodel1, OculoNullmodel)
+
+summary(Oculomodel1)
+```
+```{r}
+Oculoresults <- report(Oculomodel1, CI = 95)
+
+#summary(results)
+print(Oculoresults)
+```
+
+```{r}
+#############################################################################
+```
+
+
+```{r}
+SSQKPConversionNausea <- pivot_longer(data = SSQKPConversionTotal,
+                          cols = c(16:22)) %>% 
+  select(c(1,23,24))
+
+colnames(SSQKPConversionNausea)[colnames(SSQKPConversionNausea) %in% c("name", "value")] <- c("Timepoint", "Value") 
+  
+SSQKPConversionNausea[c('Measure', "Timepoint")] <- str_split_fixed(SSQKPConversionNausea$Timepoint, "_", 2)
+
+ # write.csv(SSQKPConversionNausea,"D:/Qualtrics_Data/Study1/SSQ/EXP1SSQSortKPNausea.csv", row.names = FALSE)
+```
+
+
+```{r}
+SSQKPConversionNauseaSummary <- SSQKPConversionNausea %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(Value, na.rm = T),
+  sd = sd(Value, na.rm = T)
+  )   
+
+
+```
+
+```{r}
+ggplot(SSQKPConversionNausea, aes(Timepoint, Value, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Nausea")
+
+interaction.plot(x.factor =  SSQKPConversionNauseaSummary$Timepoint,
+                 trace.factor = SSQKPConversionNauseaSummary$Timepoint,
+                 response = SSQKPConversionNauseaSummary$mean,
+                 fun = mean,
+                 ylim = c(0, 6),
+                 xlab = "Timepoint",
+                 ylab = "Score",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Nausea",
+                 fixed=F,
+                 leg.bty ="o")
+```
+
+```{r}
+
+KPSSQModelNausea = lm(Value ~ Timepoint,
+              data = SSQKPConversionNausea)
+
+Anova(KPSSQModelNausea,
+      type = "II")
+```
+```{r}
+NauseaNullmodel <- lmer(data = SSQKPConversionNausea, Value ~ (1|`Participant ID:`))
+
+Nauseamodel1 <- lmer(data = SSQKPConversionNausea, Value ~ Timepoint +(1|`Participant ID:`))
+
+anova(NauseaNullmodel, Nauseamodel1)
+
+summary(NauseaNullmodel)
+```
+```{r}
+Nausearesults <- report(NauseaNullmodel, CI = 95)
+
+#summary(results)
+print(Nausearesults)
+```
+
+
+```{r}
+#############################################################################
+```
+
+```{r}
+SSQKPConversionDisori <- pivot_longer(data = SSQKPConversionTotal,
+                          cols = c(23:29)) %>% 
+  select(c(1,23,24))
+
+colnames(SSQKPConversionDisori)[colnames(SSQKPConversionDisori) %in% c("name", "value")] <- c("Timepoint", "Value") 
+  
+SSQKPConversionDisori[c('Measure', "Timepoint")] <- str_split_fixed(SSQKPConversionDisori$Timepoint, "_", 2)
+
+
+  #write.csv(SSQKPConversionDisori,"D:/Qualtrics_Data/Study1/SSQ/EXP1SSQSortKPDisori.csv", row.names = FALSE)
+
+```
+
+
+```{r}
+
+SSQKPConversionDisoriSummary <- SSQKPConversionDisori %>% 
+  
+  group_by(Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(Value, na.rm = T),
+  sd = sd(Value, na.rm = T)
+  )   
+
+
+```
+
+```{r}
+ggplot(SSQKPConversionDisori, aes(Timepoint, Value, fill = Timepoint ))+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Disorientation")
+
+interaction.plot(x.factor =  SSQKPConversionDisoriSummary$Timepoint,
+                 trace.factor = SSQKPConversionDisoriSummary$Timepoint,
+                 response = SSQKPConversionDisoriSummary$mean,
+                 fun = mean,
+                 ylim = c(-1 , 10),
+                 xlab = "Timepoint",
+                 ylab = "Change in Disorientation subscore",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Disorientation",
+                 fixed=F,
+                 leg.bty ="o")
+```
+
+```{r}
+KPSSQModelDisori = lm(Value ~ Timepoint,
+              data = SSQKPConversionDisori)
+
+Anova(KPSSQModelDisori,
+      type = "II")
+
+```
+
+```{r}
+DisoriNullmodel <- lmer(data = SSQKPConversionDisori, Value ~ (1|`Participant ID:`))
+
+Disorimodel1 <- lmer(data = SSQKPConversionDisori, Value ~Timepoint + (1|`Participant ID:`))
+
+anova(DisoriNullmodel, Disorimodel1)
+
+summary(Disorimodel1)
+```
+```{r}
+Disoriresults <- report(DisoriNullmodel, CI = 95)
+
+#summary(results)
+print(Disoriresults)
+```
+
