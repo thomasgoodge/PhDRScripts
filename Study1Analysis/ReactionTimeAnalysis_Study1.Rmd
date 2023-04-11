@@ -137,7 +137,7 @@ ggplot(datasetRT, aes(reorder(Block, ReactionTime), ReactionTime,) ) +
 datasetMeanRT %>% 
   ggplot(aes(reorder(Block, avg), avg, ))+
   geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
-  geom_point (size = 4.5, aes(color = Condition), shape = 2) +
+  geom_point (size = 4.5, aes(color = Condition, shape = Condition)) +
   labs(x = "Block",
       y = "Mean Reaction Time (s)",
       tag = "",)+
@@ -145,6 +145,8 @@ datasetMeanRT %>%
 
       ylim(0,1)+
   theme_bw()
+
+ggsave("Study1RT.png")
 
 ```
 ```{r}
@@ -309,6 +311,7 @@ datasetSD <- datasetSD %>%
 ```{r}
 
 library(psycho)
+library(report)
 
 datasetSDSumm <- datasetSD %>% 
   group_by(ID, SigDet, Block, Condition) %>% 
@@ -336,10 +339,10 @@ datasetSDSumm <- cbind(datasetSDSumm, indices)
 datasetSDSummary <- datasetSDSumm %>% 
   group_by(Block, Condition) %>% 
   summarise(n = n(),
-            CR = mean(CR),
-            Hit = mean(Hit),
-            Miss= mean(Miss),
-            FA = mean(FA)
+            CR = sum(CR),
+            Hit = sum(Hit),
+            Miss= sum(Miss),
+            FA = sum(FA)
             
             )
 ```
@@ -408,7 +411,7 @@ summary(SDFAModel2)
 
 
 ```{r}
-SDFAresults <- report(SDFAModel2, CI = 95)
+SDFAresults <- report(SDFAModel, CI = 95)
 
 print(SDFAresults)
 ```

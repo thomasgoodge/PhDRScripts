@@ -19,13 +19,16 @@ library(tidyr)
 library(gridExtra)
 library(lme4)
 library(lmerTest)
+library(ggplot2)
+library(ggthemes)
+library(report)
 
 ```
 
 ####Data Wrangling
 
 ```{r}
-dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data"
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/PsychoPy"
 
 file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
@@ -51,7 +54,9 @@ SortedWHNDataset$Attention_slider.response <- as.numeric(SortedWHNDataset$Attent
 ```{r}
 Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/Study3Counterbalancing.csv", header = T)
 
-Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Fourth)
+Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Fourth, Fifth)
+
+Counterbalancing <- na.omit(Counterbalancing)
 ```
 
 
@@ -59,9 +64,12 @@ Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Four
 OrderWHNDataset <- left_join(SortedWHNDataset, Counterbalancing, by = 'participant') 
 OrderWHNDataset$Block <- 'Baseline' 
 
-OrderWHNDataset$Block <- if_else(OrderWHNDataset$trials_3.thisTrialN > 29, OrderWHNDataset$Fourth, 
-                                 if_else(OrderWHNDataset$trials_3.thisTrialN >19, OrderWHNDataset$Third,
-                                         if_else(OrderWHNDataset$trials_3.thisTrialN >9, OrderWHNDataset$Second, 'Baseline')))
+
+OrderWHNDataset$Block <-  if_else(OrderWHNDataset$trials_3.thisTrialN >= 32, OrderWHNDataset$Fifth, 
+                                  if_else(OrderWHNDataset$trials_3.thisTrialN >= 24, OrderWHNDataset$Fourth,
+                                          if_else(OrderWHNDataset$trials_3.thisTrialN >= 16, OrderWHNDataset$Third,
+                                                  if_else(OrderWHNDataset$trials_3.thisTrialN >= 8, OrderWHNDataset$Second, 
+                                                          'Baseline'))))
 
 
 WHNDataset <- OrderWHNDataset
@@ -78,6 +86,7 @@ WHNSummary <- WHNDataset %>%
   group_by(Block) %>% 
   summarise(n = n()/NoPpts,
             WHN = sum(trialResp.corr) / NoPpts,
+            WHNPercent = sum((trialResp.corr / NoPpts) /8) * 100,
             sdWHN = sd(trialResp.corr),
             meanConf = mean(conf_slider.response),
             sdConf = sd(conf_slider.response),
@@ -86,37 +95,127 @@ WHNSummary <- WHNDataset %>%
             meanAttention = mean(Attention_slider.response),
             sdAttention = sd(Attention_slider.response)
             )
+
+
+WHNDataset$image_file[WHNDataset$image_file == "Slide1"] <- "Slide01"
+WHNDataset$image_file[WHNDataset$image_file == "Slide2"] <- "Slide02"
+WHNDataset$image_file[WHNDataset$image_file == "Slide3"] <- "Slide03"
+WHNDataset$image_file[WHNDataset$image_file == "Slide4"] <- "Slide04"
+WHNDataset$image_file[WHNDataset$image_file == "Slide5"] <- "Slide05"
+WHNDataset$image_file[WHNDataset$image_file == "Slide6"] <- "Slide06"
+WHNDataset$image_file[WHNDataset$image_file == "Slide7"] <- "Slide07"
+WHNDataset$image_file[WHNDataset$image_file == "Slide8"] <- "Slide08"
+WHNDataset$image_file[WHNDataset$image_file == "Slide9"] <- "Slide09"
+
 ```
+
+```{r}
+
+ClipSummary <- WHNDataset %>% 
+  group_by(image_file) %>% 
+  summarise(n = n(),
+            WHN = sum(trialResp.corr),
+            sdWHN = sd(trialResp.corr))
+
+
+ClipBlockSummary <- WHNDataset %>% 
+  group_by(image_file, Block) %>% 
+  summarise(n = n(),
+            WHN = sum(trialResp.corr),
+            sdWHN = sd(trialResp.corr))
+
+```
+```{r}
+ggplot(data = ClipSummary, aes(x = image_file, y = WHN, fill = image_file))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(xlim(0,NoPpts))
+```
+
+
+```{r}
+ggplot(data = ClipBlockSummary, aes(x = image_file, y = WHN, fill = Block))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(xlim(0,NoPpts))
+```
+
+
+```{r}
+```
+
+```{r}
+ConfSum <- WHNDataset %>% 
+  group_by(Block) %>% 
+  summarise(n = NoPpts,
+            mean = mean(Attention_slider.response, na.rm = T),
+            sd = sd(Attention_slider.response, na.rm = T))
+```
+
 
 ###End of Data Wrangling####
 
+
+###############WHN Scores##################
+
 ```{r}
+
+WHNBaseline <- as.numeric(WHNSummary[1,3])
 
 ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
   geom_col()+
   geom_errorbar(aes(ymin = WHN - sdWHN, ymax = WHN + sdWHN),
                 width = 0.2, 
                 position = position_dodge(0.9))+
-  labs(title = "WHN Score", xlim(0,10))
+  geom_hline(yintercept = WHNBaseline, linetype = "dashed", size = 1.0)+
+  labs(title = "Average WHN Score", ylim(0,8))+
+  scale_fill_hue(l = 40)
 
 ```
 
 ```{r}
+WHNANOVA <- aov(trialResp.corr ~ Block , data = WHNDataset)
+
+summary(WHNANOVA)
+
+TukeyHSD(WHNANOVA)
+
+
+```
+
+#######CONFIDENCE SCORES##############
+```{r}
+ConfBaseline <- as.numeric(WHNSummary[1,5])
+
+
 ggplot(data = WHNSummary, aes(x = Block, y = meanConf, fill = Block))+
   geom_col()+
   geom_errorbar(aes(ymin = meanConf - sdConf/2, ymax = meanConf + sdConf/2),
                 width = 0.2, 
                 position = position_dodge(0.9))+
-  labs(title = "Confidence Score", xlim(0,1.0))
+  geom_hline(yintercept = ConfBaseline, linetype = "dashed", size = 1.0)+
+  labs(title = "Average Confidence Score", xlim(0,1.0))+
+  scale_fill_hue(l = 40)
 ```
+
+```{r}
+ConfANOVA <- aov(conf_slider.rt ~ Block , data = WHNDataset)
+
+summary(ConfANOVA)
+
+TukeyHSD(ConfANOVA)
+```
+
 ```{r}
 ggplot(data = WHNSummary, aes(x = Block, y = meanMISC, fill = Block))+
   geom_col()+
     geom_errorbar(aes(ymin = meanMISC - (sdMISC/2), ymax = meanMISC + (sdMISC/2)),
                 width = 0.2, 
                 position = position_dodge(0.9))+
-  labs(title = "MISC Score")
+  labs(title = "MISC Score")+
+  scale_fill_hue(l = 40)
 ```
+
 
 ```{r}
 MISCDataset <- WHNDataset %>%
@@ -131,14 +230,82 @@ ggplot(data = MISCDataset, aes(x = trials_3.thisTrialN, y = mean))+
   labs(title = "MISC Score")
 ```
 
+
+
 ```{r}
+MISCANOVA <- aov(MiseryScale.response ~ Block , data = WHNDataset)
 
-ANOVA <- aov(trialResp.corr ~ Block , data = WHNDataset)
-
-summary(ANOVA)
-
+summary(MISCANOVA)
 
 
+TukeyHSD(MISCANOVA)
 
+```
+#################LMERs################
+
+```{r}
+WHNNullModel <- lmer(data = WHNDataset, formula = trialResp.corr ~  (1|participant))
+
+summary(WHNNullModel)
+
+
+
+```
+
+```{r}
+WHNModel1 = lmer(data = WHNDataset, formula = trialResp.corr ~ Block + (1|participant))
+
+summary(WHNModel1)
+```
+
+
+```{r}
+anova(WHNNullModel, WHNModel1)
+
+WHNresults <- report(WHNModel1, CI = 95)
+
+print(WHNresults)
+```
+
+```{r}
+ConfNullModel <- lmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant))
+
+summary(ConfNullModel)
+
+```
+
+```{r}
+ConfModel1 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant))
+
+summary(ConfModel1)
+```
+
+
+```{r}
+anova(ConfNullModel, ConfModel1)
+
+
+#anova(Model1)
+```
+
+```{r}
+MISCNullModel <- lmer(data = WHNDataset, formula = MiseryScale.response ~  (1|participant))
+
+summary(MISCNullModel)
+
+```
+
+```{r}
+MISCfModel1 = lmer(data = WHNDataset, formula = MiserScale.response ~ Block + (1|participant))
+
+summary(MISCModel1)
+```
+
+
+```{r}
+anova(MISCNullModel, MISCModel1)
+
+
+#anova(Model1)
 ```
 

@@ -391,12 +391,26 @@ group_by(Condition, Block, ClipNumber) %>%
     mean = mean(RTStandard)
   ) 
 
+
 RTOverallSummary <- RTHazardData %>% 
+group_by(Block) %>% 
+  summarise(
+    mean = mean(RTStandard),
+    sd = sd(RTStandard)
+  ) %>% 
+  mutate(Condition = "Overall")
+
+
+RTGroupSummary <- RTHazardData %>% 
 group_by(Condition, Block, ) %>% 
   summarise(
     mean = mean(RTStandard),
     sd = sd(RTStandard)
-  ) 
+  )
+
+RTGroupSummary <- rbind(RTGroupSummary, RTOverallSummary)
+
+
 
 ```
 
@@ -436,22 +450,70 @@ for (p in RTHazPlots){
 }
 
 ```
+
 ```{r}
-ggplot(RTOverallSummary,  aes(x = Block, y = mean, colour = Condition))+
+ggplot(RTOverallSummary,  aes(x = Block, y = mean))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
   #geom_line() +
-  geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
-  geom_point (size = 4.5, aes(color = Condition), shape = 2) +
+  geom_line(size = 0.3,) +
+  geom_point(size = 4.5 ) +
   labs(x = "Block",
       y = "Mean Reaction Time for hazard windows",
       title = "Overall",
       tag = "")+  
-  ylim(-1.0,1.5) +
-  geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
-  geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
+  ylim(-1.0,1.0) +
+  #geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+  geom_hline(yintercept = -1.0,  linetype = "solid", colour = "black", size = 1.0)+
 #geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
+  scale_shape(solid = F)+
 
   theme_bw()
+
+
+
+ggsave("OverallRTPlot.png")
+```
+
+
+```{r}
+ggplot(RTGroupSummary,  aes(x = Block, y = mean, group = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  #geom_line() +
+  geom_line(size = 0.3, aes(linetype = Condition, colour = Condition)) +
+  geom_point (size = 4.5, aes(shape = Condition, colour = Condition), ) +
+  labs(x = "Block",
+      y = "Mean Reaction Time for hazard windows",
+      title = "Overall",
+      tag = "")+  
+  ylim(-1.0,1.0) +
+  geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+  geom_hline(yintercept = -1.0,  linetype = "solid", colour = "black", size = 1.0)+
+#geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
+  scale_shape(solid = F) +
+
+  theme_bw()
+
+
+
+ggsave("GroupRTPlot.png")
+```
+
+```{r}
+
+interaction.plot(x.factor =  RTGroupSummary$Block,
+                 trace.factor = RTGroupSummary$Condition,
+                 response = RTGroupSummary$mean,
+                 fun = mean,
+                 ylim = (c(-1.0,1.0)),
+                 xlab = "Block",
+                 ylab = "Hazard Perception Reaction time (s)",
+                 type= "b",
+                 col=c("red","blue", "green"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition",
+                 fixed=T,
+                 leg.bty ="o")
+  
 ```
 
 
@@ -462,9 +524,13 @@ ggplot(RTHazardData,  aes(x = Block, y = RTStandard, colour = Condition))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
   #geom_line() +
   geom_boxplot()+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
   geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+  geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
+  ylim(-1.0,1.5) +
+
   ylab("Reaction Time difference from Hazard Onset")+
-  xlab("Condition")+
+  xlab("Block")+
   theme_bw()
 ```
 
@@ -688,6 +754,7 @@ table(RTHazardDataStrict$ClipNumber)
 ```{r}
 PivotRTHazardStrictSummary<- RTHazardStrictSummary %>% 
   pivot_wider(names_from = ClipNumber, values_from =mean) 
+
 
 
 ```
