@@ -82,6 +82,11 @@ WHNDataset <- WHNDataset[!is.na(WHNDataset$Correct),]
 
 NoPpts <- n_distinct(WHNDataset$participant)
 
+#WHNDataset <- WHNDataset %>% 
+ # subset(image_file != "Slide24")
+
+WHNDataset$participant <- as.factor(WHNDataset$participant)
+
 WHNSummary <- WHNDataset %>% 
   group_by(Block) %>% 
   summarise(n = n()/NoPpts,
@@ -107,6 +112,13 @@ WHNDataset$image_file[WHNDataset$image_file == "Slide7"] <- "Slide07"
 WHNDataset$image_file[WHNDataset$image_file == "Slide8"] <- "Slide08"
 WHNDataset$image_file[WHNDataset$image_file == "Slide9"] <- "Slide09"
 
+WHNSummary$Block[WHNSummary$Block == "GemsBasic"] <- "HUD - AR"
+WHNSummary$Block[WHNSummary$Block == "GemsCued"] <- "HUD - Cued AR"
+WHNSummary$Block[WHNSummary$Block == "GemsTablet"] <- "HDD - AR"
+WHNSummary$Block[WHNSummary$Block == "Tablet"] <- "HDD - Tablet"
+
+
+WHNSummary$Block <- factor(WHNSummary$Block, levels = c("Baseline", "HUD - AR","HUD - Cued AR", "HDD - AR", "HDD - Tablet"))
 ```
 
 ```{r}
@@ -137,12 +149,10 @@ ggplot(data = ClipSummary, aes(x = image_file, y = WHN, fill = image_file))+
 ggplot(data = ClipBlockSummary, aes(x = image_file, y = WHN, fill = Block))+
   geom_col()+
   theme(axis.text.x = element_text(angle = 90))+
-  labs(xlim(0,NoPpts))
+  labs(xlim(0,NoPpts))+
+  geom_hline(yintercept = NoPpts)
 ```
 
-
-```{r}
-```
 
 ```{r}
 ConfSum <- WHNDataset %>% 
@@ -168,7 +178,9 @@ ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
                 width = 0.2, 
                 position = position_dodge(0.9))+
   geom_hline(yintercept = WHNBaseline, linetype = "dashed", size = 1.0)+
-  labs(title = "Average WHN Score", ylim(0,8))+
+  geom_hline(yintercept = 8, linetype = "solid", size = 1.0)+
+  labs(title = "Average WHN Score")+
+  ylim(0,8)+
   scale_fill_hue(l = 40)
 
 ```
@@ -180,12 +192,11 @@ summary(WHNANOVA)
 
 TukeyHSD(WHNANOVA)
 
-
 ```
 
 #######CONFIDENCE SCORES##############
 ```{r}
-ConfBaseline <- as.numeric(WHNSummary[1,5])
+ConfBaseline <- as.numeric(WHNSummary[1,6])
 
 
 ggplot(data = WHNSummary, aes(x = Block, y = meanConf, fill = Block))+
@@ -194,7 +205,8 @@ ggplot(data = WHNSummary, aes(x = Block, y = meanConf, fill = Block))+
                 width = 0.2, 
                 position = position_dodge(0.9))+
   geom_hline(yintercept = ConfBaseline, linetype = "dashed", size = 1.0)+
-  labs(title = "Average Confidence Score", xlim(0,1.0))+
+  labs(title = "Average Confidence Score")+
+  ylim(0,1.0)+
   scale_fill_hue(l = 40)
 ```
 
@@ -205,17 +217,6 @@ summary(ConfANOVA)
 
 TukeyHSD(ConfANOVA)
 ```
-
-```{r}
-ggplot(data = WHNSummary, aes(x = Block, y = meanMISC, fill = Block))+
-  geom_col()+
-    geom_errorbar(aes(ymin = meanMISC - (sdMISC/2), ymax = meanMISC + (sdMISC/2)),
-                width = 0.2, 
-                position = position_dodge(0.9))+
-  labs(title = "MISC Score")+
-  scale_fill_hue(l = 40)
-```
-
 
 ```{r}
 MISCDataset <- WHNDataset %>%
@@ -244,16 +245,12 @@ TukeyHSD(MISCANOVA)
 #################LMERs################
 
 ```{r}
-WHNNullModel <- lmer(data = WHNDataset, formula = trialResp.corr ~  (1|participant))
+WHNNullModel <- lmer(data = WHNDataset, formula = trialResp.corr ~  (1|participant) + (1|image_file))
 
 summary(WHNNullModel)
 
 
-
-```
-
-```{r}
-WHNModel1 = lmer(data = WHNDataset, formula = trialResp.corr ~ Block + (1|participant))
+WHNModel1 = lmer(data = WHNDataset, formula = trialResp.corr ~ Block + (1|participant) + (1|image_file))
 
 summary(WHNModel1)
 ```
@@ -268,14 +265,14 @@ print(WHNresults)
 ```
 
 ```{r}
-ConfNullModel <- lmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant))
+ConfNullModel <- lmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant) + (1|image_file))
 
 summary(ConfNullModel)
 
 ```
 
 ```{r}
-ConfModel1 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant))
+ConfModel1 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file))
 
 summary(ConfModel1)
 ```
@@ -285,6 +282,9 @@ summary(ConfModel1)
 anova(ConfNullModel, ConfModel1)
 
 
+Confresults <- report(ConfModel1, CI = 95)
+
+print(Confresults)
 #anova(Model1)
 ```
 
@@ -296,7 +296,7 @@ summary(MISCNullModel)
 ```
 
 ```{r}
-MISCfModel1 = lmer(data = WHNDataset, formula = MiserScale.response ~ Block + (1|participant))
+MISCModel1 = lmer(data = WHNDataset, formula = MiseryScale.response ~ Block + (1|participant))
 
 summary(MISCModel1)
 ```

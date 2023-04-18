@@ -71,6 +71,8 @@ scoreDatasetRaw$`"Average Proportion"` <- as.numeric( scoreDatasetRaw$`"Average 
 
 scoreDatasetRaw[c('Ppt','Block')] <- str_split_fixed(scoreDatasetRaw$`"ID"`, 'Gems', 4)
 
+tabletScore <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/Score/TabletScore.csv")
+
 ```
 
 ```{r}
@@ -83,14 +85,21 @@ summaryScoreDataset <-scoreDatasetRaw %>%
             sdDiamond = sd(`"DiamondProportion"`, na.rm=T),
             meanEmerald = mean(`"EmeraldProportion"`,na.rm=T),
             sdEmerald = sd(`"EmeraldProportion"`, na.rm = T))
+
+summaryScoreDataset$Block[summaryScoreDataset$Block == "Basic_score.txt"] <- "AR HUD"
+summaryScoreDataset$Block[summaryScoreDataset$Block == "Cued_score.txt"] <- "Cued AR HUD"
+summaryScoreDataset$Block[summaryScoreDataset$Block == "HDD_tabletscore.txt"] <- "AR HDD"
 ```
 
 ```{r}
 ggplot(summaryScoreDataset, aes(x = Block, y = mean, fill = Block))+
   geom_col()+
-  geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
+  geom_errorbar(aes(ymin = mean - (sd), ymax = mean + (sd)),
                 width = 0.2, 
-                position = position_dodge(0.9))
+                position = position_dodge(0.9))+
+  scale_fill_hue(l = 40)+
+  ylim(0,100)
+
 ```
 
 

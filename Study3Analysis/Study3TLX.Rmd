@@ -30,7 +30,7 @@ TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
   
   TLXdataOrg$Block <- str_sub(TLXdataOrg$Block, 1,7)
   
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1"] <- "HUD - ARD"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1"] <- "HUD - AR"
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 2"] <- "HUD - AR Cued"
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 3"] <- "HDD - Tablet"
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 4"] <- "HDD - AR"
@@ -89,8 +89,8 @@ TLXdataSumm <- TLXdata %>%
 
 ```{r}
 ggplot(TLXdata, aes(Block, Total, fill = Block ))+
-  geom_boxplot(width = 0.3, fill = 0.1)+
-  geom_violin(alpha = 0.4, colour = 0)+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
   labs(title = "Total")
 ```
 
@@ -117,8 +117,8 @@ ggplot(TLXdata, aes(Block, `Temporal Demand`, fill = Block ))+
 ggplot(TLXdata, aes(Block,Performance, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
-  ylim (100,0)+
-    labs(title = "Overall Performance (Inverted)")
+  ylim (0,100)+
+    labs(title = "Overall Performance")
 
 ggplot(TLXdata, aes(Block, Effort, fill = Block ))+
   geom_boxplot(width = 0.3)+
@@ -227,43 +227,40 @@ pairs(FRmarginal, adjust="tukey")
 
 
 ```{r}
-TLXTotalNullmodel <- lmer(data = TLXdata, Total + (1|ID))
-TLXTotalmodel1 <- lmer(data = TLXdata, Total ~Block + (1|ID))
+TLXTotalNullmodel <- lmer(data = TLXdata, Total ~ (1|Ppt_ID))
+TLXTotalmodel1 <- lmer(data = TLXdata, Total ~Block + (1|Ppt_ID))
 
 anova(TLXTotalNullmodel,TLXTotalmodel1)
 
-summary(TLXTotalmodel)
+summary(TLXTotalmodel1)
 ```
 
 
 ```{r}
-Totalresults <- report(TLXTotalmodel, CI = 95)
+Totalresults <- report(TLXTotalmodel1, CI = 95)
 
 print(Totalresults)
 ```
 
 ```{r}
 
-TLXMentalmodel <- lmer(data = TLXdata, `Mental Demand` ~Block+Condition + (1|ID))
+TLXMentalNullmodel <- lmer(data = TLXdata, `Mental Demand` ~ (1|Ppt_ID))
 
-TLXMentalmodel2 <- lmer(data = TLXdata, `Mental Demand` ~Block*Condition + (1|ID))
+TLXMentalmodel2 <- lmer(data = TLXdata, `Mental Demand` ~Block + (1|Ppt_ID))
 
-anova(TLXMentalmodel, TLXMentalmodel2)
+anova(TLXMentalNullmodel, TLXMentalmodel2)
 
-summary(TLXMentalmodel)
+summary(TLXMentalmodel2)
 
-Mentalresults <- report(TLXMentalmodel, CI = 95)
+Mentalresults <- report(TLXMentalmodel2, CI = 95)
 
 print(Mentalresults)
 ```
 ```{r}
-TLXPhysmodel <- lmer(data = TLXdata, `Physical Demand` ~Block+Condition + (1|ID))
+TLXPhysNullmodel <- lmer(data = TLXdata, `Physical Demand` ~ (1|Ppt_ID))
 
 
-TLXPhysmodel2 <- lmer(data = TLXdata, `Physical Demand` ~Block*Condition + (1|ID))
-
-TLXPhysmodel3 <- lmer(data = TLXdata, `Physical Demand` ~Condition + (1|ID))
-
+TLXPhysmodel2 <- lmer(data = TLXdata, `Physical Demand` ~Block + (1|Ppt_ID))
 
 
 summary(TLXPhysmodel2)
@@ -271,43 +268,44 @@ summary(TLXPhysmodel2)
 anova (TLXPhysmodel, TLXPhysmodel2)
 
 
-summary(TLXPhysmodel)
-
 Physresults <- report(TLXPhysmodel2, CI = 95)
 
 print(Physresults)
 ```
 ```{r}
-TLXTempmodel <- lmer(data = TLXdata, `Temporal Demand` ~Block+Condition + (1|ID))
+TLXTempNullmodel <- lmer(data = TLXdata, `Temporal Demand` ~ (1|Ppt_ID))
 
 
-TLXTempmodel2 <- lmer(data = TLXdata, `Temporal Demand` ~Block*Condition + (1|ID))
+TLXTempmodel2 <- lmer(data = TLXdata, `Temporal Demand` ~Block + (1|Ppt_ID))
 
 
-anova(TLXTempmodel, TLXTempmodel2)
+anova(TLXTempNullmodel, TLXTempmodel2)
 
-summary(TLXTempmodel)
+summary(TLXTempmodel2)
 
-Tempresults <- report(TLXTempmodel, CI = 95)
+Tempresults <- report(TLXTempmodel2, CI = 95)
 
 print(Tempresults)
 ```
 
 ```{r}
-TLXEffortmodel <- lmer(data = TLXdata, Effort ~Block+Condition + (1|ID))
-TLXEffortmodel2 <- lmer(data = TLXdata, Effort ~Block*Condition + (1|ID))
+TLXEffortNullmodel <- lmer(data = TLXdata, Effort ~ (1|Ppt_ID))
+TLXEffortmodel2 <- lmer(data = TLXdata, Effort ~Block + (1|Ppt_ID))
 
-anova(TLXEffortmodel, TLXEffortmodel2)
+anova(TLXEffortNullmodel, TLXEffortmodel2)
 
-summary(TLXEffortmodel)
-Effortresults <- report(TLXEffortmodel, CI = 95)
+summary(TLXEffortmodel2)
+Effortresults <- report(TLXEffortmodel2, CI = 95)
 
 print(Effortresults)
 ```
 
 ```{r}
-TLXFrusmodel <- lmer(data = TLXdata, Frustration ~Block*Condition + (1|ID))
+TLXFrusNullmodel <- lmer(data = TLXdata, Frustration ~ (1|Ppt_ID))
 
+TLXFrusmodel <- lmer(data = TLXdata, Frustration ~ Block + (1|Ppt_ID))
+
+anova(TLXFrusNullmodel, TLXFrusmodel)
 summary(TLXFrusmodel)
 
 Frusresults <- report(TLXFrusmodel, CI = 95)
@@ -316,7 +314,12 @@ print(Frusresults)
 ```
 
 ```{r}
-TLXPerfmodel <- lmer(data = TLXdata, Performance ~Block*Condition + (1|ID))
+TLXPerfNullmodel <- lmer(data = TLXdata, Performance ~ (1|Ppt_ID))
+
+
+TLXPerfmodel <- lmer(data = TLXdata, Performance ~Block + (1|Ppt_ID))
+
+anova(TLXPerfNullmodel, TLXPerfmodel)
 
 summary(TLXPerfmodel)
 
