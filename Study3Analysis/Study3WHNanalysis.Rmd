@@ -81,9 +81,10 @@ WHNDataset <- WHNDataset[!is.na(WHNDataset$Correct),]
 ```{r}
 
 NoPpts <- n_distinct(WHNDataset$participant)
-
-#WHNDataset <- WHNDataset %>% 
- # subset(image_file != "Slide24")
+# 
+# WHNDataset <- WHNDataset %>%
+# subset(image_file != "Slide24") %>%
+#   subset(participant != "P16")
 
 WHNDataset$participant <- as.factor(WHNDataset$participant)
 
@@ -119,6 +120,10 @@ WHNSummary$Block[WHNSummary$Block == "Tablet"] <- "HDD - Tablet"
 
 
 WHNSummary$Block <- factor(WHNSummary$Block, levels = c("Baseline", "HUD - AR","HUD - Cued AR", "HDD - AR", "HDD - Tablet"))
+
+
+
+
 ```
 
 ```{r}
@@ -141,7 +146,9 @@ ClipBlockSummary <- WHNDataset %>%
 ggplot(data = ClipSummary, aes(x = image_file, y = WHN, fill = image_file))+
   geom_col()+
   theme(axis.text.x = element_text(angle = 90))+
-  labs(xlim(0,NoPpts))
+  labs(xlim(0,NoPpts))+
+  geom_hline(yintercept = NoPpts)
+
 ```
 
 
@@ -150,12 +157,14 @@ ggplot(data = ClipBlockSummary, aes(x = image_file, y = WHN, fill = Block))+
   geom_col()+
   theme(axis.text.x = element_text(angle = 90))+
   labs(xlim(0,NoPpts))+
-  geom_hline(yintercept = NoPpts)
+  geom_hline(yintercept = NoPpts)+
+  geom_hline(yintercept = 5)
+
 ```
 
 
 ```{r}
-ConfSum <- WHNDataset %>% 
+AttSum <- WHNDataset %>% 
   group_by(Block) %>% 
   summarise(n = NoPpts,
             mean = mean(Attention_slider.response, na.rm = T),
@@ -177,9 +186,9 @@ ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
   geom_errorbar(aes(ymin = WHN - sdWHN, ymax = WHN + sdWHN),
                 width = 0.2, 
                 position = position_dodge(0.9))+
-  geom_hline(yintercept = WHNBaseline, linetype = "dashed", size = 1.0)+
+  geom_hline(yintercept = WHNBaseline, linetype = "dashed", size = 0.5)+
   geom_hline(yintercept = 8, linetype = "solid", size = 1.0)+
-  labs(title = "Average WHN Score")+
+  labs(ttle = "Average WHN Score")+
   ylim(0,8)+
   scale_fill_hue(l = 40)
 
@@ -242,6 +251,29 @@ summary(MISCANOVA)
 TukeyHSD(MISCANOVA)
 
 ```
+
+```{r}
+
+ggplot(data = AttSum, aes(x = Block, y = mean, fill = Block))+
+  geom_col()+
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd),
+                width = 0.2, 
+                position = position_dodge(0.9))+
+  labs(title = "Attention to Driving Task Rating")+
+  scale_fill_hue(l = 40)
+
+```
+```{r}
+AttANOVA <- aov(Attention_slider.response ~ Block , data = WHNDataset)
+
+summary(AttANOVA)
+
+
+TukeyHSD(AttANOVA)
+```
+
+
+
 #################LMERs################
 
 ```{r}
@@ -304,8 +336,27 @@ summary(MISCModel1)
 
 ```{r}
 anova(MISCNullModel, MISCModel1)
+MISCresults <- report(MISCModel1, CI = 95)
 
+print(MISCresults)
 
-#anova(Model1)
+```
+```{r}
+AttNullModel = lmer(data = WHNDataset, formula = Attention_slider.response ~ (1|participant) + (1|trials_3.thisTrialN))
+
+summary(AttNullModel)
+```
+```{r}
+AttModel1 = lmer(data = WHNDataset, formula = Attention_slider.response ~ Block + (1|participant) + (1|trials_3.thisTrialN))
+
+summary(AttModel1)
+
+```
+```{r}
+anova(AttModel1, AttNullModel)
+
+Attresults <- report(AttModel1, CI = 95)
+
+print(Confresults)
 ```
 

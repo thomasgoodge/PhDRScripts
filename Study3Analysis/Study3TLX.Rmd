@@ -35,6 +35,10 @@ TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 3"] <- "HDD - Tablet"
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 4"] <- "HDD - AR"
   
+  
+TLXdataOrg$Block <- factor(TLXdataOrg$Block, levels = c("Control", "HUD - AR","HUD - AR Cued", "HDD - AR", "HDD - Tablet"))
+
+
 ```
 
 
@@ -42,7 +46,7 @@ TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
 #Convert to wrangled dataset
 TLXdata <- TLXdataOrg 
 
-TLXdata$Performance <- 100 - TLXdata$`Overall Performance` 
+TLXdata$Performance <- TLXdata$`Overall Performance` 
 
 TLXdata <- TLXdata %>%  select(-`Overall Performance`)
 
@@ -265,7 +269,7 @@ TLXPhysmodel2 <- lmer(data = TLXdata, `Physical Demand` ~Block + (1|Ppt_ID))
 
 summary(TLXPhysmodel2)
 
-anova (TLXPhysmodel, TLXPhysmodel2)
+anova (TLXPhysNullmodel, TLXPhysmodel2)
 
 
 Physresults <- report(TLXPhysmodel2, CI = 95)

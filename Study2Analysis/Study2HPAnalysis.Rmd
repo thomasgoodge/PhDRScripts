@@ -56,7 +56,7 @@ SortedHPDataset <- SortedHPDataset %>%  separate(video_file, c('ClipNumber', 'de
   select(-3)
 
 SortedHPDataset$Block <- 'Baseline HP'  
-SortedHPDataset$Block[SortedHPDataset$trials_3.thisTrialN > 10] <- "Experiment AR" 
+SortedHPDataset$Block[SortedHPDataset$trials_3.thisTrialN > 10] <- "HP-AR" 
 
 
 SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip2"] <- "PilotClip02"
@@ -566,7 +566,7 @@ RTHazardData <- RTHazardData %>%
   ) %>%
   mutate(
     Condition = relevel(Condition, ref = "Focused"),
-    Block = relevel(Block, ref = "Experiment AR")
+    Block = relevel(Block, ref = "HP-AR")
   )
 
 model2 <- lm(RTStandard ~ Condition*Block, data = RTHazardData)

@@ -34,6 +34,7 @@ DemogDataOrg <- DemogDataOrg %>%
   rename(CountryLicense = `Which country did you get your driving license in?`) %>%
   rename(YearsExp = `How many years driving experience do you have, either from when you passed your driving test or when you started driving regularly? - (years/months)`) %>%
   rename(UKYearsExp = `How many years driving experience do you have driving in the UK? (years, months)`) %>%
+   rename(GlasgowYearsExp = `How many years driving experience do you have driving around the West End of Glasgow? (years, months)`) %>%
   rename(HazPerTest = `Did you take a Hazard Perception test as part of getting your driver's license?(Or another video-based hazard awareness assessment tool?)`) %>%
   rename(VideoGamesTime = `Roughly how many hours do you play video games for in an average week?`) %>% 
   rename(MotionSickness = `Do you have any history of motion sickness? - Selected Choice`) %>% 
@@ -49,6 +50,12 @@ DemogDataOrg$VideoGamesTime = as.numeric(DemogDataOrg$VideoGamesTime)
 DemogDataOrg$YearsExp = as.numeric(DemogDataOrg$YearsExp)
 
 DemogDataOrg$UKYearsExp = as.numeric(DemogDataOrg$UKYearsExp)
+DemogDataOrg$GlasgowYearsExp = as.numeric(DemogDataOrg$GlasgowYearsExp)
+
+DemogDataOrg$Gender[DemogDataOrg$Gender == 'Woman'] <- 'Female'
+DemogDataOrg$Gender[DemogDataOrg$Gender == 'Female '] <- 'Female'
+DemogDataOrg$Gender[DemogDataOrg$Gender == 'Male '] <- 'Male'
+
 
 ```
 
@@ -61,22 +68,17 @@ DemogSummaryTotal <- DemogDataOrg %>%
   AgeSD = sd(Age),
   Male = sum(Gender == 'Male'),
   Female = sum(Gender == "Female"),
+  UKLicense = sum(UKLicense == 'Yes'),
+  UKExp = mean(UKYearsExp, na.rm = T),
+  UKEXPsd = sd(UKYearsExp, na.rm = T),
+  GlasgowExp = mean(GlasgowYearsExp, na.rm = T),
+  GlasgowExpsd = sd(GlasgowYearsExp, na.rm = T),
   meanVG = mean(VideoGamesTime, na.rm = T),
   meanExp = mean(YearsExp, na.rm = T),
-  sdExp = sd(YearsExp)
+  sdExp = sd(YearsExp, na.rm = T)
 
   )   
 ```
 
 
-
-
-```{r}
-ARExp <- table(DemogDataOrg$ARExp)
-ARExpType <- table(DemogDataOrg$ARHeadsets)
-VRExp <- table(DemogDataOrg$VRExp)
-VRExpType <- table(DemogDataOrg$VRExpHeadset)
-
-
-```
 
