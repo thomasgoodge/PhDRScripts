@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
   list.files()
   #Read in the data
-  DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/Qualtrics/Demogs/Study3Demogs.csv") %>%  
+  DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Qualtrics/Demogs/Study3Demogs.csv") %>%  
     select(starts_with('Q')) 
 ```
 ```{r}

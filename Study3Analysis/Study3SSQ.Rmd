@@ -28,7 +28,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, include=FALSE}
 #Set the working directory of the data ***HARD CODED ***
  #setwd("D:/Study2Data/qualtrics_data/SSQ")
-SSQdataRaw = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/Qualtrics/SSQ/Study3SSQ.csv") %>%  
+SSQdataRaw = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Qualtrics/SSQ/Study3SSQ.csv") %>%  
     select(starts_with('Q')) 
   
   #Format the column names by removing excess characters
@@ -48,7 +48,7 @@ SSQdataOrg <- SSQdataOrg[-c(1),] %>%
 
 
 ```{r}
-Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/Study3Counterbalancing.csv", header = T)
+Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/Study3Counterbalancing.csv", header = T)
 
 Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Fourth, Fifth)
 
@@ -422,39 +422,26 @@ Anova(SSQModel,
 
 ```
 ```{r}
-TotalSSQNullmodel <- lmer(data = SSQConversion, TotalSSQScore ~ (1|participant))
+TotalSSQNullmodel <- lmer(data = SSQConversion, TotalSSQScore ~ (1|participant), REML = F)
 
-TotalSSQmodel1 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint + (1|participant))
+TotalSSQmodel1 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint + (1|participant), REML = F)
 
-TotalSSQmodel2 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint + Block + (1|participant))
+TotalSSQmodel2 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint + Block + (1|participant), REML = F)
 
-TotalSSQmodel3 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint * Block + (1|participant))
+TotalSSQmodel3 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint * Block + (1|participant), REML = F)
 
-TotalSSQmodel4 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint  + (1|participant) + (1|Block))
+TotalSSQmodel4 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint  + (1|participant) + (1|Block), REML = F)
 
-anova(TotalSSQmodel1, TotalSSQNullmodel)
+anova(TotalSSQNullmodel, TotalSSQmodel1, TotalSSQmodel2, TotalSSQmodel3, TotalSSQmodel4)
 
-anova(TotalSSQmodel1, TotalSSQmodel2)
 
-anova(TotalSSQmodel1, TotalSSQmodel3)
 
-anova(TotalSSQmodel1, TotalSSQmodel4)
-
-anova(TotalSSQmodel2, TotalSSQNullmodel)
-
-anova(TotalSSQmodel2, TotalSSQmodel3)
-
-anova(TotalSSQmodel2, TotalSSQmodel4)
-
-anova(TotalSSQmodel3, TotalSSQNullmodel)
-
-anova(TotalSSQmodel3, TotalSSQmodel4)
-
-anova(TotalSSQmodel4, TotalSSQNullmodel)
 ```
 
 
 ```{r}
+
+anova(TotalSSQmodel1, TotalSSQmodel4)
 summary(TotalSSQmodel1)
 summary(TotalSSQmodel4)
 ```
@@ -599,6 +586,7 @@ ggplot(SSQKPConversionTotalSSQ, aes(Timepoint, TotalSSQScoreChange, colour = Blo
 ```
 
 
+
 ```{r}
 ggplot(SSQKPConversionTotalSSQSummary,  aes(x = Timepoint, y = mean, colour = Timepoint, group = 1))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
@@ -649,8 +637,8 @@ ggplot(SSQKPConversionTotalSSQBlockSummary,  aes(x = Timepoint, y = mean, colour
   scale_color_brewer(palette="Dark2")+
   geom_line(position = position_dodge(width = 0.5))+
   labs(x = "Block",
-      y = "Total SSQ Score",
-      title = "Total SSQ Score",
+      y = "Total Change in  SSQ Score",
+      title = "Total Change in SSQ Score",
       tag = "")+  
   ylim(-10,17) +
     scale_fill_hue(l = 2)+

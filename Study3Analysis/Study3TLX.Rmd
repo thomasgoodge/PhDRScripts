@@ -320,7 +320,6 @@ print(Frusresults)
 ```{r}
 TLXPerfNullmodel <- lmer(data = TLXdata, Performance ~ (1|Ppt_ID))
 
-
 TLXPerfmodel <- lmer(data = TLXdata, Performance ~Block + (1|Ppt_ID))
 
 anova(TLXPerfNullmodel, TLXPerfmodel)

@@ -656,6 +656,9 @@ summary(RTIntModel)
 ```{r}
 anova(RTIntModel, RTMainModel)
 
+
+mixed(data = RTHazardData, formula = RTStandard ~ Block + Condition + Block*Condition + (1|participant) + (1|ClipNumber), method = 'LRT')
+
 ```
 
 

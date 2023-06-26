@@ -23,7 +23,7 @@ knitr::opts_chunk$set(root.dir = 'D:/Qualtrics_Data/Study1/Demographics', echo =
 ```{r}
   list.files()
   #Read in the data
-  DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/qualtrics_data/Demogs/TGExperiment2_DemogData.csv") %>%  
+  DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/Study2Data/qualtrics_data/Demogs/TGExperiment2_DemogData.csv") %>%  
     select(starts_with('Q')) 
 ```
 ```{r}
@@ -85,7 +85,8 @@ DemogSummaryTotal <- DemogDataOrg %>%
   Male = sum(Gender == 'Male'),
   Female = sum(Gender == "Female"),
   meanVG = mean(VideoGamesTime, na.rm = T),
-  meanExp = mean(YearsExp, na.rm = T)
+  meanExp = mean(YearsExp, na.rm = T),
+  sdExp = sd(YearsExp, na.rm = T)
 
   )   
 ```

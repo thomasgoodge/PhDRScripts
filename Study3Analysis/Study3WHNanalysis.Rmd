@@ -19,16 +19,20 @@ library(tidyr)
 library(gridExtra)
 library(lme4)
 library(lmerTest)
+library(afex)
+library(effects)
 library(ggplot2)
 library(ggthemes)
 library(report)
+library(janitor)
+
 
 ```
 
 ####Data Wrangling
 
 ```{r}
-dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/PsychoPy"
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Psychopy"
 
 file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
@@ -52,13 +56,94 @@ SortedWHNDataset$Attention_slider.response <- as.numeric(SortedWHNDataset$Attent
 ```
 
 ```{r}
-Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/Study3Counterbalancing.csv", header = T)
+Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/Study3Counterbalancing.csv", header = T)
 
 Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Fourth, Fifth)
 
 Counterbalancing <- na.omit(Counterbalancing)
 ```
 
+
+```{r}
+DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Qualtrics/Demogs/Study3Demogs.csv") %>%  
+    select(starts_with('Q')) 
+
+#Change the first row into column headers
+DemogDataOrg <- row_to_names(DemogDataRaw, row_number = 1)
+#Remove consent form columns
+DemogDataOrg <- DemogDataOrg[-1,-c(1:7)]
+DemogDataOrg <- DemogDataOrg[1:9]
+
+DemogDataOrg <- DemogDataOrg %>% 
+  rename(participant = `Enter your Participant ID:`) %>% 
+  rename(Age = `What is your age?`) %>% 
+  rename(Gender = `Which gender do you identify with?`) %>% 
+  rename(UKLicense = `Do you have a UK driving license?`) %>%
+  rename(CountryLicense = `Which country did you get your driving license in?`) %>%
+  rename(YearsExp = `How many years driving experience do you have, either from when you passed your driving test or when you started driving regularly? - (years/months)`) %>%
+  rename(UKYearsExp = `How many years driving experience do you have driving in the UK? (years, months)`) %>%
+   rename(GlasgowYearsExp = `How many years driving experience do you have driving around the West End of Glasgow? (years, months)`) 
+
+
+DemogDataOrg$Age = as.numeric(DemogDataOrg$Age)
+
+DemogDataOrg$YearsExp = as.numeric(DemogDataOrg$YearsExp)
+
+DemogDataOrg$UKYearsExp = as.numeric(DemogDataOrg$UKYearsExp)
+DemogDataOrg$GlasgowYearsExp = as.numeric(DemogDataOrg$GlasgowYearsExp)
+
+DemogDataOrg$Gender[DemogDataOrg$Gender == 'Woman'] <- 'Female'
+DemogDataOrg$Gender[DemogDataOrg$Gender == 'Female '] <- 'Female'
+DemogDataOrg$Gender[DemogDataOrg$Gender == 'Male '] <- 'Male'
+```
+
+
+```{r}
+DemogDataOrg <- DemogDataOrg %>%
+#subset(image_file != "Slide24") %>%
+  subset(participant != "P03") %>%
+  subset(participant != "P04") %>%
+  subset(participant != "P15") %>% 
+  subset(participant != "P16") %>%
+  subset(participant != "P24") %>%
+  subset(participant != "P01") %>% 
+  subset(participant != "P02")
+
+
+
+```
+
+```{r}
+DemogSummaryTotal <- DemogDataOrg %>% 
+  
+  summarise(
+  n = n(),
+  AgeMean = mean(Age),
+  AgeSD = sd(Age),
+  Male = sum(Gender == 'Male'),
+  Female = sum(Gender == "Female"),
+  UKLicense = sum(UKLicense == "Yes"),
+  YearsExp = mean(YearsExp),
+  sdYearsExp = sd(DemogDataOrg$YearsExp, na.rm = T),
+  UKExp = mean(UKYearsExp, na.rm = T),
+  sdUKExp = sd(DemogDataOrg$UKYearsExp, na.rm = T),
+  GlasgowDriving = sum(GlasgowYearsExp != 0.00),
+  GlasgowExp = mean(GlasgowYearsExp),
+  sdGlasgowExp = sd(DemogDataOrg$GlasgowYearsExp, na.rm = T)
+
+  
+
+  )  
+```
+
+
+```{r}
+#Remove extra participants
+# WHN1stDataset <- WHNDataset %>% 
+#   subset(participant != "P25") %>% 
+#   subset(participant != "P31") 
+
+```
 
 ```{r}
 OrderWHNDataset <- left_join(SortedWHNDataset, Counterbalancing, by = 'participant') 
@@ -70,38 +155,19 @@ OrderWHNDataset$Block <-  if_else(OrderWHNDataset$trials_3.thisTrialN >= 32, Ord
                                           if_else(OrderWHNDataset$trials_3.thisTrialN >= 16, OrderWHNDataset$Third,
                                                   if_else(OrderWHNDataset$trials_3.thisTrialN >= 8, OrderWHNDataset$Second, 
                                                           'Baseline'))))
-
-
-WHNDataset <- OrderWHNDataset
-WHNDataset <- WHNDataset[!is.na(WHNDataset$Correct),]
-
 ```
 
 
 ```{r}
+WHNDataset <- OrderWHNDataset
+WHNDataset <- WHNDataset[!is.na(WHNDataset$Correct),]
 
-NoPpts <- n_distinct(WHNDataset$participant)
-# 
-# WHNDataset <- WHNDataset %>%
-# subset(image_file != "Slide24") %>%
-#   subset(participant != "P16")
+WHNDataset <- left_join(WHNDataset, DemogDataOrg, by = "participant")
+```
 
+
+```{r}
 WHNDataset$participant <- as.factor(WHNDataset$participant)
-
-WHNSummary <- WHNDataset %>% 
-  group_by(Block) %>% 
-  summarise(n = n()/NoPpts,
-            WHN = sum(trialResp.corr) / NoPpts,
-            WHNPercent = sum((trialResp.corr / NoPpts) /8) * 100,
-            sdWHN = sd(trialResp.corr),
-            meanConf = mean(conf_slider.response),
-            sdConf = sd(conf_slider.response),
-            meanMISC = mean(MiseryScale.response),
-            sdMISC = sd(MiseryScale.response),
-            meanAttention = mean(Attention_slider.response),
-            sdAttention = sd(Attention_slider.response)
-            )
-
 
 WHNDataset$image_file[WHNDataset$image_file == "Slide1"] <- "Slide01"
 WHNDataset$image_file[WHNDataset$image_file == "Slide2"] <- "Slide02"
@@ -113,18 +179,119 @@ WHNDataset$image_file[WHNDataset$image_file == "Slide7"] <- "Slide07"
 WHNDataset$image_file[WHNDataset$image_file == "Slide8"] <- "Slide08"
 WHNDataset$image_file[WHNDataset$image_file == "Slide9"] <- "Slide09"
 
-WHNSummary$Block[WHNSummary$Block == "GemsBasic"] <- "HUD - AR"
-WHNSummary$Block[WHNSummary$Block == "GemsCued"] <- "HUD - Cued AR"
-WHNSummary$Block[WHNSummary$Block == "GemsTablet"] <- "HDD - AR"
-WHNSummary$Block[WHNSummary$Block == "Tablet"] <- "HDD - Tablet"
+WHNDataset$Block[WHNDataset$Block == "GemsBasic"] <- "HUD - AR"
+WHNDataset$Block[WHNDataset$Block == "GemsCued"] <- "HUD - Cued AR"
+WHNDataset$Block[WHNDataset$Block == "GemsTablet"] <- "HDD - AR"
+WHNDataset$Block[WHNDataset$Block == "Tablet"] <- "HDD - Tablet"
 
 
-WHNSummary$Block <- factor(WHNSummary$Block, levels = c("Baseline", "HUD - AR","HUD - Cued AR", "HDD - AR", "HDD - Tablet"))
+WHNDataset$Block <- factor(WHNDataset$Block, levels = c("Baseline", "HUD - AR","HUD - Cued AR", "HDD - AR", "HDD - Tablet"))
+```
+
+
+```{r}
+WHNDataset$UKLicense[WHNDataset$UKLicense == "I have a license from another country"] <- "No"
+WHNDataset$UKLicense <- as.factor(WHNDataset$UKLicense)
+```
+
+```{r}
+
+WHNDataset <- WHNDataset %>%
+#subset(image_file != "Slide24") %>%
+  subset(participant != "P01") %>% 
+  subset(participant != "P02") %>% 
+  subset(participant != "P03") %>%
+  subset(participant != "P04") %>%
+  subset(participant != "P15") %>% 
+  subset(participant != "P16") %>%
+  subset(participant != "P24") 
 
 
 
+FullNoPpts <- n_distinct(WHNDataset$participant)
 
 ```
+
+
+```{r}
+#Remove extra participants
+# WHN1stDataset <- WHNDataset %>% 
+#   subset(participant != "P25") %>% 
+#   subset(participant != "P31") 
+# 
+# WHN2ndDataset <- WHNDataset %>% 
+#   subset(participant != "P01") %>% 
+#   subset(participant != "P02")
+
+NoPpts <- n_distinct(WHNDataset$participant)
+
+```
+
+```{r}
+WHNSummary <- WHNDataset %>% 
+  group_by(Block) %>% 
+  summarise(n = n()/FullNoPpts,
+            WHN = sum(trialResp.corr) / FullNoPpts,
+            WHNPercent = sum((trialResp.corr / FullNoPpts) /8) * 100,
+            sdWHN = sd(trialResp.corr),
+            seWHN = (sd(trialResp.corr))/ sqrt(FullNoPpts),
+            meanConf = mean(conf_slider.response),
+            sdConf = sd(conf_slider.response),
+            seConf = (sd(conf_slider.response))/ sqrt(FullNoPpts),
+            meanMISC = mean(MiseryScale.response),
+            sdMISC = sd(MiseryScale.response),
+            seMISC = (sd(MiseryScale.response))/ sqrt(FullNoPpts),
+            meanAttention = mean(Attention_slider.response, na.rm = T),
+            sdAttention = sd(Attention_slider.response, na.rm=T),
+            seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(FullNoPpts),
+            )
+# WHN1stSummary <- WHN1stDataset %>% 
+#   group_by(Block) %>% 
+#   summarise(n = n()/NoPpts,
+#             WHN = sum(trialResp.corr) / NoPpts,
+#             WHNPercent = sum((trialResp.corr / NoPpts) /8) * 100,
+#             sdWHN = sd(trialResp.corr),
+#             seWHN = (sd(trialResp.corr))/ sqrt(NoPpts),
+#             meanConf = mean(conf_slider.response),
+#             sdConf = sd(conf_slider.response),
+#             seConf = (sd(conf_slider.response))/ sqrt(NoPpts),
+#             meanMISC = mean(MiseryScale.response),
+#             sdMISC = sd(MiseryScale.response),
+#             seMISC = (sd(MiseryScale.response))/ sqrt(NoPpts),
+#             meanAttention = mean(Attention_slider.response, na.rm = T),
+#             sdAttention = sd(Attention_slider.response, na.rm=T),
+#             seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(NoPpts),
+#             )
+# 
+# WHN2ndSummary <- WHN2ndDataset %>% 
+#   group_by(Block) %>% 
+#   summarise(n = n()/NoPpts,
+#             WHN = sum(trialResp.corr) / NoPpts,
+#             WHNPercent = sum((trialResp.corr / NoPpts) /8) * 100,
+#             sdWHN = sd(trialResp.corr),
+#             seWHN = (sd(trialResp.corr))/ sqrt(NoPpts),
+#             meanConf = mean(conf_slider.response),
+#             sdConf = sd(conf_slider.response),
+#             seConf = (sd(conf_slider.response))/ sqrt(NoPpts),
+#             meanMISC = mean(MiseryScale.response),
+#             sdMISC = sd(MiseryScale.response),
+#             seMISC = (sd(MiseryScale.response))/ sqrt(NoPpts),
+#             meanAttention = mean(Attention_slider.response, na.rm = T),
+#             sdAttention = sd(Attention_slider.response, na.rm=T),
+#             seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(NoPpts),
+#             )
+
+```
+
+```{r}
+WHNCuedDataset <- WHNDataset %>% 
+  subset(Block != "Baseline")
+
+
+WHNCuedDataset$Block <- factor(WHNCuedDataset$Block, levels = c("HUD - Cued AR","HUD - AR", "HDD - AR", "HDD - Tablet"))
+
+```
+
 
 ```{r}
 
@@ -138,8 +305,23 @@ ClipSummary <- WHNDataset %>%
 ClipBlockSummary <- WHNDataset %>% 
   group_by(image_file, Block) %>% 
   summarise(n = n(),
-            WHN = sum(trialResp.corr),
+            WHNCorr = sum(trialResp.corr),
+            WHNIncorr = n() - sum(trialResp.corr),
+            RatioCorr = WHNCorr / n() * 100,
             sdWHN = sd(trialResp.corr))
+
+ClipConfSummary <- WHNDataset %>% 
+  subset(Block == "Baseline") %>% 
+  group_by(image_file) %>% 
+  summarise(n = n(),
+            WHNCorr = sum(trialResp.corr),
+            WHNIncorr = n() - sum(trialResp.corr),
+            RatioCorr = WHNCorr / n() * 100,
+            conf = mean(conf_slider.response),
+            sdWHN = sd(trialResp.corr))
+
+
+
 
 ```
 ```{r}
@@ -147,18 +329,52 @@ ggplot(data = ClipSummary, aes(x = image_file, y = WHN, fill = image_file))+
   geom_col()+
   theme(axis.text.x = element_text(angle = 90))+
   labs(xlim(0,NoPpts))+
-  geom_hline(yintercept = NoPpts)
+  geom_hline(yintercept = NoPpts)+
+    geom_hline(yintercept = NoPpts / 4)
+
+ggplot(data = WHNDataset, aes(x = image_file, y = conf_slider.response, fill = image_file))+
+  geom_boxplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(xlim(0,1))
+
+
+WHNBaselineDataset <- WHNDataset %>% 
+  subset((Block == "Baseline")) 
+
+ggplot(data = WHNBaselineDataset)+
+  geom_col(aes(x = image_file, y = trialResp.corr, fill = image_file))+
+  #geom_boxplot(aes(x = image_file, y = conf_slider.response * 100, fill = image_file))+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r}
+#Confidence graph
+ggplot(data = WHNBaselineDataset)+
+  geom_boxplot(aes(x = image_file, y = conf_slider.response, fill = image_file))+
+  #geom_boxplot(aes(x = image_file, y = conf_slider.response * 100, fill = image_file))+
+  theme(axis.text.x = element_text(angle = 90))+
+  geom_hline(yintercept = 0.9, linetype = "dashed", colour = "blue")+
+  geom_hline(yintercept = 0.25, linetype = "dashed", colour = "red")
+```
+```{r}
+ggplot(data = ClipBlockSummary, aes(x = image_file, y = WHNCorr, fill = Block))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(xlim(0,NoPpts))+
+  geom_hline(yintercept = NoPpts, colour = 'blue')+
+  geom_hline(yintercept = NoPpts / 4, colour = 'red', linetype = 'dashed')
 
 ```
 
 
 ```{r}
-ggplot(data = ClipBlockSummary, aes(x = image_file, y = WHN, fill = Block))+
+ggplot(data = ClipBlockSummary, aes(x = image_file, y = WHNIncorr, fill = Block))+
   geom_col()+
   theme(axis.text.x = element_text(angle = 90))+
   labs(xlim(0,NoPpts))+
-  geom_hline(yintercept = NoPpts)+
-  geom_hline(yintercept = 5)
+  geom_hline(yintercept = NoPpts, colour = 'blue')+
+  geom_hline(yintercept = NoPpts / 4, colour = 'red', linetype = 'dashed')
 
 ```
 
@@ -179,6 +395,8 @@ AttSum <- WHNDataset %>%
 
 ```{r}
 
+#split into uk & non-UK drivers
+
 WHNBaseline <- as.numeric(WHNSummary[1,3])
 
 ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
@@ -187,11 +405,32 @@ ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
                 width = 0.2, 
                 position = position_dodge(0.9))+
   geom_hline(yintercept = WHNBaseline, linetype = "dashed", size = 0.5)+
-  geom_hline(yintercept = 8, linetype = "solid", size = 1.0)+
-  labs(ttle = "Average WHN Score")+
+  #geom_hline(yintercept = 8, linetype = "solid", size = 1.0)+
+  #geom_hline(yintercept = 2, linetype = "dotted", size = 1.0)+
+  labs(title = "Average Hazard Prediction Score", x = "NDRT Presentation Condition", y = "Average number of correct responses")+
   ylim(0,8)+
   scale_fill_hue(l = 40)
 
+```
+```{r}
+WHNBaseline <- as.numeric(WHNSummary[1,3])
+
+ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
+  geom_col()+
+  geom_errorbar(aes(ymin = WHN - sdWHN, ymax = WHN + sdWHN),
+                width = 0.2, 
+                position = position_dodge(0.9))+
+  geom_hline(yintercept = WHNBaseline, linetype = "dashed", size = 0.5)+
+  #geom_hline(yintercept = 8, linetype = "solid", size = 1.0)+
+  #geom_hline(yintercept = 2, linetype = "dotted", size = 1.0)+
+  labs(title = "Average Hazard Prediction Score", x = "NDRT Presentation Condition", y = "Average number of correct responses")+
+  ylim(0,8)+
+  scale_fill_hue(l = 40)
+```
+
+```{r}
+ggplot(data = WHNDataset, aes(x = Block, y = trialResp.corr, fill = Block))+
+  stat_summary()
 ```
 
 ```{r}
@@ -205,7 +444,7 @@ TukeyHSD(WHNANOVA)
 
 #######CONFIDENCE SCORES##############
 ```{r}
-ConfBaseline <- as.numeric(WHNSummary[1,6])
+ConfBaseline <- as.numeric(WHNSummary[1,7])
 
 
 ggplot(data = WHNSummary, aes(x = Block, y = meanConf, fill = Block))+
@@ -214,7 +453,7 @@ ggplot(data = WHNSummary, aes(x = Block, y = meanConf, fill = Block))+
                 width = 0.2, 
                 position = position_dodge(0.9))+
   geom_hline(yintercept = ConfBaseline, linetype = "dashed", size = 1.0)+
-  labs(title = "Average Confidence Score")+
+  labs(title = "Average Confidence Score", y = "Mean Confidence Rating", x = "NDRT Presentation Condition")+
   ylim(0,1.0)+
   scale_fill_hue(l = 40)
 ```
@@ -227,20 +466,96 @@ summary(ConfANOVA)
 TukeyHSD(ConfANOVA)
 ```
 
+
+
+###########MISC SCORES###########
+
 ```{r}
 MISCDataset <- WHNDataset %>%
   group_by(trials_3.thisTrialN, Block) %>%
   summarise(mean = mean(MiseryScale.response),
-            sd = sd(MiseryScale.response))
-  
+            sd = sd(MiseryScale.response)) 
+
 
 ggplot(data = MISCDataset, aes(x = trials_3.thisTrialN, y = mean))+
   geom_line(aes(colour  = factor(Block)))+
-  geom_ribbon(aes(ymin =MISCDataset$mean - MISCDataset$sd, ymax = MISCDataset$mean + MISCDataset$sd, fill = Block),alpha= 0.2) +  
+  geom_point(aes(colour = Block))+
+  geom_ribbon(aes(ymin =MISCDataset$mean - MISCDataset$sd, ymax = MISCDataset$mean + MISCDataset$sd, fill = Block),alpha= 0.0) +  
   labs(title = "MISC Score")
 ```
 
 
+```{r}
+MISCARDataset <- MISCDataset %>% 
+  subset(Block != "HUD - Cued AR") %>% 
+  subset(Block != "HDD - Tablet") %>% 
+  subset(Block != "HDD - AR") 
+
+MISCCueDataset <- MISCDataset %>% 
+  subset(Block != "HUD - AR") %>% 
+  subset(Block != "HDD - Tablet") %>% 
+  subset(Block != "HDD - AR") 
+
+MISCTabDataset <- MISCDataset %>% 
+  subset(Block != "HUD - AR") %>% 
+  subset(Block != "HUD - Cued AR") %>% 
+  subset(Block != "HDD - AR") 
+
+MISCGemTabDataset <- MISCDataset %>% 
+  subset(Block != "HUD - AR") %>% 
+  subset(Block != "HDD - Tablet") %>% 
+  subset(Block != "HUD - Cued AR")
+```
+
+
+```{r}
+ggplot(data = MISCARDataset, aes(x = trials_3.thisTrialN, y = mean))+
+  geom_line(aes(colour  = factor(Block)))+
+  geom_point(aes(colour = Block))+
+  geom_ribbon(aes(ymin =MISCARDataset$mean - MISCARDataset$sd, ymax = MISCARDataset$mean + MISCARDataset$sd, fill = Block),alpha= 0.2) +  
+  geom_vline(xintercept = 8)+
+  geom_vline(xintercept = 16)+
+  geom_vline(xintercept = 24)+
+  geom_vline(xintercept = 32)+
+  labs(title = "MISC Score - AR HUD")+
+  scale_x_continuous(breaks = seq(0, 40, 8))
+
+ggplot(data = MISCCueDataset, aes(x = trials_3.thisTrialN, y = mean))+
+  geom_line(aes(colour  = factor(Block)))+
+  geom_point(aes(colour = Block))+
+  geom_ribbon(aes(ymin =MISCCueDataset$mean - MISCCueDataset$sd, ymax = MISCCueDataset$mean + MISCCueDataset$sd, fill = Block),alpha= 0.2) +  
+    geom_vline(xintercept = 8)+
+  geom_vline(xintercept = 16)+
+  geom_vline(xintercept = 24)+
+  geom_vline(xintercept = 32)+
+  labs(title = "MISC Score - Cued AR HUD")+
+  scale_x_continuous(breaks = seq(0, 40, 8))
+
+
+ggplot(data = MISCTabDataset, aes(x = trials_3.thisTrialN, y = mean))+
+  geom_line(aes(colour  = factor(Block)))+
+  geom_point(aes(colour = Block))+
+  geom_ribbon(aes(ymin =MISCTabDataset$mean - MISCTabDataset$sd, ymax = MISCTabDataset$mean + MISCTabDataset$sd, fill = Block),alpha= 0.2) +  
+    geom_vline(xintercept = 8)+
+  geom_vline(xintercept = 16)+
+  geom_vline(xintercept = 24)+
+  geom_vline(xintercept = 32)+
+  labs(title = "MISC Score - HDD - Tablet")+
+  scale_x_continuous(breaks = seq(0, 40, 8))
+
+
+ggplot(data = MISCGemTabDataset, aes(x = trials_3.thisTrialN, y = mean))+
+  geom_line(aes(colour  = factor(Block)))+
+  geom_point(aes(colour = Block))+
+  geom_ribbon(aes(ymin =MISCGemTabDataset$mean - MISCGemTabDataset$sd, ymax = MISCGemTabDataset$mean + MISCGemTabDataset$sd, fill = Block),alpha= 0.2) +  
+    geom_vline(xintercept = 8)+
+  geom_vline(xintercept = 16)+
+  geom_vline(xintercept = 24)+
+  geom_vline(xintercept = 32)+
+  labs(title = "MISC Score - HDD - AR")+
+  scale_x_continuous(breaks = seq(0, 40, 8))
+
+```
 
 ```{r}
 MISCANOVA <- aov(MiseryScale.response ~ Block , data = WHNDataset)
@@ -253,13 +568,15 @@ TukeyHSD(MISCANOVA)
 ```
 
 ```{r}
+AttBaseline <- as.double(AttSum[1,3])
 
 ggplot(data = AttSum, aes(x = Block, y = mean, fill = Block))+
   geom_col()+
   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd),
                 width = 0.2, 
                 position = position_dodge(0.9))+
-  labs(title = "Attention to Driving Task Rating")+
+  labs(title = "Subjective Attention Rating", y = "Mean Attention Rating", x = "NDRT Presentation Condition")+
+  geom_hline(yintercept = AttBaseline, linetype = "dashed", size = 1.0)+
   scale_fill_hue(l = 40)
 
 ```
@@ -267,7 +584,6 @@ ggplot(data = AttSum, aes(x = Block, y = mean, fill = Block))+
 AttANOVA <- aov(Attention_slider.response ~ Block , data = WHNDataset)
 
 summary(AttANOVA)
-
 
 TukeyHSD(AttANOVA)
 ```
@@ -277,42 +593,214 @@ TukeyHSD(AttANOVA)
 #################LMERs################
 
 ```{r}
-WHNNullModel <- lmer(data = WHNDataset, formula = trialResp.corr ~  (1|participant) + (1|image_file))
+#Need to user glmer() as correct response is binomial
+
+
+WHNNullModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~  (1|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+
+summary(WHNNullModel0)
+WHNNullModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 
 summary(WHNNullModel)
 
+anova(WHNNullModel, WHNNullModel0)
 
-WHNModel1 = lmer(data = WHNDataset, formula = trialResp.corr ~ Block + (1|participant) + (1|image_file))
+```
+
+
+```{r}
+WHNModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1|YearsExp) , family = binomial, glmerControl( optimizer = "bobyqa"))
+
+summary(WHNModel0)
+
+
+WHNModel1 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 
 summary(WHNModel1)
+
+WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+summary(WHNModel2)
+
+WHNModel3 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+summary(WHNModel3)
+
+
+WHNModel4 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1 + Block|participant) + (1 + Block|image_file) + (1|YearsExp), family = binomial, glmerControl( optimizer = "bobyqa"))
+
+summary(WHNModel4)
+
+
+anova(WHNNullModel, WHNModel0, WHNModel1, WHNModel2, WHNModel3)
+
+anova(WHNNullModel0, WHNModel0, WHNModel2, WHNModel3)
+
+anova(WHNModel0, WHNModel1)
+```
+
+
+```{r}
+# WHNModel1st = glmer(data = WHN1stDataset, formula = trialResp.corr ~ Block +  (1|participant) + (1|image_file) ,family = binomial)
+# summary(WHNModel1st)
+# 
+# WHNModel2nd = glmer(data = WHN2ndDataset, formula = trialResp.corr ~ Block +  (1|participant) + (1|image_file) ,family = binomial)
+# summary(WHNModel2nd)
+
+
+#anova(WHNModel1st, WHNModel2nd)
+```
+```{r}
+
+ggplot(WHNDataset, aes(x = Block, y = trialResp.corr, color=Block)) + 
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(WHNModel1)), fun=mean, geom="line") +
+  labs(x="Block", y="Average Percentage Correct on WHN", 
+       color="Block") + 
+  theme_bw()
+```
+
+
+```{r}
+WHNModel2 = glmer(data = WHNDataset, formula = trialResp.corr ~ Block + (1|participant) + (1|image_file) + (1 + Block|image_file) ,family = binomial, control = glmerControl(optimizer="bobyqa"))
+summary(WHNModel2)
+
+anova(WHNModel2, WHNModel1)
+```
+
+
+```{r}
+#Model including Main effect of UK driver license
+
+WHNModelYears = glmer(data = WHNDataset, formula = trialResp.corr ~ Block + YearsExp +(1|participant) + (1|image_file) ,  family = binomial)
+summary(WHNModelYears)
+
+
+WHNModelUK = glmer(data = WHNDataset, formula = trialResp.corr ~ Block + UKLicense +(1|participant) + (1|image_file) ,  family = binomial)
+summary(WHNModelUK)
+
+WHNModelUKYears = glmer(data = WHNDataset, formula = trialResp.corr ~ Block + UKYearsExp +(1|participant) + (1|image_file) ,  family = binomial)
+summary(WHNModelUKYears)
+
+WHNModelGlas = glmer(data = WHNDataset, formula = trialResp.corr ~ Block + GlasgowYearsExp +(1|participant) + (1|image_file) ,  family = binomial)
+summary(WHNModelGlas)
+
+
+
+WHNModelClip = glmer(data = WHNDataset, formula = trialResp.corr ~ Block + (1|Block:image_file) +(1|participant),  family = binomial, glmerControl(optimizer = "bobyqa"))
+summary(WHNModelClip)
+
+
+WHNModelID = glmer(data = WHNDataset, formula = trialResp.corr ~ Block   +(1+ Block|participant),  family = binomial, glmerControl(optimizer = "bobyqa"))
+summary(WHNModelID)
+
+
+
+
+
+```
+```{r}
+ggplot(WHNDataset, aes(x = image_file, y = trialResp.corr, color=image_file)) + 
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(WHNModel1)), fun=mean, geom="line") +
+  labs(x="Block", y="Average Percentage Correct on WHN", 
+       color="Block") + 
+  theme_bw()
+```
+
+
+```{r}
+anova(WHNModel1, WHNModel2)
+#anova(WHNModel1, WHNModel3)
+```
+
+
+```{r}
+#summary(ImageWithinBlock)
+
+```
+
+```{r}
+ef <- as.data.frame(effect("Block", WHNModel2))
+
+
+ggplot(ef, aes(Block, fit, color=fit)) + 
+  geom_pointrange(aes(ymax=upper, ymin=lower), position=position_dodge(width = 0.2))+
+  theme_classic() # just for a change :)
+```
+
+```{r}
+mixed(data = WHNDataset, formula = trialResp.corr ~ Block + (1+Block |participant) + (1 + Block|image_file), method = 'LRT')
+```
+
+
+```{r}
+all_fit(WHNModel1)
 ```
 
 
 ```{r}
 anova(WHNNullModel, WHNModel1)
 
-WHNresults <- report(WHNModel1, CI = 95)
+anova(WHNModel2, WHNModel1)
 
+WHNresults <- report(WHNModel0, CI = 95)
+
+fixef(WHNModel0)
+
+
+summary(WHNModel0)
 print(WHNresults)
+```
+```{r}
+
+CueWHNModelNull = glmer(data = WHNCuedDataset, formula = trialResp.corr ~ (1|participant) + (1|image_file) + (1|Block),family = binomial)
+summary(CueWHNModelNull)
+
+CueWHNModel1 = glmer(data = WHNCuedDataset, formula = trialResp.corr ~ Block + (1|participant) + (1|image_file),family = binomial)
+summary(CueWHNModel1)
+
+CueWHNModel2 = glmer(data = WHNCuedDataset, formula = trialResp.corr ~ Block + (1|participant) + (1|image_file) + (Block|image_file),family = binomial, control = glmerControl(optimizer="bobyqa"))
+summary(CueWHNModel2)
+
+anova(CueWHNModelNull, CueWHNModel1, CueWHNModel2)
+summary(CueWHNModel1)
+
+CueResults <- report(CueWHNModel1, CI = (95))
+summary(CueResults)
+
+
 ```
 
 ```{r}
 ConfNullModel <- lmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant) + (1|image_file))
 
 summary(ConfNullModel)
-
 ```
 
 ```{r}
 ConfModel1 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file))
 
 summary(ConfModel1)
+
+ConfModel2 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + Block|image_file))
+
+summary(ConfModel2)
 ```
 
-
 ```{r}
-anova(ConfNullModel, ConfModel1)
-
+ggplot(WHNDataset, aes(x = Block, y = conf_slider.response, color=Block)) + 
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(ConfModel1)), fun=mean, geom="line") +
+  labs(x="QType", y="SCORE", 
+       color="Block") + 
+  theme_bw()
+```  
+  
+  
+```{r}
+anova(ConfModel2, ConfModel1)
 
 Confresults <- report(ConfModel1, CI = 95)
 
@@ -341,6 +829,8 @@ MISCresults <- report(MISCModel1, CI = 95)
 print(MISCresults)
 
 ```
+
+
 ```{r}
 AttNullModel = lmer(data = WHNDataset, formula = Attention_slider.response ~ (1|participant) + (1|trials_3.thisTrialN))
 
@@ -352,11 +842,24 @@ AttModel1 = lmer(data = WHNDataset, formula = Attention_slider.response ~ Block 
 summary(AttModel1)
 
 ```
+
+
+
+```{r}
+ggplot(WHNDataset, aes(x = Block, y = Attention_slider.response, color=Block)) + 
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(WHNModel1)), fun=mean, geom="line") +
+  labs(x="QType", y="SCORE", 
+       color="Exposure\n(Tertiles)") + 
+  theme_bw()
+```
+
 ```{r}
 anova(AttModel1, AttNullModel)
 
 Attresults <- report(AttModel1, CI = 95)
 
-print(Confresults)
+print(Attresults)
 ```
 

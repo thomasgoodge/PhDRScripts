@@ -82,6 +82,10 @@ datasetRaw$Age.Years..months.. <- gsub("years", "", as.character(datasetRaw$Age.
 datasetRaw$Age.Years..months.. <- as.numeric(datasetRaw$Age.Years..months..)
 
 mean(datasetRaw$Age.Years..months.., na.rm = T)
+
+mean(datasetRaw$Years.driving.experience..Years..months.., na.rm = T)
+
+sd(datasetRaw$Years.driving.experience..Years..months.., na.rm = T)
   
 ```
 
