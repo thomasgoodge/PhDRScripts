@@ -588,8 +588,6 @@ summary(AttANOVA)
 TukeyHSD(AttANOVA)
 ```
 
-
-
 #################LMERs################
 
 ```{r}
@@ -605,6 +603,7 @@ summary(WHNNullModel)
 
 anova(WHNNullModel, WHNNullModel0)
 
+
 ```
 
 
@@ -618,23 +617,38 @@ WHNModel1 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + B
 
 summary(WHNModel1)
 
-WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
-summary(WHNModel2)
+#WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+#summary(WHNModel2)
 
-WHNModel3 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
-summary(WHNModel3)
-
-
-WHNModel4 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1 + Block|participant) + (1 + Block|image_file) + (1|YearsExp), family = binomial, glmerControl( optimizer = "bobyqa"))
-
-summary(WHNModel4)
+#WHNModel3 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+#summary(WHNModel3)
 
 
-anova(WHNNullModel, WHNModel0, WHNModel1, WHNModel2, WHNModel3)
+#WHNModel4 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1 + Block|participant) + (1 + Block|image_file) + (1|YearsExp), family = binomial, glmerControl( optimizer = "bobyqa"))
 
-anova(WHNNullModel0, WHNModel0, WHNModel2, WHNModel3)
+#summary(WHNModel4)
+
+
+#anova(WHNNullModel, WHNModel0, WHNModel1, WHNModel2, WHNModel3)
+
+#anova(WHNNullModel0, WHNModel0, WHNModel2, WHNModel3)
 
 anova(WHNModel0, WHNModel1)
+```
+```{r}
+#https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12504
+library(simr)
+power<- powerSim(WHNModel1, nsim = 10)
+power
+
+fixef(WHNModel1)
+
+pc2 <- powerCurve(WHNModel1)
+
+print(pc2)
+
+
+#sim2 <- powerSim(WHNModel1, fixed("Block"), seed = 2, nsim = 2, alpha = .05)
 ```
 
 
@@ -693,11 +707,8 @@ summary(WHNModelClip)
 WHNModelID = glmer(data = WHNDataset, formula = trialResp.corr ~ Block   +(1+ Block|participant),  family = binomial, glmerControl(optimizer = "bobyqa"))
 summary(WHNModelID)
 
-
-
-
-
 ```
+
 ```{r}
 ggplot(WHNDataset, aes(x = image_file, y = trialResp.corr, color=image_file)) + 
   stat_summary(fun=mean, geom="point", size=3) + 
@@ -717,7 +728,6 @@ anova(WHNModel1, WHNModel2)
 
 ```{r}
 #summary(ImageWithinBlock)
-
 ```
 
 ```{r}
@@ -752,6 +762,7 @@ fixef(WHNModel0)
 summary(WHNModel0)
 print(WHNresults)
 ```
+
 ```{r}
 
 CueWHNModelNull = glmer(data = WHNCuedDataset, formula = trialResp.corr ~ (1|participant) + (1|image_file) + (1|Block),family = binomial)

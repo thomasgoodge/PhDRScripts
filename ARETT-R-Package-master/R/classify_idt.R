@@ -43,6 +43,9 @@
 #' @return The input data frame with the classification columns added
 #'
 #' @export
+#'
+#'
+#'
 classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
   # Calculate how many samples are to be analyzed using the window length in ms
 
@@ -125,9 +128,9 @@ classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
     idt_maxDispersionExceeded <- FALSE
 
     # Get the mean gaze origin for the angle calculations
-    idt_meanGazeOrigin_x <- mean(data$gazeOrigin_x[c(idt_lowerWindow:idt_upperWindow)])
-    idt_meanGazeOrigin_y <- mean(data$gazeOrigin_y[c(idt_lowerWindow:idt_upperWindow)])
-    idt_meanGazeOrigin_z <- mean(data$gazeOrigin_z[c(idt_lowerWindow:idt_upperWindow)])
+    idt_meanGazeOrigin_x <- mean(data$gazeOrigin_x[idt_lowerWindow:idt_upperWindow], na.rm = T)
+    idt_meanGazeOrigin_y <- mean(data$gazeOrigin_y[idt_lowerWindow:idt_upperWindow], na.rm = T)
+    idt_meanGazeOrigin_z <- mean(data$gazeOrigin_z[idt_lowerWindow:idt_upperWindow], na.rm = T)
 
     ###
     # Check the angle between every point in the current window against the limit
@@ -160,10 +163,10 @@ classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
         idt_angleRad <- acos(idt_scalar / (idt_iVector_length * idt_jVector_length))
 
         # The final angle is supposed to be in degrees instead of rad, therefore we translate the value
-        idt_angleDeg <- (idt_angleRad * 180) / pi
+        idt_angleDegtest <- (idt_angleRad * 180) / pi
 
         # Check the angle against the limit
-        if (idt_angleDeg > dispersion_threshold) {
+        if (idt_angleDegtest > dispersion_threshold) {
           # If we exceeded the limit we can stop checking for this window
           idt_maxDispersionExceeded <- TRUE
 
@@ -228,6 +231,8 @@ classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
 
       for (j in idt_lowerWindow:(idt_upperWindow-1)) {
         # Direction vector for the second point
+       # print("j")
+        #print(j)
         idt_jVector_x <- idt_meanGazeOrigin_x - data$gazePoint_x[j]
         idt_jVector_y <- idt_meanGazeOrigin_y - data$gazePoint_y[j]
         idt_jVector_z <- idt_meanGazeOrigin_z - data$gazePoint_z[j]
@@ -243,10 +248,12 @@ classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
         idt_angleRad <- acos(idt_scalar / (idt_iVector_length * idt_jVector_length))
 
         # The final angle is supposed to be in degrees instead of rad, therefore we translate the value
-        idt_angleDeg <- (idt_angleRad * 180) / pi
+        idt_angleDegtest2 <- (idt_angleRad * 180) / pi
+       # print("test2")
+       # print(idt_angleDegtest2)
 
         # Check the angle against the limit
-        if (idt_angleDeg > dispersion_threshold) {
+        if (idt_angleDegtest2 > dispersion_threshold) {
           # We now know that adding the new point will exceed the max dispersion angle, therefore we stop checking.
           # By setting the exceeded flag we also stop adding new points to the window.
           # Note: This leaves the window with one point too much which we will correct later

@@ -1,0 +1,605 @@
+---
+title: "HPEyeTracking"
+author: "TGoodge"
+date: '2023-01-23'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(tidyr)
+library(dplyr)
+```
+
+
+```{r}
+#set the working directory to the ARETT package
+#setwd("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R/ARETT-R-Package-master/R")
+
+#source all the ARETT functions from the R folder
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/calculate_velocity.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_iaoi.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_idt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_ivt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/discard_short_fixations.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/gap_fill.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_iaoi.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_idt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_ivt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/noise_reduction.R")
+```
+
+
+```{r}
+#read in the data
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/EyeTracking"
+
+setwd = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/EyeTracking"
+#list.files(path = dataFolder)
+
+#Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
+file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
+
+rawETdata = data.frame()
+
+
+#Loop through the datafiles in file_list, assign them a name and then read them in
+for(i in 1:length(file_list))
+{
+  filename <- file_list[i]
+  print(filename)
+  tempData <- read.csv(filename)
+  pptInfo <- strsplit(filename, split = '-', fixed = TRUE)
+  tempData$Participant <- pptInfo[[1]][4]
+  tempData$Condition <- pptInfo[[1]][5]
+ #assign(paste(substr(file_list[i],24,27)), read.csv(paste0(file_list[i])))
+
+  rawETdata <- rbind(rawETdata, tempData)
+}
+
+
+rawETdata$Condition <- gsub(pattern = ".csv", replacement = "", x = rawETdata$Condition)
+rawETdata$Condition <- str_sub(rawETdata$Condition, 4,-1)
+
+
+
+#data = read.csv(file_list[1])
+
+#data = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study2ETData/P01/2022_11_08-16_09_35-P01-P01Control.csv", header = T)
+
+```
+
+```{r}
+ordETdata <- rawETdata %>% 
+  subset(Participant != "P03") %>%
+  subset(Participant != "P04") %>%
+  subset(Participant != "P15") %>% 
+  subset(Participant != "P16") %>%
+  subset(Participant != "P24") %>%
+  subset(Participant != "P01") %>% 
+  subset(Participant != "P02")
+
+ordETdata$PIDCond <- paste(ordETdata$Participant, ordETdata$Condition, sep = "_")
+
+
+ordETdata <- ordETdata %>% 
+  drop_na(gazePoint_target_name)
+
+# ordETdata <-  ordETdata %>% 
+#   subset(gazePoint_target_name == "Wall")
+# 
+
+```
+
+
+```{r}
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Psychopy"
+
+file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+
+RawWHNDataset <- data.frame()
+#loop through all the fills, create a temporary container, remove the first, second and last rows and then add 1 to the trials counter. Then bind it to the dataset
+for (file in file_list){
+  tempData <- read.csv(file, header = T)  
+    
+  RawWHNDataset <- bind_rows(RawWHNDataset, tempData)
+}
+
+
+```
+
+```{r}
+#read in the data
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/EyeTracking"
+
+setwd = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/EyeTracking"
+#list.files(path = dataFolder)
+
+#Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
+file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
+
+rawETdata = data.frame()
+
+
+#Loop through the datafiles in file_list, assign them a name and then read them in
+for(i in 1:length(file_list))
+{
+  filename <- file_list[i]
+  #print(filename)
+  tempData <- read.csv(filename)
+  pptInfo <- strsplit(filename, split = '-', fixed = TRUE)
+  tempData$Participant <- pptInfo[[1]][4]
+  tempData$Condition <- pptInfo[[1]][5]
+  tempData$Date <- pptInfo[[1]][2]
+  tempData$Time <- pptInfo[[1]][3]
+ #assign(paste(substr(file_list[i],24,27)), read.csv(paste0(file_list[i])))
+
+  rawETdata <- rbind(rawETdata, tempData)
+}
+```
+
+
+```{r}
+
+timeETData <- rawETdata %>% 
+  select(Participant, Condition, Date, Time, )
+
+timeETData$Condition <- gsub(pattern = ".csv", replacement = "", x = timeETData$Condition)
+timeETData$Condition <- str_sub(timeETData$Condition, 4,-1)
+timeETData$Date <-    str_sub(timeETData$Date,-5,-1)
+timeETData$Date <- gsub(pattern = "_", replacement = "/", x = timeETData$Date)
+timeETData$Time <- gsub(pattern = "_", replacement = ":", x = timeETData$Time)
+
+timeETData <- timeETData[!duplicated(timeETData), ]
+timeETData$Condition[timeETData$Condition == "Control"] <- "Baseline"
+
+timeETData$Sort <- paste(timeETData$Participant, timeETData$Condition)
+
+
+```
+
+```{r}
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Psychopy"
+
+file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+```
+
+```{r}
+RawWHNDataset <- data.frame()
+#loop through all the fills, create a temporary container, remove the first, second and last rows and then add 1 to the trials counter. Then bind it to the dataset
+for (file in file_list){
+  tempData <- read.csv(file, header = T)  
+    
+  RawWHNDataset <- bind_rows(RawWHNDataset, tempData)
+}
+```
+
+
+```{r}
+SortedWHNDataset <- RawWHNDataset %>% 
+  select(participant, trials_3.thisTrialN, date, hazard_video.started, trialResp.started)
+
+
+```
+
+```{r}
+Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/Study3Counterbalancing.csv", header = T)
+
+Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Fourth, Fifth)
+
+Counterbalancing <- na.omit(Counterbalancing)
+```
+
+
+```{r}
+
+OrderWHNDataset <- left_join(SortedWHNDataset, Counterbalancing, by = 'participant') 
+OrderWHNDataset$Block <- 'Baseline' 
+
+
+OrderWHNDataset$Block <-  if_else(OrderWHNDataset$trials_3.thisTrialN >= 32, OrderWHNDataset$Fifth, 
+                                  if_else(OrderWHNDataset$trials_3.thisTrialN >= 24, OrderWHNDataset$Fourth,
+                                          if_else(OrderWHNDataset$trials_3.thisTrialN >= 16, OrderWHNDataset$Third,
+                                                  if_else(OrderWHNDataset$trials_3.thisTrialN >= 8, OrderWHNDataset$Second, 
+                                                          'Baseline'))))
+```
+
+
+
+```{r}
+timeWHNData <- OrderWHNDataset
+timeWHNData <- rename(timeWHNData,trialNumber = trials_3.thisTrialN) 
+timeWHNData <- rename(timeWHNData,DateFull = date)
+timeWHNData <- rename(timeWHNData,ClipStart = hazard_video.started) 
+timeWHNData <- rename(timeWHNData,ClipStop = trialResp.started)
+
+timeWHNData[c('DateWHN', 'TimeWHN')] <- str_split_fixed(timeWHNData$Date, '_', 2)
+
+timeWHNData <- timeWHNData %>% 
+  select(participant, trialNumber, ClipStart, ClipStop, Block, DateWHN, TimeWHN)
+
+timeWHNData$TimeWHN <- gsub(pattern = "h", replacement = ":", x = timeWHNData$TimeWHN)
+
+timeWHNData$TimeWHN <- gsub(pattern = "\\.", replacement = ":", x = timeWHNData$TimeWHN)
+
+
+timeWHNData$Sort <- paste(timeWHNData$participant, timeWHNData$Block)
+
+```
+
+```{r}
+timeData <- left_join(timeWHNData, timeETData, by = "Sort")
+
+timeData$TimeWHN <-  str_sub(timeData$TimeWHN, end = -5)
+
+
+timeData$TimeWHNFormat <- strptime(timeData$TimeWHN,format="%H:%M:%S")
+timeData$TimeFormat <- strptime(timeData$Time,format="%H:%M:%S")
+timeData$RecordingStart <- as.numeric(difftime(timeData$TimeFormat,timeData$TimeWHNFormat, units = "secs"))
+
+timeData$ETClipStart = timeData$ClipStart - timeData$RecordingStart
+timeData$ETClipStop = timeData$ClipStop - timeData$RecordingStart
+
+
+```
+
+
+```{r}
+timeDataExport <- timeData %>% 
+  select(Participant, trialNumber, Sort, Condition, ClipStart, ClipStop, RecordingStart, ETClipStart, ETClipStop)
+
+
+timeDataExport$RecordingStart <- as.numeric(timeDataExport$RecordingStart)
+
+timeDataExport$ETClipStart <- as.numeric(timeDataExport$ETClipStart)
+
+timeDataExport$ETClipStop <- as.numeric(timeDataExport$ETClipStop)
+```
+
+
+```{r}
+# timeData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study3Analysis/timeDataExport2.csv", stringsAsFactors = FALSE, encoding = "UTF-8") %>% 
+
+timeDataExport <- timeDataExport %>% 
+  subset(Participant != "P03") %>%
+  subset(Participant != "P04") %>%
+  subset(Participant != "P15") %>% 
+  subset(Participant != "P16") %>%
+  subset(Participant != "P24") %>%
+  subset(Participant != "P01") %>% 
+  subset(Participant != "P02")
+
+
+ControlTimedata <- timeDataExport %>% 
+  subset(Condition == "Baseline")
+
+GemsBasicTimedata <- timeDataExport %>% 
+  subset(Condition == "GemsBasic")
+
+GemsCuedTimedata <- timeDataExport %>% 
+  subset(Condition == "GemsCued")
+
+GemsTabletTimedata <- timeDataExport %>% 
+   subset(Condition == "GemsTablet")
+
+TabletTimedata <- timeDataExport %>% 
+  subset(Condition == "Tablet")
+```
+
+
+```{r}
+
+timeData$Participant <- timeData$participant
+
+ETdata <- left_join(ordETdata, timeData, by = "Participant")
+
+ETdata$StartTime <- ETdata$StartTime * 1000
+ETdata$StopTime <- ETdata$StopTime * 1000
+ETdata$duration <- ETdata$StopTime - ETdata$StartTime
+
+ETdata <- rename(ETdata, Sort = PIDCond)
+ETdata$Sort <- gsub(pattern = "_", replacement = " ", x = ETdata$Sort)
+
+
+```
+
+
+```{r}
+ControlETdata <- ETdata %>% 
+  subset(Condition == "Control")
+
+GemsBasicETdata <- ETdata %>% 
+  subset(Condition == "GemsBasic")
+
+GemsCuedETdata <- ETdata %>% 
+  subset(Condition == "GemsCued")
+
+GemsTabletETdata <- ETdata %>% 
+   subset(Condition == "GemsTablet")
+
+TabletETdata <- ETdata %>% 
+  subset(Condition == "Tablet")
+```
+
+
+```{r}
+list2env(ETdata,envir=.GlobalEnv)
+
+```
+
+```{r}
+ControlETdata <- ControlETdata %>% 
+  subset(PIDCond != "P11_Control") %>% 
+  subset(PIDCond != "P17_Control") %>% 
+  subset(PIDCond != "P23_Control")
+
+fixationControlETData <- data.frame()
+
+for(dataset in listControldata) {
+  data <- as.data.frame(dataset)
+  print(data$PIDCond[1])
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+ 
+  data_idt <- classify_idt(data = data, dispersion_threshold = 1.6, time_window = 250)
+
+  data_mergeIDT <- merge_fixations_idt(data_idt, max_time = 75, dispersion_threshold = 1.6)
+  
+  data_proc <- data_mergeIDT%>% 
+    select(PIDCond, gazePoint_target_name, gazePointAOI_name, gazePointAOIHit, gazePoint_x, gazePoint_y, gazePoint_z, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, TimeStamp)
+  
+  fixationControlETData <- rbind(fixationControlETData, data_proc)
+ 
+}
+
+fixationControlETData$Condition <- "Control"
+
+FullfixationControlETData <- fixationControlETData[!duplicated(fixationControlETData[c(1,8)]),]
+FullfixationControlETData <- rename(FullfixationControlETData, Sort = PIDCond)
+FullfixationControlETData$Sort <- gsub(pattern = "_", replacement = " ", x = FullfixationControlETData$Sort)
+
+
+```
+
+
+
+```{r}
+list2env(ControlETdata,envir=.GlobalEnv)
+
+```
+
+```{r}
+GemsBasicETdata <- GemsBasicETdata %>% 
+  subset(PIDCond != "P20_GemsBasic")
+listBasicdata <- split(GemsBasicETdata, f = GemsBasicETdata$PIDCond)
+
+fixationBasicETData <- data.frame()
+
+for(dataset in listBasicdata) {
+  data <- as.data.frame(dataset)
+  print(data$PIDCond[1])
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+ 
+  data_idt <- classify_idt(data = data, dispersion_threshold = 1.6, time_window = 250)
+
+  data_mergeIDT <- merge_fixations_idt(data_idt, max_time = 75, dispersion_threshold = 1.6)
+  
+  data_proc <- data_mergeIDT%>% 
+    select(gazePoint_target_name, gazePointAOI_name, gazePointAOIHit, gazePoint_x, gazePoint_y, gazePoint_z, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, TimeStamp)
+  
+  fixationBasicETData <- rbind(fixationBasicETData, data_proc)%>% 
+    group_by(eventIndex) %>% slice(1)
+  fixationBasicETData$Condition = "HUD AR Basic"
+}
+
+```
+
+```{r}
+GemsCuedETdata <- GemsCuedETdata %>% 
+  subset(PIDCond != "P13_GemsCued") %>%  
+  subset(PIDCond != "P26_GemsCued")
+listCueddata <- split(GemsCuedETdata, f = GemsCuedETdata$PIDCond)
+
+fixationCuedETData <- data.frame()
+
+for(dataset in listCueddata) {
+  data <- as.data.frame(dataset)
+  print(data$PIDCond[1])
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+ 
+  data_idt <- classify_idt(data = data, dispersion_threshold = 1.6, time_window = 250)
+
+  data_mergeIDT <- merge_fixations_idt(data_idt, max_time = 75, dispersion_threshold = 1.6)
+  
+  data_proc <- data_mergeIDT%>% 
+    select(gazePoint_target_name, gazePointAOI_name, gazePointAOIHit, gazePoint_x, gazePoint_y, gazePoint_z, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, TimeStamp)
+    library(dplyr)
+  
+  fixationCuedETData <- rbind(fixationCuedETData, data_proc) %>% 
+    group_by(eventIndex) %>% slice(1)
+  fixationCuedETData$Condition = "HUD AR Cued"
+}
+```
+
+```{r}
+GemsTabletETdata <- GemsTabletETdata 
+listGemsTabletdata <- split(GemsTabletETdata, f = GemsTabletETdata$PIDCond)
+
+fixationGemsTabletETData <- data.frame()
+
+for(dataset in listGemsTabletdata) {
+  data <- as.data.frame(dataset)
+  print(data$PIDCond[1])
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+ 
+  data_idt <- classify_idt(data = data, dispersion_threshold = 1.6, time_window = 250)
+
+  data_mergeIDT <- merge_fixations_idt(data_idt, max_time = 75, dispersion_threshold = 1.6)
+  
+  data_proc <- data_mergeIDT%>% 
+    select(gazePoint_target_name, gazePointAOI_name, gazePointAOIHit, gazePoint_x, gazePoint_y, gazePoint_z, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, TimeStamp)
+  
+  fixationGemsTabletETData <- rbind(fixationGemsTabletETData, data_proc)%>% 
+    group_by(eventIndex) %>% slice(1)
+  fixationGemsTabletETData$Condition = "HDD AR Tablet"
+}
+```
+
+```{r}
+TabletETdata <- TabletETdata %>% 
+  subset(PIDCond != "P20_Tablet")
+listTabletdata <- split(TabletETdata, f = TabletETdata$PIDCond)
+
+fixationTabletETData <- data.frame()
+
+for(dataset in listTabletdata) {
+  
+  data = P
+  data <- as.data.frame(dataset)
+  print(data$PIDCond[1])
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+ 
+  data_idt <- classify_idt(data = data, dispersion_threshold = 1.6, time_window = 250)
+
+  data_mergeIDT <- merge_fixations_idt(data_idt, max_time = 75, dispersion_threshold = 1.6)
+  
+  data_proc <- data_mergeIDT%>% 
+    select(gazePoint_target_name, gazePointAOI_name, gazePointAOIHit, gazePoint_x, gazePoint_y, gazePoint_z, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, TimeStamp)
+  
+  fixationTabletETData <- rbind(fixationTabletETData, data_proc)%>% 
+    group_by(eventIndex) %>% slice(1)
+    fixationTabletETData$Condition <- "HDD Tablet"
+}
+```
+
+
+```{r}
+ggplot(data=fixationControlETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Control")
+
+ggplot(data=fixationBasicETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "GemsBasic")
+
+ggplot(data=fixationCuedETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "GemsCued")
+
+ggplot(data=fixationGemsTabletETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "GemsTablet")
+
+ggplot(data=fixationTabletETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "Tablet")
+```
+
+```{r}
+FixationCount <- rbind(fixationControlETData, fixationBasicETData, fixationCuedETData, fixationGemsTabletETData, fixationTabletETData) 
+FixationCountSummary <- FixationCount %>% 
+  group_by(Condition, gazePoint_target_name) %>% 
+  summarise(n = n())
+
+FixationDuration <- rbind(fixationControlETData, fixationBasicETData, fixationCuedETData, fixationGemsTabletETData, fixationTabletETData) 
+FixationDurationSummary <- FixationDuration %>% 
+  group_by(Condition, gazePoint_target_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+FixationDurationWall <- FixationDuration %>% 
+  subset(gazePoint_target_name == "Wall")
+
+FixationDurationWallSummary <- FixationDurationSummary %>% 
+  subset(gazePoint_target_name == "Wall")
+
+
+```
+
+```{r}
+ggplot(data = FixationDurationWallSummary, aes(x = Condition, y = n, fill = Condition)) +
+  geom_col()
+
+ggplot(data = FixationDuration, aes(x = Condition, y = eventDuration, fill = Condition)) +
+  geom_boxplot()+
+  ylim(0,750)
+
+ggplot(data = FixationDurationWall, aes(x = Condition, y = eventDuration, fill = Condition)) +
+  geom_boxplot()+
+  ylim(0,750)
+
+```
+

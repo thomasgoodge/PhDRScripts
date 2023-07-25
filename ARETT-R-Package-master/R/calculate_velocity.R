@@ -43,7 +43,7 @@ calculate_velocity <- function(data, window_length = 20) {
 
   # Go through the first 100 samples (or less) to find the average time between samples
   sampleTime <- 0
-  for (row in 2:maxRow) {
+  for (row in 1:maxRow) {
     sampleTime <- sampleTime + (data$eyeDataRelativeTimestamp[row] - data$eyeDataRelativeTimestamp[row-1])
   }
   sampleTime <- sampleTime / maxRow
@@ -54,7 +54,7 @@ calculate_velocity <- function(data, window_length = 20) {
   windowCount <- floor(windowCount + 1)
 
   # Small cleanup
-  rm(maxRow, row, sampleTime)
+  #rm(maxRow, row, sampleTime)
 
 
   # calculate window borders ----
@@ -71,7 +71,9 @@ calculate_velocity <- function(data, window_length = 20) {
     windowLower <- windowCount / 2
     windowUpper <- windowLower - 1
   }
+  if (windowUpper < windowLower){
 
+  }
 
   # Calculate velocities ----
 

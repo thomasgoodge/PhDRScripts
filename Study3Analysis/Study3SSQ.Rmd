@@ -19,6 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
   library(tidyr)
   library(stringr)
   library(lme4)
+  library(lmerTest)
   library(dplyr)
   library(report)
 
@@ -43,6 +44,19 @@ SSQdataOrg <- SSQdataOrg[-c(1),] %>%
   rename(participant = `Participant ID:`) %>% 
    rename(Timepoint = `Which timepoint is this?`)
 
+
+```
+
+```{r}
+
+SSQdataOrg <- SSQdataOrg %>% 
+  subset(participant != "P03") %>%
+  subset(participant != "P04") %>%
+  subset(participant != "P15") %>% 
+  subset(participant != "P16") %>%
+  subset(participant != "P24") %>%
+  subset(participant != "P01") %>% 
+  subset(participant != "P02")
 
 ```
 
@@ -669,17 +683,20 @@ pairs(KPSSQModelTotalSSQ, adjust="tukey")
 
 
 ```{r}
-TotalKPSSQNullmodel <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~ (1|participant))
-TotalKPSSQmodel1 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~Timepoint + (1|participant))
+TotalKPSSQNullmodel <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~ (1|participant), REML = F)
 
-anova(TotalKPSSQNullmodel, TotalKPSSQmodel1)
+TotalKPSSQmodel1 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~Timepoint + (1|participant),REML = F)
 
-summary(TotalKPSSQmodel1)
+TotalKPSSQmodel2 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~Timepoint + Block + (1|participant),REML = F)
+
+anova(TotalKPSSQNullmodel, TotalKPSSQmodel1, TotalKPSSQmodel2)
+
+summary(TotalKPSSQmodel2)
 
 ```
 ```{r}
 library(report)
-TotalSSQresults <- report(TotalKPSSQmodel1, CI = 95)
+TotalSSQresults <- report(TotalKPSSQmodel2, CI = 95)
 
 summary(TotalSSQresults)
 
@@ -762,19 +779,22 @@ Anova(KPSSQModelOculo,
 
 
 ```{r}
-OculoNullmodel <- lmer(data = SSQKPConversionTotalSSQ, OculoScoreChange ~ (1|participant))
+OculoNullmodel <- lmer(data = SSQKPConversionTotalSSQ, OculoScoreChange ~ (1|participant), REML = F)
 
-Oculomodel1 <- lmer(data = SSQKPConversionTotalSSQ, OculoScoreChange ~ Timepoint + Block + (1|participant))
+Oculomodel0 <- lmer(data = SSQKPConversionTotalSSQ, OculoScoreChange ~ Timepoint + (1|participant), REML = F)
 
-anova(Oculomodel1, OculoNullmodel)
+
+Oculomodel1 <- lmer(data = SSQKPConversionTotalSSQ, OculoScoreChange ~ Timepoint + Block + (1|participant), REML = F)
+
+anova(OculoNullmodel, Oculomodel0, Oculomodel1)
 
 summary(Oculomodel1)
 ```
 ```{r}
-Oculoresults <- report(Oculomodel1, CI = 95)
-
-#summary(results)
-summary(Oculoresults)
+# Oculoresults <- report(Oculomodel1, CI = 95)
+# 
+# #summary(results)
+# summary(Oculoresults)
 ```
 
 ```{r}
@@ -854,19 +874,23 @@ Anova(KPSSQModelNausea,
       type = "II")
 ```
 ```{r}
-NauseaNullmodel <- lmer(data = SSQKPConversionTotalSSQ, NauseaScoreChange ~ (1|participant))
+NauseaNullmodel <- lmer(data = SSQKPConversionTotalSSQ, NauseaScoreChange ~ (1|participant), REML = F)
 
-Nauseamodel1 <- lmer(data = SSQKPConversionTotalSSQ, NauseaScoreChange ~ Timepoint +(1|participant))
+Nauseamodel1 <- lmer(data = SSQKPConversionTotalSSQ, NauseaScoreChange ~ Timepoint +(1|participant), REML = F)
 
-anova(NauseaNullmodel, Nauseamodel1)
+
+Nauseamodel2 <- lmer(data = SSQKPConversionTotalSSQ, NauseaScoreChange ~ Timepoint + Block + (1|participant), REML = F)
+
+anova(NauseaNullmodel, Nauseamodel1, Nauseamodel2)
 
 summary(NauseaNullmodel)
 ```
-```{r}
-Nausearesults <- report(NauseaNullmodel, CI = 95)
 
-#summary(results)
-summary(Nausearesults)
+```{r}
+# Nausearesults <- report(NauseaNullmodel, CI = 95)
+# 
+# #summary(results)
+# summary(Nausearesults)
 ```
 
 
@@ -946,16 +970,18 @@ Anova(KPSSQModelDisori,
 ```
 
 ```{r}
-DisoriNullmodel <- lmer(data = SSQKPConversionTotalSSQ, DisoriScoreChange ~ (1|participant))
+DisoriNullmodel <- lmer(data = SSQKPConversionTotalSSQ, DisoriScoreChange ~ (1|participant), REML = F)
 
-Disorimodel1 <- lmer(data = SSQKPConversionTotalSSQ, DisoriScoreChange ~Timepoint + (1|participant))
+Disorimodel1 <- lmer(data = SSQKPConversionTotalSSQ, DisoriScoreChange ~Timepoint + (1|participant), REML = F)
 
-anova(DisoriNullmodel, Disorimodel1)
+Disorimodel2 <- lmer(data = SSQKPConversionTotalSSQ, DisoriScoreChange ~Timepoint + Block + (1|participant), REML = F)
 
-summary(Disorimodel1)
+anova(DisoriNullmodel, Disorimodel1, Disorimodel2)
+
+summary(Disorimodel2)
 ```
 ```{r}
-Disoriresults <- report(Disorimodel1, CI = 95)
+Disoriresults <- report(Disorimodel2, CI = 95)
 
 #summary(results)
 summary(Disoriresults)
