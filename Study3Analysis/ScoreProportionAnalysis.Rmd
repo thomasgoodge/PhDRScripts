@@ -17,7 +17,7 @@ library(stringr)
 
 ```{r}
 
-dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/Score"
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Score"
 
 fileList <- list.files(path = dataFolder, pattern = "..txt$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
@@ -86,6 +86,28 @@ summaryScoreDataset <-scoreDatasetRaw %>%
 ```
 
 ```{r}
+scoreDataset <- scoreDatasetRaw 
+
+  colnames(scoreDataset) <- c('text', 'Diamond', 'Emerald', 'AverageProportion', 'ID', 'Condition')
+  
+  
+scoreDataset$ID <- substring(scoreDataset$ID,2,5)
+
+scoreDataset <- scoreDataset %>%
+#subset(image_file != "Slide24") %>%
+  subset(ID != "P03") %>%
+  subset(ID != "P04") %>%
+  subset(ID != "P15") %>% 
+  subset(ID != "P16") %>%
+  subset(ID != "P24") %>%
+  subset(ID != "P01") %>% 
+  subset(ID != "P02")
+  
+```
+
+
+
+```{r}
 ggplot(summaryScoreDataset, aes(x = Block, y = mean, fill = Block))+
   geom_col()+
   geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
@@ -106,5 +128,67 @@ emeAnova <- aov(`"EmeraldProportion"` ~ Block, data = scoreDatasetRaw)
 summary(emeAnova)
 
 ```
+```{r}
 
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  identify_outliers(AverageProportion)
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  shapiro_test(AverageProportion)
+
+
+
+ggqqplot(scoreDataset, "AverageProportion", facet.by = "Condition")
+```
+
+```{r}
+
+
+AP.aov <- anova_test(data = scoreDataset, dv = AverageProportion, wid = ID, within = Condition)
+
+get_anova_table(AP.aov)
+
+APpwc <- scoreDataset %>% 
+  pairwise_t_test(AverageProportion ~ Condition, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+APpwc <- APpwc %>%  add_xy_position(x = "Condition")
+APpwc
+
+
+APbxp <- ggboxplot(scoreDataset, x = "Condition", y = "AverageProportion", add = "point")
+
+APbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(AP.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+
+
+```
+```{r}
+TabletScores = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Score/TabletScore.csv") %>% 
+#subset(image_file != "Slide24") %>%
+  subset(ID != "P03") %>%
+  subset(ID != "P04") %>%
+  subset(ID != "P15") %>% 
+  subset(ID != "P16") %>%
+  subset(ID != "P24") %>%
+  subset(ID != "P01") %>% 
+  subset(ID != "P02")
+  
+```
+
+
+
+```{r}
+TabletScoresSummary <- TabletScores %>% 
+  summarise(n = n(),
+            meanLevel = mean(Level),
+            meanScore = mean(Score))
+```
 

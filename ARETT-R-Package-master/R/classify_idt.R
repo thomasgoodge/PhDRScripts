@@ -165,6 +165,10 @@ classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
         # The final angle is supposed to be in degrees instead of rad, therefore we translate the value
         idt_angleDegtest <- (idt_angleRad * 180) / pi
 
+        if(typeof(idt_angleDegtest) != "double"){
+          idt_angleDegtest = 0
+        }
+
         # Check the angle against the limit
         if (idt_angleDegtest > dispersion_threshold) {
           # If we exceeded the limit we can stop checking for this window

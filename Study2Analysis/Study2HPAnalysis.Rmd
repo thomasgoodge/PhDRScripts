@@ -28,6 +28,8 @@ library(lmerTest)
 #Set the folder where the data is stored
 
 #dataFolder = "D:/Study2Data/hp_data/"
+
+#Replace the filepath here with where your data is -backslashes "\" need to be changed to forward slashes "/"
 dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/Study2Data/hp_data"
 
 #Create a list of all the csv files in the folder
@@ -58,7 +60,7 @@ SortedHPDataset <- SortedHPDataset %>%  separate(video_file, c('ClipNumber', 'de
 SortedHPDataset$Block <- 'Baseline HP'  
 SortedHPDataset$Block[SortedHPDataset$trials_3.thisTrialN > 10] <- "HP-AR" 
 
-
+#Rename clips so the order is correct
 SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip2"] <- "PilotClip02"
 SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip3"] <- "PilotClip03"
 SortedHPDataset$ClipNumber[SortedHPDataset$ClipNumber == "PilotClip4"] <- "PilotClip04"

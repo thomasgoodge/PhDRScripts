@@ -9,22 +9,297 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+library(tidyverse)
+library(splitstackshape)
+library(stringr)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(effects)
+library(ggplot2)
+library(ggthemes)
+library(report)
+library(janitor)
 ```
 
-## Including Plots
+```{r}
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/WHNValidation/WHNdata/data"
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+RawWHNDataset <- data.frame()
+#loop through all the fills, create a temporary container, remove the first, second and last rows and then add 1 to the trials counter. Then bind it to the dataset
+for (file in file_list){
+  tempData <- read.csv(file, header = T)  
+    
+  RawWHNDataset <- bind_rows(RawWHNDataset, tempData)
+}
+
+
+```
+
+```{r}
+SortedWHNData <- subset(RawWHNDataset,end_resp.keys != "space" ) %>% 
+  select(ProlificID, trialrespkey.corr, video_file)
+SortedWHNData$video_file <- str_sub(SortedWHNData$video_file, end = -8)
+#removed for less than chance performance
+
+SortedWHNData <- subset(SortedWHNData, ProlificID != '632aa1271f930bbc655a32d8')
+
+IDs <- SortedWHNData %>% 
+  group_by(ProlificID) %>% 
+  summarise(mean = mean(trialrespkey.corr))
+
+IDs$Valid = TRUE
+  
+
+
+
+NoPpts <- n_distinct(SortedWHNData$ProlificID)
+
+
+
+```
+
+```{r}
+SummaryClipWHN <- SortedWHNData %>% 
+  group_by(video_file) %>% 
+  summarise(n = n(),
+            WHN = sum(trialrespkey.corr) ,
+            
+            WHNPercent =   sum(trialrespkey.corr) / NoPpts)
+```
+
+```{r}
+ggplot(data = SummaryClipWHN, aes(x = video_file, y = WHN, fill = video_file))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+HardClips <- subset(SummaryClipWHN, WHNPercent <= 0.5)
+
+EasyClips <- subset(SummaryClipWHN, WHNPercent > 0.9)
+```
+
+
+
+```{r}
+SummaryPptWHN <-SortedWHNData %>% 
+  group_by(ProlificID) %>% 
+  summarise(n = n(),
+            sumWHN = sum(trialrespkey.corr))
+
+SummaryPptWHN <- rowid_to_column(SummaryPptWHN , "ID")
+SummaryPptWHN$ID <- as.character(SummaryPptWHN$ID)
+```
+
+```{r}
+ggplot(data = SummaryPptWHN, aes(x = ID, y = sumWHN, fill = ID))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+DemogsRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/WHNValidation/Qualtrics/QualtricsWHNValid.csv")%>%  
+    select(starts_with('Q')) 
+DemogDataOrg <- row_to_names(DemogsRaw, row_number = 1) %>%  
+  rename(Age = `What is your age?`) %>% 
+  rename(Gender = `What is your sex?`) %>% 
+  rename(UKLicense = `Do you have a UK driving license?`) %>%
+  rename(YearsExp = `How many years driving experience do you have, either from when you passed your driving test or when you started driving regularly? (years / months)`) %>%
+  rename(GlasgowExp = `Do you have any experience driving around Glasgow?`) %>%
+   rename(GlasgowYearsExp = `How many years driving experience do you have driving around the West End of Glasgow? (years, months)`)
+ 
+DemogsValid <-  left_join(DemogDataOrg, IDs, by = "ProlificID")
+DemogsValid<- DemogsValid[!is.na(DemogsValid$Valid)] 
+
+DemogsValid <- subset(DemogsValid, DemogsValid$Valid != FALSE)
+
+
+```
+
+```{r}
+DemogsDBQ <- DemogsValid
+
+DBQItems <- cols <- names(DemogsDBQ)[7:30]
+
+DemogsDBQ[DBQItems] <- lapply(DemogsDBQ[DBQItems], as.numeric)
+
+DemogsDBQ$Errors <- 0
+DemogsDBQ$Lapses <- 0
+DemogsDBQ$Violations <- 0
+
+Errors <- DemogsDBQ %>% 
+  select('ProlificID', starts_with('E')) 
+Errors$meanErrors = rowMeans(Errors[2:9])
+
+Errors <- Errors %>% 
+  select('ProlificID', 'meanErrors')
+
+Violations <- DemogsDBQ %>% 
+  select('ProlificID', starts_with('V')) 
+Violations$meanViolations = rowMeans(Violations[2:9])
+
+Violations <- Violations %>% 
+  select('ProlificID', 'meanViolations')
+
+
+
+Lapses <- DemogsDBQ %>% 
+  select('ProlificID', starts_with('L')) 
+Lapses$meanLapses = rowMeans(Lapses[2:9])
+
+Lapses <- Lapses %>% 
+  select('ProlificID', 'meanLapses')
+```
+
+
+```{r}
+DemogsDBQ <- left_join(DemogsDBQ, Errors, by = 'ProlificID')
+
+DemogsDBQ <- left_join(DemogsDBQ, Lapses, by = 'ProlificID')
+
+DemogsDBQ <- left_join(DemogsDBQ, Violations, by = 'ProlificID')
+
+
+```
+
+```{r}
+FullDataset <- left_join(SummaryPptWHN, DemogsDBQ, by = 'ProlificID') 
+FullDataset <- na.omit(FullDataset)
+FullDataset$Age <- as.numeric(FullDataset$Age)
+FullDataset$YearsExp <- as.numeric(FullDataset$YearsExp)
+FullDataset$GlasgowYearsExp <- as.numeric(FullDataset$GlasgowYearsExp)
+#Remove ppts who performed worse than chance
+FullDataset <- subset(FullDataset, sumWHN >11) 
+
+meanWHN <- mean(FullDataset$sumWHN)
+medianWHN <- median((FullDataset$sumWHN))
+
+meanExp = mean(FullDataset$YearsExp)
+medianExp = median(FullDataset$YearsExp)
+
+
+FullDataset$Performance <- NA
+
+
+FullDataset$Performance <- ifelse(FullDataset$sumWHN >= medianWHN, "High", "Low")
+FullDataset$Experience <- ifelse(FullDataset$YearsExp >= medianExp, "High", "Low")
+
+
+```
+
+
+```{r}
+SummaryDemogs <- FullDataset %>% 
+  summarise(n = n(),
+            meanAge = mean(Age),
+            males = sum(Gender == 'Male'),
+            females = sum(Gender == 'Female'),
+            meanExp = mean(YearsExp),
+            numGlasgowERxp = sum(GlasgowExp == "Yes"),
+            meanGlasgowExp = mean(GlasgowYearsExp, na.rm = T))
+
+```
+
+```{r}
+Summary <- FullDataset %>% 
+  group_by(Performance, Experience) %>% 
+  summarise(n = n(),
+            mean = mean(sumWHN),
+            sd = sd(sumWHN),
+            meanErrors = mean(meanErrors),
+            meanViolations = mean(meanViolations),
+            meanLapses = mean(meanLapses))
+
+```
+
+
+
+
+```{r}
+SummaryWHNDBQ <- FullDataset %>% 
+  group_by(Performance) %>% 
+  summarise(n = n(),
+            mean = mean(sumWHN),
+            sd = sd(sumWHN),
+            meanErrors = mean(meanErrors),
+            meanViolations = mean(meanViolations),
+            meanLapses = mean(meanLapses))
+
+ggplot(data = SummaryWHNDBQ, aes(x = Performance, y = mean, fill = Performance))+
+  geom_col()
+
+
+```
+
+```{r}
+#top 25% versus 25%
+
+```
+
+
+
+```{r}
+SummaryWHNDBQExp <- FullDataset %>% 
+  group_by(Experience) %>% 
+  summarise(n = n(),
+            mean = mean(sumWHN),
+            sd = sd(sumWHN),
+            meanErrors = mean(meanErrors),
+            meanViolations = mean(meanViolations),
+            meanLapses = mean(meanLapses))
+ggplot(data = SummaryWHNDBQExp, aes(x = Experience, y = mean, fill = Experience))+
+  geom_col()
+```
+
+```{r}
+
+WHNANOVA = aov(sumWHN ~ Performance +Error(YearsExp), data =  FullDataset)
+summary(WHNANOVA)
+
+ErrorANOVA = aov(meanErrors ~ Performance +Error(YearsExp), data =  FullDataset)
+summary(ErrorANOVA)
+ViolationANOVA = aov(meanViolations ~ Performance +Error(YearsExp), data =  FullDataset)
+summary(ViolationANOVA)
+
+LapsesANOVA = aov(meanLapses ~ Performance +Error(YearsExp), data =  FullDataset)
+summary(LapsesANOVA)
+```
+
+```{r}
+WHNANOVA = aov(sumWHN ~ Experience , data =  FullDataset)
+summary(WHNANOVA)
+
+ErrorANOVA = aov(meanErrors ~ Experience , data =  FullDataset)
+summary(ErrorANOVA)
+ViolationANOVA = aov(meanViolations ~ Experience , data =  FullDataset)
+summary(ViolationANOVA)
+
+LapsesANOVA = aov(meanLapses ~ Experience , data =  FullDataset)
+summary(LapsesANOVA)
+```
+
+```{r}
+WHNANOVA = aov(sumWHN ~ Performance * Experience , data =  FullDataset)
+summary(WHNANOVA)
+
+ErrorANOVA = aov(meanErrors ~ Performance * Experience , data =  FullDataset)
+summary(ErrorANOVA)
+ViolationANOVA = aov(meanViolations ~ Performance * Experience , data =  FullDataset)
+summary(ViolationANOVA)
+
+LapsesANOVA = aov(meanLapses ~ Performance * Experience , data =  FullDataset)
+summary(LapsesANOVA)
+```
+

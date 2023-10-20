@@ -29,7 +29,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, include=FALSE}
 #Set the working directory of the data ***HARD CODED ***
  #setwd("D:/Study2Data/qualtrics_data/SSQ")
-SSQdataRaw = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Qualtrics/SSQ/Study3SSQ.csv") %>%  
+SSQdataRaw = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/Qualtrics/SSQ/Study4SSQ.csv") %>%  
     select(starts_with('Q')) 
   
   #Format the column names by removing excess characters
@@ -38,10 +38,9 @@ SSQdataFilter[1,] <- sub(".*- ", "", SSQdataFilter[1,])
     
 #change the row names to the column headers
 SSQdataOrg <- row_to_names(SSQdataFilter, row_number = 1)
-   
-#remove pilot and test data  ***HARD-CODED***
-SSQdataOrg <- SSQdataOrg[-c(1),] %>% 
-  rename(participant = `Participant ID:`) %>% 
+
+SSQdataOrg <- SSQdataOrg %>% 
+  rename(participant = `eg TH03ON)`) %>% 
    rename(Timepoint = `Which timepoint is this?`)
 
 
@@ -50,21 +49,22 @@ SSQdataOrg <- SSQdataOrg[-c(1),] %>%
 ```{r}
 
 SSQdataOrg <- SSQdataOrg %>% 
-  subset(participant != "P03") %>%
+  subset(participant != "P01") %>%
+  subset(participant != "P02") %>%
+  subset(participant != "P03") %>% 
   subset(participant != "P04") %>%
-  subset(participant != "P15") %>% 
-  subset(participant != "P16") %>%
-  subset(participant != "P24") %>%
-  subset(participant != "P01") %>% 
-  subset(participant != "P02")
+  subset(participant != "P05") %>%
+  subset(participant != "P06") %>%
+  subset(participant != "P13") %>%
+  subset(participant != "P21") 
 
 ```
 
 
 ```{r}
-Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/Study3Counterbalancing.csv", header = T)
+Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/Study4Counterbalancing.csv", header = T)
 
-Counterbalancing <- Counterbalancing%>%  select(participant, Second, Third, Fourth, Fifth)
+Counterbalancing <- Counterbalancing%>%  select(participant, First, Second, Third, Fourth)
 
 Counterbalancing <- na.omit(Counterbalancing)
   
@@ -83,42 +83,36 @@ SSQdata[SSQdata== '1 - Mild'] <- '1'
 SSQdata[SSQdata== '2 - Moderate'] <- '2'
 SSQdata[SSQdata== '3 - Severe'] <- '3'
 
-SSQdata[SSQdata== 'Pre-Experiment'] <- '1'
-SSQdata[SSQdata== 'End of Control'] <- '2'
-SSQdata[SSQdata== 'End of Block 1'] <- '3'
-SSQdata[SSQdata== 'End of Block 2'] <- '4'
-SSQdata[SSQdata== 'End of Block 3'] <- '5'
-SSQdata[SSQdata== 'End of Experiment'] <- '6'
+SSQdata[SSQdata== 'Start of Experiment'] <- '1'
+SSQdata[SSQdata== 'End of Block 1'] <- '2'
+SSQdata[SSQdata== 'End of Block 2'] <- '3'
+SSQdata[SSQdata== 'End of Block 3'] <- '4'
+SSQdata[SSQdata== 'End of Experiment'] <- '5'
+
+
+
 
 #Convert columns with ratings in to numeric
 SSQdata[3:18] = lapply(SSQdata[3:18], FUN = function(y){as.numeric(y)})
+
+SSQdata <- SSQdata[!is.na(SSQdata$Fatigue),]
+
 
 ```
 
 
 ```{r}
 SSQdata <- left_join(SSQdata, Counterbalancing, by = 'participant') 
-SSQdata$Block <- 'Baseline' 
+SSQdata$Block <- '' 
 
 
-SSQdata$Block <-  if_else(SSQdata$Timepoint == "6", SSQdata$Fifth,
-                          if_else(SSQdata$Timepoint == "5", SSQdata$Fourth,
+SSQdata$Block <-if_else(SSQdata$Timepoint == "5", SSQdata$Fourth,
                                   if_else(SSQdata$Timepoint == "4", SSQdata$Third,
                                           if_else(SSQdata$Timepoint == "3", SSQdata$Second,
-                                                  if_else(SSQdata$Timepoint == "2", "Control", 
-                                                          if_else(SSQdata$Timepoint == "21",'Baseline', 'Baseline'))))))
-
-SSQdata <- SSQdata %>% 
-  select(-c(19:22))
-
-SSQdata <- SSQdata %>% 
-    dplyr::relocate(Block, .before = Timepoint)
+                                                  if_else(SSQdata$Timepoint == "2", SSQdata$First, 
+                                                          if_else(SSQdata$Timepoint == "1",'Baseline', 'Baseline')))))
 
 
-SSQdata$Block[SSQdata$Block== 'GemsCued'] <- 'HUD - AR Cued'
-SSQdata$Block[SSQdata$Block== 'GemsBasic'] <- 'HUD - AR'
-SSQdata$Block[SSQdata$Block== 'GemsTablet'] <- 'HDD - AR Tablet'
-SSQdata$Block[SSQdata$Block== 'Tablet'] <- 'HDD - Standard Tablet'
 
 
 
@@ -129,31 +123,14 @@ SSQdata$Block[SSQdata$Block== 'Tablet'] <- 'HDD - Standard Tablet'
 #Calculate the SSQ score weightings according to Kennedy et al 1993
 SSQConversion <- SSQdata 
 
-SSQConversion <- SSQConversion %>% 
-  mutate(NauseaSum = 
-           (SSQConversion$`General Discomfort` + 
-            SSQConversion$`Increased Salivation` + 
-            SSQConversion$Sweating + 
-            SSQConversion$Nausea + 
-            SSQConversion$`Difficulty Concentrating`+
-            SSQConversion$`Stomach Awareness` +
-            SSQConversion$Burping)) %>% 
-  mutate(OculomotorSum = 
-           (SSQConversion$`General Discomfort` +
-            SSQConversion$Fatigue +
-            SSQConversion$Headache +
-            SSQConversion$`Eye Strain` +
-            SSQConversion$`Difficulty Focusing` +
-            SSQConversion$`Difficulty Concentrating`+
-            SSQConversion$`Blurred Vision`)) %>% 
-  mutate(DisorientationSum =
-           (SSQConversion$`Difficulty Focusing` +
-            SSQConversion$Nausea +
-            SSQConversion$`Fullness of Head` +
-            SSQConversion$`Blurred Vision` +
-            SSQConversion$`Dizzy (Eyes Open)` +
-            SSQConversion$`Dizzy ( Eyes Closed)`+
-            SSQConversion$Vertigo)) 
+SSQConversion$NauseaSum <- colSums(SSQConversion[, c("General DIscomfort","Increased Salivation", "Sweating", "Nausea", "Difficulty Concentrating","Stomach Awareness", "Burping")])
+
+SSQConversion$OculomotorSum <- colSums(SSQConversion[, c("General DIscomfort", "Fatigue","Headache", "Eye Strain", "Difficulty Focusing","Difficulty Concentrating", "Blurred Vision")])
+
+#SSQConversion$DisorientationSum <- colSums(SSQConversion[, c("Difficulty Focusing","Nausea", "Fullness of Head", "Blurred Vision","Dizzy (Eyes Open)","Dizzy ( Eyes Closed)", "Vertigo")])
+
+SSQConversion$DisorientationSum <- colSums(SSQConversion[, c(7,10, 12, 13,14,15, 16)])
+
 
 #Calculate the final weighted SSQ scores
 
@@ -270,7 +247,7 @@ ggplot(SSQConversionSummary,  aes(x = Timepoint, y = mean, colour = Timepoint, g
       y = "Total SSQ Score",
       title = "Total SSQ Score",
       tag = "")+  
-  ylim(0,35) +
+
     scale_fill_hue(l = 2)+
    
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
@@ -293,7 +270,6 @@ ggplot(SSQConversionBlockSummary,  aes(x = Timepoint, y = mean, colour = Block, 
       y = "Total SSQ Score",
       title = "Total SSQ Score",
       tag = "")+  
-  ylim(0,30) +
     scale_fill_hue(l = 2)+
    
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
@@ -314,7 +290,6 @@ interaction.plot(x.factor =  SSQConversion$Timepoint,
                  trace.factor = SSQConversion$Block,
                  response = SSQConversion$TotalSSQScore,
                  fun = mean,
-                 ylim = (c(0,25)),
                  xlab = "Timepoint",
                  ylab = "Total SSQ Score",
                  type= "b",
@@ -327,7 +302,6 @@ interaction.plot(x.factor =  SSQConversion$Timepoint,
                  trace.factor = SSQConversion$Timepoint,
                  response = SSQConversion$NauseaWeight,
                  fun = mean,
-                 ylim = (c(0,20)),
                  xlab = "Timepoint",
                  ylab = "Nausea subscale",
                  type= "b",
@@ -340,7 +314,6 @@ interaction.plot(x.factor =  SSQConversion$Timepoint,
                  trace.factor = SSQConversion$Timepoint,
                  response = SSQConversion$OculomotorWeight,
                  fun = mean,
-                 ylim = (c(0,20)),
                  xlab = "Timepoint",
                  ylab = "Oculomotor subscale",
                  type= "b",
@@ -353,7 +326,6 @@ interaction.plot(x.factor =  SSQConversion$Timepoint,
                  trace.factor = SSQConversion$Timepoint,
                  response = SSQConversion$DisorientationWeight,
                  fun = mean,
-                 ylim = (c(0,20)),
                  xlab = "Timepoint",
                  ylab = "Disorientation subscale",
                  type= "b",
@@ -461,15 +433,16 @@ anova(TotalSSQmodelTPRBlock, TotalSSQmodel2)
 
 ```{r}
 
-anova(TotalSSQmodel1, TotalSSQmodel2, TotalSSQmodel3)
+anova(TotalSSQmodel1, TotalSSQmodel2, TotalSSQmodel3,TotalSSQmodel5)
 summary(TotalSSQmodel1)
-summary(TotalSSQmodel2)
+#summary(TotalSSQmodel2)
 
-summary(TotalSSQmodel5)
+#summary(TotalSSQmodel5)
 ```
 
 
 ```{r}
+library(report)
 TotalSSQresults <- report(TotalSSQmodel1, CI = 95)
 
 #summary(results)
@@ -543,13 +516,6 @@ SSQKPConversion$Timepoint[SSQKPConversion$Timepoint== '3'] <- 'T2'
 SSQKPConversion$Timepoint[SSQKPConversion$Timepoint== '4'] <- 'T3'
 SSQKPConversion$Timepoint[SSQKPConversion$Timepoint== '5'] <- 'T4'
 SSQKPConversion$Timepoint[SSQKPConversion$Timepoint== '6'] <- 'T5'
-
-SSQKPConversion$Block[SSQKPConversion$Block== 'GemsCued'] <- 'HUD - AR Cued'
-SSQKPConversion$Block[SSQKPConversion$Block== 'GemsBasic'] <- 'HUD - AR'
-SSQKPConversion$Block[SSQKPConversion$Block== 'GemsTablet'] <- 'HDD - AR Tablet'
-SSQKPConversion$Block[SSQKPConversion$Block== 'Tablet'] <- 'HDD - Standard Tablet'
-
-
 
 
 #SSQKPConversion$Timepoint <- as.factor(SSQKPConversion$Timepoint)
@@ -700,7 +666,6 @@ ggplot(SSQKPConversionTotalSSQBlockSummary,  aes(x = Timepoint, y = mean, colour
       y = "Total Change in  SSQ Score",
       title = "Total Change in SSQ Score",
       tag = "")+  
-  ylim(-10,17) +
     scale_fill_hue(l = 2)+
    
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
@@ -784,7 +749,6 @@ interaction.plot(x.factor =  SSQKPConversionOculoSummary$Timepoint,
                  trace.factor = SSQKPConversionOculoSummary$mean,
                  response = SSQKPConversionOculoSummary$mean,
                  fun = mean,
-                 ylim = c(-10, 10),
                  xlab = "Timepoint",
                  ylab = "Change in Oculomotor subscore",
                  type= "b",
@@ -804,7 +768,6 @@ ggplot(SSQKPConversionOculoBlockSummary,  aes(x = Timepoint, y = mean, colour = 
       y = "Oculomotor",
       title = "Oculomotor subscale",
       tag = "")+  
-  ylim(-10,17) +
     scale_fill_hue(l = 2)+
    
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
@@ -878,7 +841,6 @@ interaction.plot(x.factor =  SSQKPConversionNauseaSummary$Timepoint,
                  trace.factor = SSQKPConversionNauseaSummary$Timepoint,
                  response = SSQKPConversionNauseaSummary$mean,
                  fun = mean,
-                 ylim = c(-10, 10),
                  xlab = "Timepoint",
                  ylab = "Score",
                  type= "b",
@@ -899,7 +861,6 @@ ggplot(SSQKPConversionNauseaBlockSummary,  aes(x = Timepoint, y = mean, colour =
       y = "Nausea",
       title = "Nausea subscale",
       tag = "")+  
-  ylim(-10,17) +
     scale_fill_hue(l = 2)+
    
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
@@ -975,7 +936,6 @@ interaction.plot(x.factor =  SSQKPConversionDisoriSummary$Timepoint,
                  trace.factor = SSQKPConversionDisoriSummary$Timepoint,
                  response = SSQKPConversionDisoriSummary$mean,
                  fun = mean,
-                 ylim = c(-5 , 10),
                  xlab = "Timepoint",
                  ylab = "Change in Disorientation subscore",
                  type= "b",
@@ -996,7 +956,6 @@ ggplot(SSQKPConversionDisoriBlockSummary,  aes(x = Timepoint, y = mean, colour =
       y = "Disorientation",
       title = "Disorientation Subscale",
       tag = "")+  
-  ylim(-15,20) +
     scale_fill_hue(l = 2)+
    
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),

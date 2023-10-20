@@ -16,27 +16,31 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-  list.files()
   #Read in the data
-  DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Qualtrics/Demogs/Study3Demogs.csv") %>%  
+  DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/Qualtrics/Demogs/TGStudy4Demogs.csv") %>%  
     select(starts_with('Q')) 
 ```
 ```{r}
 #Change the first row into column headers
 DemogDataOrg <- row_to_names(DemogDataRaw, row_number = 1)
 #Remove consent form columns
-DemogDataOrg <- DemogDataOrg[-1,-c(1:7)]
 
+
+```
+
+
+
+```{r}
 DemogDataOrg <- DemogDataOrg %>% 
   rename(Age = `What is your age?`) %>% 
   rename(Gender = `Which gender do you identify with?`) %>% 
   rename(UKLicense = `Do you have a UK driving license?`) %>%
   rename(CountryLicense = `Which country did you get your driving license in?`) %>%
-  rename(YearsExp = `How many years driving experience do you have, either from when you passed your driving test or when you started driving regularly? - (years/months)`) %>%
-  rename(UKYearsExp = `How many years driving experience do you have driving in the UK? (years, months)`) %>%
+  rename(YearsExp = `How many years driving experience do you have, either from when you passed your driving test or when you started driving regularly? (years / months)`) %>%
+  rename(UKYearsExp = `How many years driving experience do you have in the UK (years, months)`) %>%
    rename(GlasgowYearsExp = `How many years driving experience do you have driving around the West End of Glasgow? (years, months)`) %>%
-  rename(HazPerTest = `Did you take a Hazard Perception test as part of getting your driver's license?(Or another video-based hazard awareness assessment tool?)`) %>%
-  rename(VideoGamesTime = `Roughly how many hours do you play video games for in an average week?`) %>% 
+  
+  rename(VideoGamesTime = `Approximately how many hours do you play video games for in an average week?`) %>% 
   rename(MotionSickness = `Do you have any history of motion sickness? - Selected Choice`) %>% 
   rename(MotionSicknessText = `Do you have any history of motion sickness? - Other (Please describe) - Text`) 
 
@@ -56,17 +60,24 @@ DemogDataOrg$Gender[DemogDataOrg$Gender == 'Woman'] <- 'Female'
 DemogDataOrg$Gender[DemogDataOrg$Gender == 'Female '] <- 'Female'
 DemogDataOrg$Gender[DemogDataOrg$Gender == 'Male '] <- 'Male'
 
-DemogDataOrg$participant <- DemogDataOrg$`Enter your Participant ID:`
-
 DemogDataOrg <- DemogDataOrg %>%
-#subset(image_file != "Slide24") %>%
-  subset(participant != "P01") %>% 
-  subset(participant != "P02") %>% 
-  subset(participant != "P03") %>%
+  subset(participant != "P01") %>%
+  subset(participant != "P02") %>%
+  subset(participant != "P03") %>% 
   subset(participant != "P04") %>%
-  subset(participant != "P15") %>% 
-  subset(participant != "P16") %>%
-  subset(participant != "P24") 
+  subset(participant != "P05") %>%
+  subset(participant != "P06") %>%
+  subset(participant != "P13") %>%
+  subset(participant != "P21") 
+
+DemogDataOrg <- DemogDataOrg[!is.na(DemogDataOrg$Age),]
+
+table(DemogDataOrg$`How familiar are you with augmented reality (AR) prior to this experiment?`)
+
+table(DemogDataOrg$`How familiar are you with virtual reality (VR) prior to this experiment?`)
+
+
+
 ```
 
 ```{r}
@@ -74,8 +85,8 @@ DemogSummaryTotal <- DemogDataOrg %>%
   
   summarise(
   n = n(),
-  AgeMean = mean(Age),
-  AgeSD = sd(Age),
+  AgeMean = mean(Age, na.rm = T),
+  AgeSD = sd(Age, na.rm = T),
   Male = sum(Gender == 'Male'),
   Female = sum(Gender == "Female"),
   UKLicense = sum(UKLicense == 'Yes'),
@@ -98,10 +109,67 @@ DemogSummaryTotal <- DemogDataOrg %>%
 ```
 
 
-```{r}
-table(DemogDataOrg$`How familiar are you with augmented reality (AR) prior to this experiment?`)
 
-table(DemogDataOrg$`How familiar are you with virtual reality (VR) prior to this experiment?`)
+```{r}
+DBQ <- DemogDataOrg %>% 
+  select(11: 37)
+
+library(dplyr)
+DBQ <- DBQ %>% mutate_all(list(~substr(., 1, 1))) 
+
+IDs <- as.data.frame(WHNDataset$participant)
+
+IDs <- IDs[!duplicated(IDs), ]
+  
+```
+
+```{r}
+DBQItems <- cols <- names(DBQ)
+
+DBQ[DBQItems] <- lapply(DBQ[DBQItems], as.numeric)
+
+DBQ$Errors <- 0
+DBQ$Lapses <- 0
+DBQ$Violations <- 0
+
+DBQ$participant <- IDs
+
+Errors <- DBQ %>% 
+  select('participant', starts_with('E')) 
+Errors$meanErrors = rowMeans(Errors[2:9])
+
+Errors <- Errors %>% 
+  select('participant', 'meanErrors')
+
+Violations <- DBQ %>% 
+  select('participant', starts_with('V')) 
+Violations$meanViolations = rowMeans(Violations[2:9])
+
+Violations <- Violations %>% 
+  select('participant', 'meanViolations')
+
+
+
+Lapses <- DBQ %>% 
+  select('participant', starts_with('L')) 
+Lapses$meanLapses = rowMeans(Lapses[2:9])
+
+Lapses <- Lapses %>% 
+  select('participant', 'meanLapses')
+```
+```{r}
+DBQ <- left_join(DBQ, Errors, by = 'participant')
+
+DBQ <- left_join(DBQ, Lapses, by = 'participant')
+
+DBQ <- left_join(DBQ, Violations, by = 'participant')
+```
+
+
+```{r}
+PptDBQ <- DBQ %>% 
+  select(31,34)
+
 
 ```
 

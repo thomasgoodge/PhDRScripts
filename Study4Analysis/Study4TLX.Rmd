@@ -16,44 +16,45 @@ library(car)
 library(emmeans)
 library(lme4)
 library(lmerTest)
-library(report)
-library(ggpubfigs)
+#library(ggpubfigs)
 ```
 
 
 ```{r}
 #Read in the data
-TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Qualtrics/TLX/Study3TLX.csv") %>% 
+TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/Qualtrics/TLX/Study4TLX.csv") %>% 
   
 
 # Tidy the data - select scores,
   select(starts_with('Q'))
   TLXdataOrg <- TLXdataRaw[-c(1:2),]
-  colnames(TLXdataOrg) <- c('participant','Block', 'MentalDemand', 'PhysicalDemand', 'TemporalDemand', 'OverallPerformance', 'Effort', 'Frustration')
+  colnames(TLXdataOrg) <- c('participant','Timepoint','Block', 'MentalDemand', 'PhysicalDemand', 'TemporalDemand', 'OverallPerformance', 'Effort', 'Frustration', 'PD/MD', 'TD/MD', 'OP/MD', 'Fr/MD','Ef/MD','TD/PD','OP/PD','Fr/PD', 'Ef/PD','TD/OP','TD/Fr','TD/Ef','OP/Fr','OP/Ef','Ef/Fr')
  # TLXdataOrg$participant <- TLXdataOrg$participant
   #Convert columns with ratings in to numeric
-  TLXdataOrg[3:8] = lapply(TLXdataOrg[3:8], FUN = function(y){as.numeric(y)})
+  TLXdataOrg[4:9] = lapply(TLXdataOrg[4:9], FUN = function(y){as.numeric(y)})
   
-  TLXdataOrg$Block <- str_sub(TLXdataOrg$Block, 1,7)
+
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1"] <- "HUD"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2"] <- "Cue"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3"] <- "HDD"
+
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 1"] <- "1"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 2"] <- "2"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 3"] <- "3"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Experiment"] <- "4"
   
-  TLXdataOrg$Block[TLXdataOrg$Block == "Control"] <- "Baseline"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1"] <- "AR HUD"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2"] <- "Cued AR HUD"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3"] <- "Tablet HDD"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 4"] <- "AR HDD"
-  
-  
-TLXdataOrg$Block <- factor(TLXdataOrg$Block, levels = c("Baseline", "AR HUD","Cued AR HUD", "AR HDD", "Tablet HDD"))
+TLXdataOrg$Block <- factor(TLXdataOrg$Block, levels = c("Control", "HUD","Cue", "HDD"))
 
 TLXdataOrg <- TLXdataOrg %>%
 #subset(image_file != "Slide24") %>%
-  subset(participant != "P03") %>%
+   subset(participant != "P01") %>%
+  subset(participant != "P02") %>%
+  subset(participant != "P03") %>% 
   subset(participant != "P04") %>%
-  subset(participant != "P15") %>% 
-  subset(participant != "P16") %>%
-  subset(participant != "P24") %>%
-  subset(participant != "P01") %>% 
-  subset(participant != "P02")
+  subset(participant != "P05") %>%
+  subset(participant != "P06") %>%
+  subset(participant != "P13") %>%
+  subset(participant != "P21") 
 
 ```
 
@@ -62,20 +63,21 @@ TLXdataOrg <- TLXdataOrg %>%
 #Convert to wrangled dataset
 TLXdata <- TLXdataOrg 
 
-TLXdata$Performance <- 100 - TLXdata$`OverallPerformance` 
-
-TLXdata <- TLXdata %>%  select(-`OverallPerformance`)
-
-TLXdata$Total = rowSums(TLXdata[,c(3,8)], na.rm = T)
-
-TLXdata$Timepoint = rep(1:5, each = 1)
-
-TLXdata$Study <- 1
 
 
+TLXdata$Total = rowSums(TLXdata[,c(4,9)], na.rm = T)
+
+TLXdata$participant <- as.factor(TLXdata$participant)
+TLXdata$Timepoint <- as.factor(TLXdata$Timepoint)
+TLXdata$Block <- as.factor(TLXdata$Block)
+
+TLXdata$Performance <- 100 - TLXdata$OverallPerformance
 
 
-write.csv(TLXdata, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/S3TLX.csv", row.names=FALSE)
+TLXdata$Study <- 2
+
+
+write.csv(TLXdata, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/S4TLX.csv", row.names=FALSE)
 
 ```
 
@@ -99,12 +101,12 @@ TLXdataSumm <- TLXdata %>%
     n = n(),
     Total_mean = mean(Total),
     Total_sd = sd(Total),
-    Mental_mean = mean(`MentalDemand`, na.rm = T),
-    Mental_sd = sd(`MentalDemand`, na.rm = T),
-    Physical_mean = mean(`PhysicalDemand`, na.rm = T),
-    Physical_sd = sd(`PhysicalDemand`, na.rm = T),
-    Temporal_mean = mean(`TemporalDemand`, na.rm = T),
-    Temporal_sd = sd(`TemporalDemand`, na.rm = T),
+    Mental_mean = mean(MentalDemand, na.rm = T),
+    Mental_sd = sd(MentalDemand, na.rm = T),
+    Physical_mean = mean(Frustration, na.rm = T),
+    Physical_sd = sd(Frustration, na.rm = T),
+    Temporal_mean = mean(TemporalDemand, na.rm = T),
+    Temporal_sd = sd(TemporalDemand, na.rm = T),
     Performance_mean = mean(Performance, na.rm = T),
     Performance_sd = sd(Performance, na.rm = T),
     Frustration_mean = mean(Frustration, na.rm = T),
@@ -118,41 +120,42 @@ TLXdataSumm <- TLXdata %>%
 ```
 
 ```{r}
+library(ggpubfigs)
 ggplot(TLXdata, aes(Block, Total, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
-  labs(title = "Total NASA TLX Scores - Study 1")+
+  labs(title = "Total NASA TLX scores - Study 2")+
       theme_classic()+
+    scale_fill_manual(values = friendly_pal("ito_seven"))
 
-      scale_fill_manual(values = friendly_pal("ito_seven"))
 
 ```
 
 
 ```{r}
-ggplot(TLXdata, aes(Block, `MentalDemand`, fill = Block ))+
+ggplot(TLXdata, aes(Block, MentalDemand, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
   labs(title = "Mental Demand")
 
-ggplot(TLXdata, aes(Block, `PhysicalDemand`, fill = Block ))+
+ggplot(TLXdata, aes(Block, Frustration, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Physical Demand")
 
-ggplot(TLXdata, aes(Block, `TemporalDemand`, fill = Block ))+
+ggplot(TLXdata, aes(Block, TemporalDemand, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
     labs(title = "Temporal Demand")
 
-ggplot(TLXdata, aes(Block,Performance, fill = Block ))+
+ggplot(TLXdata, aes(Block,OverallPerformance, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim (0,100)+
-    labs(title = "OverallPerformance")
+    labs(title = "Overall Performance")
 
 ggplot(TLXdata, aes(Block, Effort, fill = Block ))+
   geom_boxplot(width = 0.3)+
@@ -168,19 +171,6 @@ ggplot(TLXdata, aes(Block, Frustration, fill = Block ))+
 
 
 ```
-
-```{r}
-library(ARTool)
-  m= art(Total ~ Block + (1|participant), data = TLXdata) 
-  options(contrasts = c("contr.sum","contr.poly"))
-  anova <- anova(m)
-  anova
-  summary(m)
-  report(anova)
-
-```
-
-
 ```{r Check normality Total}
 ggplot(TLXdata, aes(x=Total)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
@@ -232,7 +222,7 @@ lincon(formula =  Total ~ Block, data = TLXdata)
 
 ```
 ```{r}
-
+# 
 # TLXModel1 <- glmer(data = TLXdata, formula = Total ~ Block + (1|participant), family = poisson, glmerControl(optimizer = "bobyqa"))
 # 
 # TLXModel2 <- glmer(data = TLXdata, formula = Total ~ Block + (1|participant) + (1|Timepoint), family = poisson, glmerControl(optimizer = "bobyqa"))
@@ -241,7 +231,7 @@ lincon(formula =  Total ~ Block, data = TLXdata)
 # TLXTotalresults <- report(TLXModel1, CI = 95)
 # 
 # print(TLXTotalresults)
-
+# 
 
 
 ```
@@ -287,11 +277,6 @@ MDbxp +
   )
 
 ```
-```{r}
-t1way(formula =  MentalDemand ~ Block, data = TLXdata, nboot = 100)
-lincon(formula =  MentalDemand ~ Block, data = TLXdata)
-
-```
 
 ```{r check normailty PD}
 ggplot(TLXdata, aes(x=PhysicalDemand)) +
@@ -334,13 +319,6 @@ PDbxp +
   )
 
 ```
-
-```{r}
-t1way(formula =  PhysicalDemand ~ Block, data = TLXdata, nboot = 100)
-lincon(formula =  PhysicalDemand ~ Block, data = TLXdata)
-
-```
-
 ```{r check normailty TD}
 ggplot(TLXdata, aes(x=TemporalDemand)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
@@ -382,15 +360,8 @@ TDbxp +
   )
 
 ```
-
-```{r}
-t1way(formula =  TemporalDemand ~ Block, data = TLXdata, nboot = 100)
-lincon(formula =  TemporalDemand ~ Block, data = TLXdata)
-
-```
-
 ```{r check normailty OP}
-ggplot(TLXdata, aes(x=Performance)) +
+ggplot(TLXdata, aes(x=OverallPerformance)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
 
 library(rstatix)
@@ -430,13 +401,6 @@ OPbxp +
   )
 
 ```
-
-```{r}
-t1way(formula =  Performance ~ Block, data = TLXdata, nboot = 100)
-lincon(formula =  Performance ~ Block, data = TLXdata)
-
-```
-
 ```{r check normailty Ef}
 ggplot(TLXdata, aes(x=Effort)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
@@ -478,13 +442,6 @@ Efbxp +
   )
 
 ```
-
-```{r}
-t1way(formula =  Effort ~ Block, data = TLXdata, nboot = 100)
-lincon(formula =  Effort ~ Block, data = TLXdata)
-
-```
-
 ```{r check normailty FR}
 ggplot(TLXdata, aes(x=Frustration)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
@@ -526,11 +483,6 @@ Frbxp +
   )
 
 ```
-```{r}
-t1way(formula =  Frustration ~ Block, data = TLXdata, nboot = 100)
-lincon(formula =  Frustration ~ Block, data = TLXdata)
-
-```
 
 
 ```{r}
@@ -541,12 +493,59 @@ Study3TLX <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
 ```
 
 ```{r}
-
 FullTLX <- rbind(Study3TLX, Study4TLX)
+FullTLX$Block
 
-#FullTLX$Block
+FullTLX <- FullTLX %>% 
+  subset(Block != "Control") 
+  
+FullTLX <- FullTLX %>%
+  subset(Block != "HDD - Tablet")
+```
+
+
+```{r}
+FullHUDTLX <- FullTLX %>% 
+  subset(Block != "HDD")
+
+FullHUDTLX <- FullHUDTLX %>% 
+  subset(Block != "HDD - AR")
+
+FullHUDTLX <- FullHUDTLX %>% 
+  subset(Block != "HUD - AR Cued")
+
+FullHUDTLX <- FullHUDTLX %>% 
+  subset(Block != "Cue")
+```
+
+
+```{r}
+FullHDDTLX <- FullTLX %>% 
+  subset(Block != "HUD - AR")
+
+FullHDDTLX <- FullHDDTLX %>% 
+  subset(Block != "HUD - AR Cued")
+  
+FullHDDTLX <- FullHDDTLX %>% 
+  subset(Block != "Cue")
+
+FullHDDTLX <- FullHDDTLX %>% 
+  subset(Block != "HUD")
+
+
 
 ```
+
+
+```{r}
+FullCueTLX <- FullHUDTLX %>% 
+  subset(Block != "HUD") 
+
+FullCueTLX <- FullCueTLX %>% 
+  subset(Block != "HUD - AR") 
+
+```
+
 
 ```{r}
 ggplot(FullTLX, aes(x=Total)) +
@@ -574,7 +573,9 @@ FullTLXaov <- aov(formula = Total ~  Study , data = FullTLX)
 summary(FullTLXaov)
 
 
-
+FullTLXsummary <- FullTLX %>% 
+  group_by(Study) %>% 
+  summarise( n = n())
 
 ```
 ```{r}
@@ -597,6 +598,122 @@ FullTLXbxp +
   labs(
     subtitle = get_test_label(FullTLXaov, detailed = TRUE),
     caption = get_pwc_label(FullTLXpwc)
+  )
+
+
+```
+
+```{r}
+ggplot(FullHUDTLX, aes(x=Total)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Study) %>% 
+  identify_outliers(Total)
+
+TLXdata %>% 
+  group_by(Study) %>% 
+  shapiro_test(Total)
+
+library(ggpubr)
+
+ggqqplot(FullHUDTLX, "Total", facet.by = "Study")
+```
+
+
+```{r}
+FullCueTLXaov <- anova_test(data = FullCueTLX, dv = Total, between = Study)
+
+get_anova_table(FullCueTLXaov)
+
+FullCueTLXpwc <- FullCueTLX %>% 
+  pairwise_t_test(Total ~ Study, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+FullCueTLXpwc <- FullCueTLXpwc %>%  add_xy_position(x = "Study")
+
+FullCueTLXpwc
+
+FullCueTLXbxp <- ggboxplot(FullCueTLX, x = "Study", y = "Total", add = "point")
+
+FullCueTLXbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(FullCueTLXaov, detailed = TRUE),
+    caption = get_pwc_label(FullCueTLXpwc)
+  )
+
+
+```
+
+
+
+```{r}
+FullHUDTLXaov <- anova_test(data = FullHUDTLX, dv = Total, between = Study)
+
+get_anova_table(FullHUDTLXaov)
+
+FullHUDTLXpwc <- FullHUDTLX %>% 
+  pairwise_t_test(Total ~ Study, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+FullHUDTLXpwc <- FullHUDTLXpwc %>%  add_xy_position(x = "Study")
+
+FullHUDTLXpwc
+
+FullHUDTLXbxp <- ggboxplot(FullHUDTLX, x = "Study", y = "Total", add = "point")
+
+FullHUDTLXbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(FullHUDTLXaov, detailed = TRUE),
+    caption = get_pwc_label(FullHUDTLXpwc)
+  )
+
+
+```
+
+
+
+```{r}
+ggplot(FullHDDTLX, aes(x=Total)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Study) %>% 
+  identify_outliers(Total)
+
+TLXdata %>% 
+  group_by(Study) %>% 
+  shapiro_test(Total)
+
+library(ggpubr)
+
+ggqqplot(FullHDDTLX, "Total", facet.by = "Study")
+```
+
+```{r}
+FullHDDTLXaov <- anova_test(data = FullHDDTLX, dv = Total, between = Study)
+
+get_anova_table(FullHDDTLXaov)
+
+FullHDDTLXpwc <- FullHDDTLX %>% 
+  pairwise_t_test(Total ~ Study, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+FullHDDTLXpwc <- FullHDDTLXpwc %>%  add_xy_position(x = "Study")
+
+FullHDDTLXpwc
+
+FullHDDTLXbxp <- ggboxplot(FullHDDTLX, x = "Study", y = "Total", add = "point")
+
+FullHDDTLXbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(FullHDDTLXaov, detailed = TRUE),
+    caption = get_pwc_label(FullHDDTLXpwc)
   )
 
 

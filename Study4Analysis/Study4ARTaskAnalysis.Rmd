@@ -1,0 +1,284 @@
+---
+title: "Study4ARTaskAnalysis"
+author: "TGoodge"
+date: '2023-09-01'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+
+
+```
+
+```{r read in datafiles}
+
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/AR Task"
+
+fileList <- list.files(path = dataFolder, pattern = "..txt$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+```
+
+```{r create dataframe}
+#Loop through the files and create one large dataset
+scoreDatasetRaw <- data.frame() 
+  
+scoreDatasetRaw <- scoreDatasetRaw %>% 
+  mutate("ID") %>% 
+  mutate("Date") %>% 
+  mutate("Condition") %>% 
+  mutate("NumbersDialled") %>% 
+  mutate("Keypresses") %>% 
+  mutate("Errors") %>% 
+  mutate("meanRT") %>% 
+  mutate("sdRT") %>% 
+  mutate("minRT") %>% 
+  mutate("maxRT")
+# datasetRaw[nrow(datasetRaw) + 1,] = c(1,1,1)
+```
+
+```{r}
+
+for (file in fileList)
+{
+    tempData <- read.csv(file, header = F)
+    tempData["ID"] = substr(file, start =78,stop = 80)
+    RTtempData <- as.data.frame(tempData[-c(1:6),])
+    RTtempData$V1 <- as.numeric(RTtempData$V1)
+
+    Date <- tempData[1,1]
+    Condition <- substr(tempData[2,1], start =11,stop = 14)
+    numbersDialled <-gsub(".*:","", tempData[3,1])
+    numbersDialled <- as.numeric(numbersDialled)
+    Keypresses <- gsub(".*:","",tempData[4,1])
+    Keypresses <- as.numeric(Keypresses)
+    Errors <- gsub(".*:","",tempData[5,1])
+    Errors <- as.numeric(Errors)
+
+    meanRT <- mean(RTtempData$V1)
+    sdRT <- sd(RTtempData$V1)
+    minRT <- min(RTtempData$V1)
+    maxRT <- max(RTtempData$V1)
+  
+  
+    scoreDatasetRaw[nrow(scoreDatasetRaw) + 1,] = c(tempData[1,2], Date, Condition, numbersDialled, Keypresses, Errors, meanRT, sdRT, minRT, maxRT)
+  
+}
+
+
+scoreDatasetRaw$`"Condition"`[scoreDatasetRaw$`"Condition"` == "DynH"] <- "Cue"
+scoreDatasetRaw$`"Condition"`[scoreDatasetRaw$`"Condition"` == "StaH"] <- "HUD"
+
+scoreDatasetRaw$`"NumbersDialled"` <- as.numeric(scoreDatasetRaw$`"NumbersDialled"`)
+scoreDatasetRaw$`"Errors"` <- as.numeric(scoreDatasetRaw$`"Errors"`)
+scoreDatasetRaw$`"Keypresses"` <- as.numeric(scoreDatasetRaw$`"Keypresses"`)
+scoreDatasetRaw$`"meanRT"` <- as.numeric(scoreDatasetRaw$`"meanRT"`)
+scoreDatasetRaw$`"sdRT"` <- as.numeric(scoreDatasetRaw$`"sdRT"`)
+scoreDatasetRaw$`"minRT"` <- as.numeric(scoreDatasetRaw$`"minRT"`)
+scoreDatasetRaw$`"maxRT"` <- as.numeric(scoreDatasetRaw$`"maxRT"`)
+
+
+
+scoreDataset <- scoreDatasetRaw
+names(scoreDataset) <- c("ID", "Date", "Condition", "numbersDialled", "Keypresses", "Errors", "meanRT", "sdRT", "minRT", "maxRT")
+
+```
+
+
+```{r}
+
+
+scoreSummary <- scoreDataset %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            mean = mean(meanRT, na.rm = T),
+            sd = sd(meanRT, na.rm = T),
+            meanCount = mean(numbersDialled),
+            sdCount = sd(numbersDialled),
+            meanErrors = mean(Errors),
+            sdErrors = sd(Errors),
+            meanKeypresses = mean(Keypresses),
+            sdKeypresses = sd(Keypresses)
+            )
+
+```
+
+
+
+```{r}
+
+library(rstatix)
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  identify_outliers(meanRT)
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  shapiro_test(meanRT)
+
+library(ggpubr)
+
+ggqqplot(scoreDataset, "meanRT", facet.by = "Condition")
+```
+
+```{r}
+
+
+RT.aov <- anova_test(data = scoreDataset, dv = meanRT, wid = ID, within = Condition)
+
+get_anova_table(RT.aov)
+
+RTpwc <- scoreDataset %>% 
+  pairwise_t_test(meanRT ~ Condition, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+RTpwc <- RTpwc %>%  add_xy_position(x = "Condition")
+RTpwc
+
+
+RTbxp <- ggboxplot(scoreDataset, x = "Condition", y = "meanRT", add = "point")
+
+RTbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(RT.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+
+
+```
+
+```{r}
+
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  identify_outliers(numbersDialled)
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  shapiro_test(numbersDialled)
+
+
+
+ggqqplot(scoreDataset, "numbersDialled", facet.by = "Condition")
+```
+
+```{r}
+
+
+ND.aov <- anova_test(data = scoreDataset, dv = numbersDialled, wid = ID, within = Condition)
+
+get_anova_table(ND.aov)
+
+NDpwc <- scoreDataset %>% 
+  pairwise_t_test(numbersDialled ~ Condition, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+NDpwc <- NDpwc %>%  add_xy_position(x = "Condition")
+NDpwc
+
+
+NDbxp <- ggboxplot(scoreDataset, x = "Condition", y = "numbersDialled", add = "point")
+
+NDbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(ND.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+
+
+```
+
+```{r}
+
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  identify_outliers(Errors)
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  shapiro_test(Errors)
+
+
+
+ggqqplot(scoreDataset, "Errors", facet.by = "Condition")
+```
+
+```{r}
+
+
+Er.aov <- anova_test(data = scoreDataset, dv = Errors, wid = ID, within = Condition)
+
+get_anova_table(Er.aov)
+
+Erpwc <- scoreDataset %>% 
+  pairwise_t_test(Errors ~ Condition, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Erpwc <- Erpwc %>%  add_xy_position(x = "Condition")
+Erpwc
+
+
+ERbxp <- ggboxplot(scoreDataset, x = "Condition", y = "Errors", add = "point")
+
+ERbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(Er.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+
+
+```
+
+```{r}
+
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  identify_outliers(Keypresses)
+
+scoreDataset %>% 
+  group_by(Condition) %>% 
+  shapiro_test(Keypresses)
+
+
+
+ggqqplot(scoreDataset, "Keypresses", facet.by = "Condition")
+```
+
+```{r}
+
+
+KP.aov <- anova_test(data = scoreDataset, dv = Keypresses, wid = ID, within = Condition)
+
+get_anova_table(KP.aov)
+
+KPpwc <- scoreDataset %>% 
+  pairwise_t_test(Keypresses ~ Condition, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+KPpwc <- KPpwc %>%  add_xy_position(x = "Condition")
+KPpwc
+
+
+KPbxp <- ggboxplot(scoreDataset, x = "Condition", y = "Keypresses", add = "point")
+
+ERbxp + 
+  #stat_pvalue_manual(pwc) +
+  labs(
+    subtitle = get_test_label(KP.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+
+
+```
