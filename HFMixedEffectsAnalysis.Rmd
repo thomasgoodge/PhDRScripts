@@ -1,0 +1,806 @@
+---
+title: "HabibaLME"
+author: "TGoodge"
+date: '2023-04-21'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+#import librarys
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(lmerTest)
+library(lme4)
+library(afex)
+library(ggplot2)
+library(ggthemes)
+library(report)
+library(emmeans)
+```
+
+```{r}
+#read in the data
+data <- read.csv("C:/Users/thoma/Downloads/Study 2 - Collective Results.xlsx - Score Calculation.csv")
+
+#Data Wrangling
+
+#Change data type of columns to factors to be used for analysis
+data$ID <- factor(data$ID)
+
+data$Widget <- factor(data$Widget, levels = c("Radio button", "Dropdown", "Slider"))
+
+data$QuestionnaireType <- factor(data$QuestionnaireType, levels = c("GEQ", "GSQ", "CEGEQ"))
+
+
+#data$Condition <- factor(data$Condition, levels = c("Radio button_CEGEQ", "Radio button_GEQ", "Radio button_GSQ", "Dropdown_CEGEQ", "Dropdown_GEQ", "Dropdown_GSQ", "Slider_CEGEQ", "Slider_GEQ", "Slider_GSQ"))
+
+#Add a combinatino column for each of the conditions
+data$Condition <- paste(data$Widget, data$QuestionnaireType, sep = "_")
+```
+
+```{r}
+
+#Summary of the data for each of the widget conditions
+dataWSummary <- data %>% 
+  group_by(Widget) %>% 
+  summarise(n = n(),
+            meanScore = mean(SCORE),
+            sdScore = sd(SCORE))
+
+dataWSummary
+```
+
+```{r}
+
+#Summarise data by each of the Questionnaires
+
+dataCondSummary <- data %>% 
+  group_by(Widget, QuestionnaireType) %>% 
+  
+  summarise(n = n(), 
+            meanScore = mean(SCORE),
+            sdScore = sd(SCORE)
+  )
+dataCondSummary
+
+
+GEQData <- data %>% 
+  subset(QuestionnaireType == "GEQ")
+
+dataGEQsummary <- GEQData %>% 
+  group_by(Widget) %>% 
+  summarise(GEQ = mean(SCORE))
+
+GSQData <- data %>% 
+  subset(QuestionnaireType == "GSQ")
+
+dataGSQsummary <- GSQData %>% 
+  group_by(Widget) %>% 
+  summarise(GSQ = mean(SCORE))
+
+
+CEGEQData <- data %>% 
+  subset(QuestionnaireType == "CEGEQ")
+
+dataCEGEQsummary <- CEGEQData %>% 
+  group_by(Widget) %>% 
+  summarise(CEGEQ = mean(SCORE))
+
+
+```
+
+```{r}
+#Plot showing mean score for each of the Widget x Qtype groups
+
+ggplot(data = data, aes(x = Condition, y = SCORE, fill = Condition))+
+  geom_boxplot()+
+  theme(axis.text.x = element_text(angle = 25))+
+  ylim(0,6)
+
+
+```
+```{r}
+
+#Anova looking at interaction between Q type & Widget, + Tukey pairwise comparisons
+FullANOVA <- aov(SCORE ~ QuestionnaireType * Widget, data = data,)
+
+summary(FullANOVA)
+
+TukeyHSD(FullANOVA)
+
+pairwise.t.test(data$SCORE, data$Condition, p.adjust.method="holm")
+```
+
+
+
+```{r}
+
+#ANOVA for scores in the GEQ
+
+GEQANOVA <- aov(SCORE ~  Widget, data = GEQData)
+summary(GEQANOVA)
+
+summary(GEQANOVA)
+
+```
+
+
+```{r}
+
+#ANOVA for scores in the GSQ
+GSQANOVA <- aov(SCORE ~  Widget, data = GSQData,)
+
+summary(GSQANOVA)
+
+TukeyHSD(GSQANOVA)
+```
+
+
+```{r}
+
+#ANOVA for scores in the CEGEQ
+CEGEQANOVA <- aov(SCORE ~  Widget, data = CEGEQData,)
+
+summary(CEGEQANOVA)
+
+TukeyHSD(CEGEQANOVA)
+```
+##LMERs##
+
+
+First models are including Questionnaire and Widget as main effects. This one isn;t report in the results section of the paper as this one is comparing across questionnaire type which may not make sense. Any Widget comparisons are between subjects and so it is not nested data. (Unless we include order they completed the questionnaires in or something). It’s included here for completeness but I don’t think it makes sense to report this analysis
+```{r}
+#NUll Model with ID as a random effect
+NullModel <- lmer(data = data, formula = SCORE ~ 0 + (1|ID),REML = FALSE)
+#summary(NullModel)
+#(NullModel)
+
+```
+
+
+```{r}
+#GEQ
+#Main effects model of QType & Widget with ID as random factor
+#Refactor Qtype for comparisons
+data$QuestionnaireType <- factor(data$QuestionnaireType, levels = c("GSQ", "GEQ", "CEGEQ"))
+data$Widget <- factor(data$Widget, levels = c("Radio button", "Dropdown", "Slider"))
+print("Model comparing effect of Questionnaire Type on Score, with Widget as a random factor")
+
+QMainModel2 = lmer(data = data, formula = SCORE ~  QuestionnaireType  + (1|ID) , REML = FALSE)
+
+QMainModel = lmer(data = data, formula = SCORE ~  QuestionnaireType  + (1|ID) + (1|Widget), REML = FALSE)
+summary(QMainModel)
+
+QSlopeModel = lmer(data = data, formula = SCORE ~  QuestionnaireType  + (1|ID) + (1+SCORE|Widget), REML = FALSE)
+summary(QSlopeModel)
+
+all_fit(QSlopeModel)
+
+
+anova(QMainModel, QMainModel2)
+
+print("Model comparing effect of Widget on Score, with Questionnaire Type as a random factor")
+
+WMainModel = lmer(data = data, formula = SCORE ~  Widget  + (1|ID) + (1|QuestionnaireType), REML = FALSE)
+summary(WMainModel)
+
+WSlopeModel = lmer(data = data, formula = SCORE ~  Widget  + (1|ID) + (1+SCORE|QuestionnaireType), REML = FALSE)
+summary(WSlopeModel)
+
+
+anova(QMainModel, WMainModel)
+
+
+
+#GEQMainModel = lmer(data = GEQData, formula = SCORE ~  Widget  + (1|ID), REML = FALSE)
+
+```
+
+```{r}
+#Model looking at the main effects of Questionnaire Type and Widget on Score, with ID as a random effect")
+print("Intercept is Radio button - GSQ")
+data$QuestionnaireType <- factor(data$QuestionnaireType, levels = c("GSQ", "GEQ", "CEGEQ"))
+data$Widget <- factor(data$Widget, levels = c("Radio button", "Dropdown", "Slider"))
+MainModel = lmer(data = data, formula = SCORE ~  QuestionnaireType + Widget + (1|ID), REML = FALSE)
+
+#Change factoring to get all comparisons")
+print("Intercept is Slider - GEQ")
+
+data$QuestionnaireType <- factor(data$QuestionnaireType, levels = c("GEQ", "GSQ", "CEGEQ"))
+data$Widget <- factor(data$Widget, levels = c("Slider", "Radio button", "Dropdown"))
+
+MainModel2 = lmer(data = data, formula = SCORE ~  QuestionnaireType + Widget + (1|ID), REML = FALSE)
+summary(MainModel)
+summary(MainModel2)
+
+
+
+#lsmeans(MainModel, pairwise ~ QuestionnaireType | Widget)
+```
+
+```{r}
+#Compare the Null and Main Model
+anova(NullModel, MainModel)
+```
+
+```{r}
+
+IntModel <- lmer(data = data, formula = SCORE ~ QuestionnaireType * Widget + (1|ID), REML = FALSE)
+summary(IntModel)
+
+```
+
+```{r}
+#Graph plotting the average Score for each questionnaire and each widget
+ggplot(data, aes(x = Widget, y = SCORE, color=Widget)) +
+  facet_wrap(~ QuestionnaireType) +
+  stat_summary(fun=mean, geom="point", size=3) +
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) +
+  stat_summary(aes(y=fitted(IntModel)), fun=mean, geom="line") +
+  labs(x="QType", y="Score",
+       color="Widget") +
+  #ylim(0,5)+
+  theme_bw()
+```
+```{r}
+#Graph plotting the average Score for each widget by each questionnaire (inverse of the graph above)
+ggplot(data, aes(x = QuestionnaireType, y = SCORE, color=QuestionnaireType)) +
+  facet_wrap(~ Widget) +
+  stat_summary(fun=mean, geom="point", size=3) +
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) +
+  stat_summary(aes(y=fitted(IntModel)), fun=mean, geom="line") +
+  labs(x="QType", y="SCORE",
+       color="Questionnaire Type") +
+  theme_bw()
+```
+#######################UX Data####################################
+
+It seems this is the data that we can do lmers on, if we compare average ratings for each of the Widgets and include Questionnaire type as a random factor
+```{r}
+UXdata <- read.csv("C:/Users/thoma/Downloads/Study 2 - Collective Results.xlsx - UX details.csv")
+
+#Data Wrangling
+
+#Change data type to factors for analysis
+UXdata$ID <- factor(UXdata$ID)
+
+UXdata$Widget <- factor(UXdata$Widget, levels = (c("Radio Button", "Dropdown", "Slider")))
+UXdata$Qtype <- factor(data$QuestionnaireType, levels = c("GEQ", "GSQ", "CEGEQ"))
+
+
+#Create an identical dataset with different factor levels for comparisons
+UXdata2 <- UXdata 
+UXdata2$Widget <- factor(UXdata2$Widget, levels = c("Dropdown", "Slider", "Radio Button"))
+
+
+
+```
+
+```{r}
+#Summarise data by Widget
+UXdataSummary <- UXdata %>% 
+  group_by(Widget, Qtype) %>% 
+  summarise(n = n(),
+            FormatSatisfaction = mean(FormatSatisfaction),
+            StDevSatisfication =sd(FormatSatisfaction, na.rm = T),
+            ClarityInMeaning = mean(ClarityInMeaning),
+            sdClarity = sd(ClarityInMeaning),
+            EaseOfSelection = mean(EaseOfSelection),
+            sdEase = sd(EaseOfSelection),
+            Understanding = mean(Understanding),
+            sdUnderstand = sd(Understanding),
+            QuickCompletion = mean(QuickCompletion),
+            sdComplete = sd(QuickCompletion)
+            
+            
+            )
+
+UXdataSummary
+
+```
+
+
+```{r}
+ggplot(UXdata, aes(x = Widget, y = FormatSatisfaction, color=Widget)) +
+  facet_wrap(~ Qtype) +
+  stat_summary(fun=mean, geom="point", size=3) +
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) +
+  labs(x="QType", y="Format Satisfaction",
+       color="Questionnaire Type") +
+  theme_bw()
+```
+
+```{r}
+#Null Model
+FSNull <- lmer(FormatSatisfaction ~ (1|ID)  + (1|Widget), data = UXdata, REML = FALSE)
+#summary(FSNull)
+
+#Model  with ID as a random intercept
+FSModel <- lmer(FormatSatisfaction ~ Widget  + (1|ID) , data = UXdata, REML = FALSE)
+#Model with ID and Q type as random intercepts
+FSModelb <- lmer(FormatSatisfaction ~ Widget  + (1|ID) + (1|Qtype), data = UXdata, REML = FALSE)
+
+print("ANOVA comparing inclusion of Qtype (Model b)")
+anova(FSModel, FSModelb)
+
+
+#Model with the refactored data set
+FSModel2<- lmer(FormatSatisfaction ~ Widget + (1|ID) , data = UXdata2, REML = FALSE)
+print("Intercept is Radio Button")
+summary(FSModel)
+
+print("Intercept is Dropdown")
+summary(FSModel2)
+
+print("ANOVA comparing to null model")
+anova(FSNull, FSModel)
+
+FSResults <- report(FSModel, CI = 95)
+
+print(FSResults)
+
+
+
+```
+```{r}
+ggplot(UXdata, aes(x = Widget, y = FormatSatisfaction, color=Widget)) +
+  facet_wrap(~Qtype)+
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(FSModel)), fun=mean, geom="line") +
+  labs(x="Widget", y="Format Satisfaction", 
+       color="Widget") + 
+  theme_bw()
+
+
+```
+
+```{r}
+CMNull <- lmer(ClarityInMeaning ~ (1|ID) + (1|Widget), data = UXdata)
+summary(CMNull)
+print("Intercept is Radio Button")
+CMModel <- lmer(ClarityInMeaning ~ Widget + (1|ID), data = UXdata)
+            lm(ClarityInMeaning ~ Widget, data = UXdata)
+            
+CMModelb <- lmer(ClarityInMeaning ~ Widget + (1|ID) + (1|Qtype), data = UXdata)
+            lm(ClarityInMeaning ~ Widget, data = UXdata)
+
+            
+print("Anova comparing inclusion of Qtype (model b)") 
+anova(CMModel, CMModelb)
+
+print("Intercept is Dropdown")
+CMModel2 <- lmer(ClarityInMeaning ~  Widget + (1|ID) , data = UXdata2)
+print("ANOVA comparing the null molde")
+anova(CMNull,  CMModel)
+summary(CMModel)
+summary(CMModel2)
+
+```
+```{r}
+ggplot(UXdata, aes(x = Widget, y = ClarityInMeaning, color=Widget)) + 
+  facet_wrap(~Qtype)+
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(FSModel)), fun=mean, geom="line") +
+  labs(x="Widget", y="Clarity in Meaning", 
+       color="Widget") + 
+  theme_bw()
+```
+
+```{r}
+ESNull <- lmer(EaseOfSelection ~  (1|ID)  + (1|Widget) , data = UXdata, REML = F)
+#summary(ESNull)
+print("Intercept is Radio Button")
+ESModel <- lmer(EaseOfSelection ~  Widget  + (1|ID) , data = UXdata, REML = F)
+
+ESModelb <- lmer(EaseOfSelection ~  Widget  + (1|ID) + (1|Qtype) , data = UXdata, REML = F)
+
+
+print("ANOVA comparing the inclusion of Qtype (model b)")
+anova(ESModelb, ESModel)
+
+
+print("Intercept is Dropdown")
+ESModel2 <- lmer(EaseOfSelection ~  Widget + (1|ID) , data = UXdata2, REML = F)
+
+
+
+
+
+print("ANOVA comparing the null model")
+anova(ESNull, ESModel)
+summary(ESModel)
+summary(ESModel2)
+
+ESresults <- report(ESModel, CI = 95)
+print(ESresults)
+
+
+
+```
+
+```{r}
+ ggplot(UXdata, aes(x = Widget, y = EaseOfSelection, color=Widget)) + 
+  facet_wrap(~Qtype)+
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(FSModel)), fun=mean, geom="line") +
+  labs(x="Widget", y="Ease of Selection", 
+       color="Widget") + 
+  theme_bw()
+
+```
+
+```{r}
+UnNull <- lmer(Understanding ~ 1 +(1|ID), data = UXdata)
+#summary(UnNull)
+print("Intercept is Radio Button")
+UnModel <- lmer(Understanding ~1 + Widget + (1|ID), data = UXdata)
+UnModelb <- lmer(Understanding ~1 + Widget + (1|ID) + (1|Qtype), data = UXdata)
+
+
+print("ANOVA comparing the inclusion of Qtype")
+anova(UnModelb, UnModel)
+
+print("Intercept is Dropdown")
+
+UnModel2 <- lmer(Understanding ~1 + Widget + (1|ID), data = UXdata2)
+
+print("ANOVA comparing the null model")
+anova(UnNull, UnModel)
+#summary(UnModel)
+#summary(UnModel2)
+
+```
+```{r}
+ggplot(UXdata, aes(x = Widget, y = Understanding, color=Widget)) + 
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(FSModel)), fun=mean, geom="line") +
+  labs(x="Widget", y="Understanding", 
+       color="Widget") + 
+  theme_bw()
+```
+
+```{r}
+QCNull <- lmer(QuickCompletion ~  1 +(1|ID), data = UXdata, REML = F)
+#summary(QCNull)
+
+
+print("Intercept is Dropdown")
+
+QCModel <- lmer(QuickCompletion ~ 1 + Widget + (1|ID), data = UXdata,REML = F)
+
+QCModelb <- lmer(QuickCompletion ~ 1 + Widget + (1|ID) + (1|Qtype), data = UXdata, REML = F)
+print("ANOVA comparing inclusiong of Qtype (model b)")
+
+anova(QCModelb, QCModel)
+
+print("Intercept is Radio Button")
+
+QCModel2 <- lmer(QuickCompletion ~ 1 + Widget + (1|ID), data = UXdata2, REML = F)
+
+
+print("ANOVA comparing null model")
+
+anova(QCNull, QCModel)
+
+summary(QCModel)
+
+summary(QCModel2)
+
+
+QCResults <- report(QCModel2, CI = 95)
+
+print(QCResults)
+```
+
+```{r}
+
+ggplot(UXdata, aes(x = Widget, y = QuickCompletion, color=Widget)) + 
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(FSModel)), fun=mean, geom="line") +
+  labs(x="Widget", y="Quick Completion", 
+       color="Widget") + 
+  theme_bw()
+```
+#######################Time data#################
+```{r}
+
+Timedata <- read.csv("C:/Users/thoma/Downloads/Study 2 - Collective Results.xlsx - Time Consumed.csv")
+
+#Data Wrangling
+Timedata$ID <- factor(Timedata$ID)
+
+Timedata$QType <- factor(Timedata$QType, levels = (c("GEQ", "GSQ", "CEGEQ")))
+
+Timedata$Widget <- factor(Timedata$Widget, levels = (c("Radio Button", "Dropdown", "Slider")))
+
+Timedata$Condition <- paste(Timedata$Widget, Timedata$QType, sep = "_")
+
+Timedata <- Timedata%>% 
+  subset(Timedata$ID != "P6")
+
+Timedata2 <- Timedata
+Timedata2$Widget <- factor(Timedata2$Widget, levels = (c("Slider", "Radio Button", "Dropdown")))
+
+
+
+```
+
+```{r}
+TimedataSummary <- Timedata %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanTime = mean(Seconds),
+            sd = sd(Seconds)
+            )
+
+TimedataSummary
+```
+```{r}
+ ggplot(data = Timedata, aes(x = Condition, y = Seconds, fill = Condition))+
+  geom_boxplot()+
+  theme(axis.text.x = element_text(angle = 45))+
+  ylim(0,500)
+
+```
+
+```{r}
+NullTimeModel<- lmer(Seconds ~ (1|ID), data = Timedata)
+
+QTimeModel <- lmer(Seconds ~  QType + (1|ID) + (1|Widget), data = Timedata)
+WTimeModel <- lmer(Seconds ~ Widget + (1|ID) + (1|QType), data = Timedata2)
+
+
+
+
+summary(QTimeModel)
+
+summary(WTimeModel)
+
+TimeModel <- lmer(Seconds ~  QType + Widget + (1|ID) , data = Timedata)
+summary(TimeModel)
+anova(NullTimeModel, TimeModel)
+```
+
+```{r}
+ ggplot(Timedata, aes(x = Widget, y = Seconds, color=Widget)) + 
+  facet_wrap(~ QType)+
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+  stat_summary(aes(y=fitted(QTimeModel)), fun=mean, geom="line") +
+  labs(x="Widget", y="Time taken", 
+       color="Widget") + 
+  theme_bw()
+```
+
+```{r}
+
+
+GEQTimeData <- Timedata %>% 
+  subset(QType == "GEQ")
+
+dataGEQTimesummary <- GEQTimeData %>% 
+  group_by(Widget) %>% 
+  summarise(GEQ = mean(Seconds))
+
+GSQTimeData <- Timedata %>% 
+  subset(QType == "GSQ")
+
+dataGSQTimesummary <- GSQTimeData %>% 
+  group_by(Widget) %>% 
+  summarise(GSQ = mean(Seconds))
+
+
+CEGEQTimeData <- Timedata %>% 
+  subset(QType == "CEGEQ")
+
+dataCEGETimeQsummary <- CEGEQTimeData %>% 
+  group_by(Widget) %>% 
+  summarise(CEGEQ = mean(Seconds))
+
+
+```
+
+
+```{r}
+
+#Anova looking at interaction between Q type & Widget, + Tukey pairwise comparisons
+FullTimeANOVA <- aov(Seconds ~ QType * Widget, data = Timedata,)
+
+summary(FullTimeANOVA)
+
+TukeyHSD(FullTimeANOVA)
+
+#data$Condition 
+
+
+#pairwise.t.test(data$SCORE, data$Condition, p.adjust.method="holm")
+```
+
+
+
+```{r}
+GEQTimeANOVA <- lm(Seconds ~  Widget, data = GEQTimeData,)
+
+summary(GEQTimeANOVA)
+
+TukeyHSD(aov(GEQTimeANOVA))
+
+```
+
+
+```{r}
+GSQTimeANOVA <- aov(Seconds ~  Widget, data = GSQTimeData,)
+
+summary(GSQTimeANOVA)
+
+TukeyHSD(GSQTimeANOVA)
+```
+
+
+```{r}
+CEGEQTimeANOVA <- aov(Seconds ~  Widget, data = CEGEQTimeData,)
+
+summary(CEGEQTimeANOVA)
+
+TukeyHSD(CEGEQTimeANOVA)
+```
+```{r}
+
+ClickData <- read.csv("C:/Users/thoma/Downloads/Study 2 - Collective Results.xlsx - Click Count(1).csv")
+
+#Data Wrangling
+ClickData$ID <- factor(ClickData$ID)
+
+ClickData$Qtype <- factor(ClickData$Qtype, levels = (c("GEQ", "GSQ", "CEGEQ")))
+
+ClickData$Widget <- factor(ClickData$Widget, levels = (c("Radio Button", "Dropdown", "Slider")))
+
+ClickData$Condition <- paste(ClickData$Widget, ClickData$Qtype, sep = "_")
+
+ClickData2 <- ClickData
+ClickData2$Widget <- factor(ClickData2$Widget, levels = (c("Slider", "Radio Button", "Dropdown")))
+
+
+
+
+```
+
+```{r}
+ClickDataSummary <- ClickData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanClick = mean(ClickCount, na.rm = T),
+            sd = sd(ClickCount, na.rm = T)
+            
+            )
+
+ClickDataSummary
+```
+
+```{r}
+ggplot(data = ClickDataSummary, aes(x = Condition, y = meanClick, fill = Condition))+
+  geom_col()+
+  geom_errorbar(aes(ymin = meanClick - sd, ymax = meanClick + sd), width = 0.2, alpha = 0.4)+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+```{r}
+NullClickModel<- lmer(ClickCount ~  (1|ID), data = ClickData)
+
+QClickModel <- lmer(ClickCount ~  Qtype  + (1|ID) + (1|Widget), data = ClickData)
+summary(QClickModel)
+
+WClickModel <- lmer(ClickCount ~  Widget  + (1|ID) + (1|Qtype), data = ClickData)
+summary(WClickModel)
+
+
+ClickModel <- lmer(ClickCount ~ Widget + Qtype + (1|ID), data = ClickData)
+
+ClickModel2 <- lmer(ClickCount ~ Widget + Qtype + (1|ID), data = ClickData2)
+
+summary(ClickModel)
+summary(ClickModel2)
+
+
+```
+
+```{r}
+ClickPlot <-  ggplot(ClickData, aes(x = Widget, y = ClickCount, color=Widget), axis.text.x = element_text(angle = 90)) + 
+  facet_wrap(~ Qtype)+
+  stat_summary(fun=mean, geom="point", size=3) + 
+  stat_summary(fun.data=mean_se, geom="errorbar", width=0.2) + 
+ # stat_summary(aes(y=fitted(ClickModel)), fun=mean, geom="line") +
+  labs(x="Widget", y="Click Count",        color="Widget") + 
+  ylim(0,80)+
+  theme(axis.text.x = element_text(angle = 40))+
+  theme_bw()
+
+ClickPlot
+```
+
+```{r}
+
+
+GEQClickData <- ClickData %>% 
+  subset(Qtype == "GEQ")
+
+dataGEQClicksummary <- GEQClickData %>% 
+  group_by(Widget) %>% 
+  summarise(GEQ = mean(ClickCount))
+
+GSQClickData <- ClickData %>% 
+  subset(Qtype == "GSQ")
+
+dataGSQClicksummary <- GSQClickData %>% 
+  group_by(Widget) %>% 
+  summarise(GSQ = mean(ClickCount))
+
+
+CEGEQClickData <- ClickData %>% 
+  subset(Qtype == "CEGEQ")
+
+dataCEGEClickQsummary <- CEGEQClickData %>% 
+  group_by(Widget) %>% 
+  summarise(CEGEQ = mean(ClickCount))
+
+
+```
+
+
+```{r}
+
+#Anova looking at interaction between Q type & Widget, + Tukey pairwise comparisons
+FullClickANOVA <- aov(ClickCount ~ Qtype * Widget, data = ClickData,)
+
+summary(FullClickANOVA)
+
+TukeyHSD(FullClickANOVA)
+
+#data$Condition 
+
+
+#pairwise.t.test(data$SCORE, data$Condition, p.adjust.method="holm")
+```
+
+
+
+```{r}
+GEQClickANOVA <- aov(ClickCount ~  Widget, data = GEQClickData,)
+
+summary(GEQClickANOVA)
+
+TukeyHSD(aov(GEQClickANOVA))
+
+```
+
+
+```{r}
+GSQClickANOVA <- aov(ClickCount ~  Widget, data = GSQClickData,)
+
+summary(GSQClickANOVA)
+
+TukeyHSD(GSQClickANOVA)
+```
+
+
+```{r}
+CEGEQClickANOVA <- aov(ClickCount ~  Widget, data = CEGEQClickData,)
+
+summary(CEGEQClickANOVA)
+
+TukeyHSD(CEGEQClickANOVA)
+```
+
