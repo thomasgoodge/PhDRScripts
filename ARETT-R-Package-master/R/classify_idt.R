@@ -235,8 +235,8 @@ classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
 
       for (j in idt_lowerWindow:(idt_upperWindow-1)) {
         # Direction vector for the second point
-       # print("j")
-        #print(j)
+        print("j")
+        print(j)
         idt_jVector_x <- idt_meanGazeOrigin_x - data$gazePoint_x[j]
         idt_jVector_y <- idt_meanGazeOrigin_y - data$gazePoint_y[j]
         idt_jVector_z <- idt_meanGazeOrigin_z - data$gazePoint_z[j]
@@ -253,8 +253,8 @@ classify_idt <- function(data, dispersion_threshold = 1.6, time_window = 250) {
 
         # The final angle is supposed to be in degrees instead of rad, therefore we translate the value
         idt_angleDegtest2 <- (idt_angleRad * 180) / pi
-       # print("test2")
-       # print(idt_angleDegtest2)
+        print("test2")
+        print(idt_angleDegtest2)
 
         # Check the angle against the limit
         if (idt_angleDegtest2 > dispersion_threshold) {

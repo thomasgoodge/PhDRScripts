@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
+#libraries
 ```{r}
 library(tidyverse)
 library(splitstackshape)
@@ -27,7 +27,7 @@ library(report)
 library(janitor)
 
 ```
-
+#read in data files
 ```{r}
 dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/WHN/"
 
@@ -44,14 +44,14 @@ for (file in file_list){
 }
 
 ```
-
+#sort whn dataset
 ```{r subset bad ppts}
-SortedWHNDataset <- RawWHNDataset %>% 
-  select(participant,image_file,Correct,trials_3.thisTrialN, conf_slider.response, conf_slider.rt, MiseryScale.response, Attention_slider.response, trialResp.keys, trialResp.corr, trialResp.rt)
+SortedWHNDataset <- RawWHNDataset  %>% 
+  dplyr::select(participant,image_file,Correct,trials_3.thisTrialN, conf_slider.response, conf_slider.rt, MiseryScale.response, Attention_slider.response, trialResp.keys, trialResp.corr, trialResp.rt)
 
 SortedWHNDataset$Attention_slider.response <- as.numeric(SortedWHNDataset$Attention_slider.response)
 
-
+RawWHNDataset$trials_3.thisTrialN
 SortedWHNDataset <- SortedWHNDataset %>%
 #subset(image_file != "Slide24") %>%
   subset(participant != "P01") %>%
@@ -65,15 +65,19 @@ SortedWHNDataset <- SortedWHNDataset %>%
   
   
 ```
-
+#read in counterbalancing
 ```{r add counterbalancing}
 Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/Study4Counterbalancing.csv", header = T)
 
-Counterbalancing <- Counterbalancing %>%  select(participant, First,Second,Third,Fourth)
+Counterbalancing <- Counterbalancing %>%  dplyr::select(PID, First,Second,Third,Fourth)
 
 Counterbalancing <- na.omit(Counterbalancing)
-```
 
+Counterbalancing$participant <- Counterbalancing$PID
+
+
+```
+#add counterbalancing order to dataset
 ```{r order the dataset}
 OrderWHNDataset <- left_join(SortedWHNDataset, Counterbalancing, by = 'participant') 
 OrderWHNDataset$Block <- 'Baseline' 
@@ -97,6 +101,7 @@ WHNDataset <- WHNDataset[!is.na(WHNDataset$Correct),]
 
 #WHNDataset <- left_join(WHNDataset, DemogDataOrg, by = "participant")
 ```
+#Demographics
 ```{r}
   #Read in the data
   DemogDataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/Qualtrics/Demogs/TGStudy4Demogs.csv") %>%  
@@ -110,7 +115,7 @@ DemogDataOrg <- row_to_names(DemogDataRaw, row_number = 1)
 
 ```
 
-
+#Frormat demographic data
 
 ```{r}
 DemogDataOrg <- DemogDataOrg %>% 
@@ -161,7 +166,7 @@ DemogDataOrg <- DemogDataOrg[!is.na(DemogDataOrg$Age),]
 
 
 ```
-
+#Demog Summary
 ```{r}
 DemogSummaryTotal <- DemogDataOrg %>% 
   
@@ -190,7 +195,7 @@ DemogSummaryTotal <- DemogDataOrg %>%
   )   
 ```
 
-
+#Extract DBQ scores
 
 ```{r}
 DBQ <- DemogDataOrg %>% 
@@ -336,7 +341,7 @@ NumLowVio <- sum(PPTWHNData$ViolationGroup == "Low")
 
 
 ```
-
+#WHN Summary
 ```{r summarise the data}
 WHNSummary <- WHNDataset %>% 
   group_by(Block) %>% 
@@ -364,7 +369,7 @@ WHNSummary <- WHNDataset %>%
 write.csv(WHNDataset, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/S4WHN.csv", row.names=FALSE)
 
 ```
-
+#Clip Summaries
 ```{r}
 
 ClipSummary <- WHNDataset %>% 
@@ -393,9 +398,9 @@ ClipConfSummary <- WHNDataset %>%
             sdWHN = sd(trialResp.corr))
 
 ```
-
+#Clip Plots
 ```{r}
-library(ggpubfigs)
+#library(ggpubfigs)
 
 ggplot(data = ClipSummary, aes(x = image_file, y = WHN, fill = image_file))+
   geom_col()+
@@ -426,7 +431,7 @@ AttSum <- WHNDataset %>%
             mean = mean(Attention_slider.response, na.rm = T),
             sd = sd(Attention_slider.response, na.rm = T))
 ```
-
+#WHN Col Plot
 ```{r}
 
 WHNBaseline <- as.numeric(WHNSummary[1,3])
@@ -447,15 +452,13 @@ ggplot(data = WHNSummary, aes(x = Block, y = WHN, fill = Block))+
 ggplot(data = WHNDataset, aes(x = Block, y = trialResp.corr, fill = Block))+
   stat_summary()
 ```
+#WHN Boxplots
 ```{r}
 PlotData <- WHNDataset %>% 
   select(participant, trialResp.corr, trials_3.thisTrialN, Block) %>%   group_by(participant, Block) %>% 
   summarise(participant = participant,
             score = sum(trialResp.corr),
             Block = Block)
-
-
-PlotData <- PlotData[!duplicated(PlotData),]
 
 WHNPlot2 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
   geom_violin(alpha = 0.8)+
@@ -474,6 +477,18 @@ theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
 WHNPlot2
 ```
+
+
+```{r}
+ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
+  geom_violin(alpha = 0.8)+
+  geom_boxplot(alpha = 0, width = 0.2)+
+    theme_classic()+
+  ylab("Average Study 4 WHN Score")+
+  xlab("AR Presentation Condition")
+
+```
+
 ```{r}
 WHNAOV <- glm(family = binomial, data = WHNDataset, formula = trialResp.corr ~ Block)
 
@@ -970,7 +985,7 @@ AttentionTabletDataset <- AttentionDataset# %>%
 
 
 ```
-
+#Attention Glmers
 ```{r}
 AttModel1 <- glmer(family = binomial, data = AttentionDataset, formula = Attention_slider.response ~ Block + (1|participant), glmerControl(optimizer = "bobyqa"))
 
@@ -1068,6 +1083,23 @@ pairs
 summary(FullWHNaov)
 
 emmeans(FullWHNaov)
+
+FullWHNSummary<- FullWHN %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(NumCorr = sum(trialResp.corr == 1),
+            Total = sum(trialResp.corr ==1 | trialResp.corr == 0),
+            Prop = NumCorr / Total * 100)
+
+
+FullWHNOverall <- FullWHNSummary %>% 
+  group_by(Study, Block) %>% 
+    summarise(Total = mean(Prop))
+
+
+FullWHNaov <- aov(formula = Prop ~  Study * Block , data = FullWHNSummary)
+
+summary(FullWHNaov)
+
 
 
 ```

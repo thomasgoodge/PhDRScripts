@@ -486,7 +486,7 @@ Frbxp +
 
 
 ```{r}
-Study4TLX <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/S4TLX.csv")
+Study4TLX <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/S4TLX - Copy.csv")
 
 Study3TLX <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/S3TLX.csv")
 
@@ -505,46 +505,19 @@ FullTLX <- FullTLX %>%
 
 
 ```{r}
+FullCueTLX <- FullTLX %>% 
+  subset(Block == "Cue"| Block == "Cued AR HUD")
+
+
 FullHUDTLX <- FullTLX %>% 
-  subset(Block != "HDD")
+  subset(Block == "HUD"| Block == "AR HUD")
 
-FullHUDTLX <- FullHUDTLX %>% 
-  subset(Block != "HDD - AR")
-
-FullHUDTLX <- FullHUDTLX %>% 
-  subset(Block != "HUD - AR Cued")
-
-FullHUDTLX <- FullHUDTLX %>% 
-  subset(Block != "Cue")
-```
-
-
-```{r}
 FullHDDTLX <- FullTLX %>% 
-  subset(Block != "HUD - AR")
-
-FullHDDTLX <- FullHDDTLX %>% 
-  subset(Block != "HUD - AR Cued")
-  
-FullHDDTLX <- FullHDDTLX %>% 
-  subset(Block != "Cue")
-
-FullHDDTLX <- FullHDDTLX %>% 
-  subset(Block != "HUD")
-
-
+  subset(Block == "HDD"| Block == "AR HDD")
 
 ```
 
 
-```{r}
-FullCueTLX <- FullHUDTLX %>% 
-  subset(Block != "HUD") 
-
-FullCueTLX <- FullCueTLX %>% 
-  subset(Block != "HUD - AR") 
-
-```
 
 
 ```{r}
@@ -552,11 +525,11 @@ ggplot(FullTLX, aes(x=Total)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
 
 library(rstatix)
-TLXdata %>% 
+FullTLX %>% 
   group_by(Study) %>% 
   identify_outliers(Total)
 
-TLXdata %>% 
+FullTLX %>% 
   group_by(Study) %>% 
   shapiro_test(Total)
 
@@ -608,11 +581,11 @@ ggplot(FullHUDTLX, aes(x=Total)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
 
 library(rstatix)
-TLXdata %>% 
+FullHUDTLX %>% 
   group_by(Study) %>% 
   identify_outliers(Total)
 
-TLXdata %>% 
+FullHUDTLX %>% 
   group_by(Study) %>% 
   shapiro_test(Total)
 
@@ -681,11 +654,11 @@ ggplot(FullHDDTLX, aes(x=Total)) +
     geom_histogram(binwidth=0.1, colour="black", fill="white")
 
 library(rstatix)
-TLXdata %>% 
+FullHDDTLX %>% 
   group_by(Study) %>% 
   identify_outliers(Total)
 
-TLXdata %>% 
+FullHDDTLX %>% 
   group_by(Study) %>% 
   shapiro_test(Total)
 

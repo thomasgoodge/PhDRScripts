@@ -480,6 +480,14 @@ Plot1
 
   
 ```
+```{r}
+ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
+  geom_violin(alpha = 0.8)+
+  geom_boxplot(alpha = 0, width = 0.2)+
+    theme_classic()+
+  xlab("NDRT Presentation Condition")+
+  ylab("Average Study 3 WHN Score")
+```
 
 
 ```{r WHN ANOVA}
@@ -713,7 +721,7 @@ summary(WHNNullModel0)
 deviance(WHNNullModel0)
 
 ```
-
+#MAIN WHN GLMER
 ```{r Main WHN GLMER} 
 # WHNModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|participant) + (1|image_file) + (1|YearsExp) , family = binomial, glmerControl( optimizer = "bobyqa"))
 # # 
@@ -933,7 +941,7 @@ print(WHNresults)
 
 
 ```
-
+#CUE WHN GLMER
 ```{r Cued WHN GLMERS}
 
 CueWHNModelNull = glmer(data = WHNCuedDataset, formula = trialResp.corr ~ 1  +  + (1|participant) + (1|image_file),family = binomial,glmerControl(optimizer = "bobyqa"))
@@ -960,8 +968,7 @@ r.squaredGLMM(CueWHNModel1, CueWHNModelNull)
 
 ```
 
-
-
+#HUD WHN GLMER
 ```{r HUD WHN GLMERS}
 
 HUDWHNModelNull = glmer(data = WHNHUDDataset, formula = trialResp.corr ~ 1 + (1|participant) + (1|image_file),family = binomial,glmerControl(optimizer = "bobyqa"))
@@ -980,7 +987,7 @@ print(HUDResults)
 
 
 ```
-
+#HDD WHN GLMER
 ```{r HDD WHN GLMER}
 
 
@@ -1002,7 +1009,7 @@ print(HDDResults)
 
 
 ```
-
+#Tablet WHN GLMER
 ```{r Tablet WHN GLMER}
 
 
@@ -1038,7 +1045,7 @@ ggplot(ef, aes(Block, fit, color=fit)) +
   theme_classic() # just for a change :)
 ```
 
-#############################CONFIDENCE####################################
+#Confidence analysis
 ```{r}
 ConfNullModel <- glmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant) + (1|image_file), family = binomial)
 
@@ -1349,15 +1356,20 @@ TabletScores = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop
 ```
 
 
-scoreDataset <- scoreDataset %>%
-#subset(image_file != "Slide24") %>%
-  subset(ID != "P03") %>%
-  subset(ID != "P04") %>%
-  subset(ID != "P15") %>% 
-  subset(ID != "P16") %>%
-  subset(ID != "P24") %>%
-  subset(ID != "P01") %>% 
-  subset(ID != "P02")
+```{r}
+# 
+# scoreDataset <- scoreDataset %>%
+# #subset(image_file != "Slide24") %>%
+#   subset(ID != "P03") %>%
+#   subset(ID != "P04") %>%
+#   subset(ID != "P15") %>% 
+#   subset(ID != "P16") %>%
+#   subset(ID != "P24") %>%
+#   subset(ID != "P01") %>% 
+#   subset(ID != "P02")
+```
+  
+  
 ```{r}
 TabletScoresSummary <- TabletScores %>% 
   summarise(n = n(),

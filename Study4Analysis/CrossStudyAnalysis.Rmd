@@ -1,0 +1,123 @@
+---
+title: "WHNValidationCrossComparison"
+author: "TGoodge"
+date: "2024-01-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(tidyverse)
+library(splitstackshape)
+library(stringr)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(effects)
+library(ggplot2)
+library(ggthemes)
+library(report)
+library(janitor)
+```
+
+```{r}
+
+
+ARWHNraw <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/WHNScores.csv")
+
+ValidWHN <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/ValidationExpWHN.csv")
+
+```
+
+```{r}
+ARControl <- ARWHNraw %>% 
+  subset(Block == "Control")
+
+ARBase <- ARWHNraw %>% 
+  subset(Block == "Baseline")
+
+
+ARWHN <- rbind(ARControl, ARBase)
+
+
+ARWHN <- ARWHN %>% 
+  select(participant, trialResp.corr,image_file, trialResp.rt,  Study)
+
+ARWHN$ID <- paste0(ARWHN$Study,ARWHN$participant)
+ARWHN$participant <- ARWHN$ID
+
+#ARWHN$Study <- as.character(ARWHN$Study)
+
+#ARWHN$Study <- "AR"
+
+ARWHN<- ARWHN %>% 
+select(-6)
+
+
+colnames(ARWHN) <- c("ID", "Correct", "Clip", "RT", "Group")
+
+colnames(ValidWHN) <- c("ID", "Correct", "Clip", "RT", "Group")
+
+
+numAR <- n_distinct(ARWHN$ID)
+numValid <- n_distinct(ValidWHN$ID)
+
+```
+
+
+```{r}
+FullWHNDataset <- rbind(ValidWHN, ARWHN)
+
+FullWHNDataset$RT <-stringr::str_remove_all(FullWHNDataset$RT ,"[\\[\\]]")
+
+FullWHNDataset$RT <- as.numeric(FullWHNDataset$RT)
+
+FullWHNDataset$Group <- factor(FullWHNDataset$Group, levels = c("Experienced", "1","2"))
+
+
+FullWHNDataset <- FullWHNDataset %>% 
+  subset(Group != "1")
+
+
+```
+
+
+```{r}
+
+Summary <- FullWHNDataset %>% 
+  group_by(Group) %>% 
+  summarise(n = n(),
+            NCorr = sum(Correct),
+            Prop = (NCorr / n) * 100,
+            meanRT = mean(RT))
+
+
+```
+
+```{r}
+
+GLM <- glm(family = binomial, data = FullWHNDataset, formula = Correct ~ Group)
+summary(GLM)
+
+LM <- lm(data = FullWHNDataset, formula = RT ~ Group)
+summary(LM)
+```
+
+```{r}
+ClipSummary <- FullWHNDataset %>% 
+    group_by(Clip, Group) %>% 
+  summarise(n = n(),
+            NCorr = sum(Correct),
+            Prop = (NCorr / n) * 100,
+            meanRT = mean(RT))
+  
+```
+
+
+

@@ -1,0 +1,2073 @@
+---
+title: "HPEyeTracking"
+author: "TGoodge"
+date: '2023-01-23'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Libraries
+```{r}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(tidyr)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(beepr)
+```
+#ARETT Functions
+
+```{r}
+#set the working directory to the ARETT package
+#setwd("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R/ARETT-R-Package-master/R")
+
+#source all the ARETT functions from the R folder
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/calculate_velocity.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_iaoi.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_idt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_ivt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/discard_short_fixations.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/gap_fill.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_iaoi.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_idt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_ivt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/noise_reduction.R")
+```
+#Read in ET Data
+
+```{r}
+#read in the data
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/EyeTracking"
+
+#setwd = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/EyeTracking"
+#list.files(path = dataFolder)
+
+#Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
+file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
+
+rawETdata = data.frame()
+
+
+#Loop through the datafiles in file_list, assign them a name and then read them in
+for(i in 1:length(file_list))
+{
+  filename <- file_list[i]
+  print(filename)
+  tempData <- read.csv(filename)
+  pptInfo <- strsplit(filename, split = '-', fixed = TRUE)
+  tempData$Participant <- pptInfo[[1]][4]
+  tempData$Condition <- pptInfo[[1]][5]
+  tempData$Date <- pptInfo[[1]][2]
+  tempData$Time <- pptInfo[[1]][3]
+ #assign(paste(substr(file_list[i],24,27)), read.csv(paste0(file_list[i])))
+
+  rawETdata <- rbind(rawETdata, tempData)
+}
+
+
+rawETdata$Condition <- gsub(pattern = ".csv", replacement = "", x = rawETdata$Condition)
+rawETdata$Condition <- str_sub(rawETdata$Condition, 4,-1)
+
+
+
+#data = read.csv(file_list[1])
+
+#data = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study2ETData/P01/2022_11_08-16_09_35-P01-P01Control.csv", header = T)
+
+```
+#Order ET Data
+```{r}
+ordETdata <- rawETdata %>% 
+  subset(Participant != "P01") %>%
+  subset(Participant != "P02") %>%
+  subset(Participant != "P03") %>% 
+  subset(Participant != "P04") %>%
+  subset(Participant != "P05") %>%
+  subset(Participant != "P06") %>%
+  subset(Participant != "P13") %>%
+  subset(Participant != "P21") 
+
+ordETdata$PIDCond <- paste(ordETdata$Participant, ordETdata$Condition, sep = "_")
+ordETdata$Sort <- gsub(pattern = "_", replacement = " ", x = ordETdata$PIDCond)
+
+
+
+#ordETdata <- ordETdata %>% 
+ # drop_na(gazePoint_target_name)
+
+# ordETdata <-  ordETdata %>% 
+#   subset(gazePoint_target_name == "Wall")
+# 
+
+```
+#Extract Times form ET Data
+```{r}
+
+timeETData <- ordETdata %>% 
+  select(Participant, Condition, Date, Time, )
+
+#timeETData$Condition <- gsub(pattern = ".csv", replacement = "", x = timeETData$Condition)
+timeETData$Date <-    str_sub(timeETData$Date,-5,-1)
+timeETData$Date <- gsub(pattern = "_", replacement = "/", x = timeETData$Date)
+timeETData$Time <- gsub(pattern = "_", replacement = ":", x = timeETData$Time)
+
+timeETData <- timeETData[!duplicated(timeETData), ]
+
+
+timeETData$Sort <- paste(timeETData$Participant, timeETData$Condition)
+
+
+```
+
+#Read in WHN Data
+```{r}
+WHNdataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/WHN/"
+
+file_list <- list.files(path = WHNdataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+```
+
+```{r read in raw data}
+RawWHNDataset <- data.frame()
+#loop through all the fills, create a temporary container, remove the first, second and last rows and then add 1 to the trials counter. Then bind it to the dataset
+for (file in file_list){
+  tempData <- read.csv(file, header = T)  
+    
+  RawWHNDataset <- bind_rows(RawWHNDataset, tempData)
+}
+
+```
+
+#sort WHN Data
+```{r}
+SortedWHNDataset <- RawWHNDataset  %>% 
+  subset(participant != "P01") %>%
+  subset(participant != "P02") %>%
+  subset(participant != "P03") %>% 
+  subset(participant != "P04") %>%
+  subset(participant != "P05") %>%
+  subset(participant != "P06") %>%
+  subset(participant != "P13") %>%
+  subset(participant != "P21") 
+
+SortedWHNDataset <- SortedWHNDataset %>% 
+  select(participant, image_file, trials_3.thisTrialN, hazard_video.started, trialResp.started, trialResp.corr, trialResp.rt, break_text.started, date)
+
+
+```
+#Read in Counterbalancing info
+```{r}
+Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/Study4Counterbalancing.csv", header = T)
+
+
+Counterbalancing <- na.omit(Counterbalancing)
+
+Counterbalancing$participant <- Counterbalancing$ï..PID
+
+Counterbalancing <- Counterbalancing %>% 
+  select(-ï..PID)
+
+
+```
+
+
+```{r}
+OrderWHNDataset <- left_join(SortedWHNDataset, Counterbalancing, by = 'participant') 
+OrderWHNDataset$Block <- 'Control' 
+
+
+OrderWHNDataset$Block <-  if_else(OrderWHNDataset$trials_3.thisTrialN >= 30,OrderWHNDataset$Fourth,
+                                  if_else(OrderWHNDataset$trials_3.thisTrialN >= 20,OrderWHNDataset$Third,
+                                                  if_else(OrderWHNDataset$trials_3.thisTrialN >= 10,OrderWHNDataset$Second, 
+                                                          OrderWHNDataset$First)))
+
+OrderWHNDataset$trialResp.rt <-stringr::str_remove_all(OrderWHNDataset$trialResp.rt,"[\\[\\]]")
+OrderWHNDataset$trialResp.rt <- as.numeric(OrderWHNDataset$trialResp.rt)
+```
+
+#Extract times from WHN Data
+
+```{r}
+timeWHNData <- OrderWHNDataset
+timeWHNData <- rename(timeWHNData,trialNumber = trials_3.thisTrialN) 
+timeWHNData <- rename(timeWHNData,DateFull = date)
+timeWHNData <- rename(timeWHNData,ClipStart = hazard_video.started) 
+timeWHNData <- rename(timeWHNData,ClipStop = trialResp.started)
+
+timeWHNData[c('DateWHN', 'TimeWHN')] <- str_split_fixed(timeWHNData$Date, '_', 2)
+
+#timeWHNData <- timeWHNData %>% 
+ # select(participant, trialNumber, ClipStart, ClipStop, Block, DateWHN, TimeWHN)
+
+timeWHNData$TimeWHN <- gsub(pattern = "h", replacement = ":", x = timeWHNData$TimeWHN)
+
+timeWHNData$TimeWHN <- gsub(pattern = "\\.", replacement = ":", x = timeWHNData$TimeWHN)
+
+
+timeWHNData$Sort <- paste(timeWHNData$participant, timeWHNData$Block)
+
+
+
+```
+#Combine WHN and ET time data
+```{r}
+timeData <- left_join(timeWHNData, timeETData, by = "Sort")
+
+timeData$TimeWHN <-  str_sub(timeData$TimeWHN, end = -5)
+
+
+timeData$TimeWHNFormat <- strptime(timeData$TimeWHN,format="%H:%M:%S")
+timeData$TimeFormat <- strptime(timeData$Time,format="%H:%M:%S")
+timeData$RecordingStart <- as.numeric(difftime(timeData$TimeFormat,timeData$TimeWHNFormat, units = "secs"))
+
+timeData$ETClipStart = timeData$ClipStart - timeData$RecordingStart
+timeData$ETClipStop = timeData$ClipStop - timeData$RecordingStart
+timeData$Participant <- timeData$participant
+
+table(timeData$participant)
+
+```
+#Final Time data
+
+```{r}
+timeDataExport <- timeData %>% 
+  select(Participant, trialNumber, image_file, Sort, Condition, ClipStart, ClipStop, RecordingStart, ETClipStart, ETClipStop, )
+  
+
+
+timeDataExport$RecordingStart <- as.numeric(timeDataExport$RecordingStart)
+
+timeDataExport$ETClipStart <- as.numeric(timeDataExport$ETClipStart)
+
+timeDataExport$ETClipStop <- as.numeric(timeDataExport$ETClipStop)
+
+colnames(timeDataExport)
+```
+
+#Extract Clip Times
+```{r}
+ClipTimes <- timeDataExport %>% 
+  select(Participant, Sort, image_file, trialNumber, Condition, ETClipStart, ETClipStop)
+
+
+ClipTimes <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ClipTimes.csv", header = T)
+
+
+#write.csv(ClipTimes, "ClipTimes.csv")
+
+# 
+# P07Time <- ClipTimes %>% 
+#   subset(Participant == "P07")
+# 
+# P07Time$ETClipStop <- P07Time$ETClipStop - 30300
+# 
+# P07Time$ETClipStart <- P07Time$ETClipStart - 30300
+# 
+# ClipTimes <- rbind(ClipTimes, P07Time)
+
+# 
+# 
+# ControlClipTimes <- ClipTimes %>% 
+#   subset(Condition == "Control")
+# 
+# HUDClipTimes <- ClipTimes %>% 
+#   subset(Condition == "HUD")
+# 
+# CueClipTimes <- ClipTimes %>% 
+#   subset(Condition == "Cue")
+# 
+# HDDClipTimes <- ClipTimes %>% 
+#   subset(Condition == "HDD")
+
+```
+
+#Split Time data by condition
+```{r}
+# timeData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study3Analysis/timeDataExport2.csv", stringsAsFactors = FALSE, encoding = "UTF-8") %>% 
+
+timeDataExport <- timeDataExport %>% 
+  subset(Participant != "P01") %>%
+  subset(Participant != "P02") %>%
+  subset(Participant != "P03") %>% 
+  subset(Participant != "P04") %>%
+  subset(Participant != "P05") %>%
+  subset(Participant != "P06") %>%
+  subset(Participant != "P13") %>%
+  subset(Participant != "P21") 
+  
+
+
+ControlTimedata <- timeDataExport %>% 
+  subset(Condition == "Control")
+
+HUDTimedata <- timeDataExport %>% 
+  subset(Condition == "HUD")
+
+CueTimedata <- timeDataExport %>% 
+  subset(Condition == "Cue")
+
+HDDTimedata <- timeDataExport %>% 
+   subset(Condition == "HDD")
+
+```
+
+
+```{r}
+ETdata <- left_join(ordETdata, timeDataExport, by = "Sort")
+
+# ETdata$StartTime <- ETdata$ClipStart * 1000
+# ETdata$StopTime <- ETdata$ClipStop * 1000
+ETdata$duration <- ETdata$ClipStart - ETdata$ClipStop
+
+ETdata <- ETdata %>% 
+  select(-Condition.x)
+
+
+colnames(ETdata)[colnames(ETdata) == 'Sort.y'] <- 'PIDCond'
+
+colnames(ETdata)[colnames(ETdata) == 'Condition.y'] <- 'Condition'
+
+#write.csv(ETdata, "FullETdata.csv")
+
+
+rm(rawETdata)
+rm(ordETdata)
+```
+
+
+```{r}
+ETdata <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FullETdata.csv", header = T)
+
+```
+
+#Split ET data by condition
+```{r}
+ControlETdata <- ETdata %>% 
+  subset(Condition == "Control")
+
+HUDETdata <- ETdata %>% 
+  subset(Condition == "HUD")
+
+CueETdata <- ETdata %>% 
+  subset(Condition == "Cue")
+
+HDDETdata <- ETdata %>% 
+  subset(Condition == "HDD")
+
+```
+
+#classify AOI
+
+```{r}
+#ControlETdata <- ControlETdata
+
+
+  
+#listControldata <- split(ControlETdata, f = ControlETdata$PIDCond)
+
+#dataset <- listControldata[1]
+
+#AOIControlETData <- data.frame()
+
+
+for(dataset in listControldata) {
+  data <- as.data.frame(dataset)
+  #adjust column names
+  cols <-colnames(data)
+  cols<- gsub(".*\\.", "", cols)   
+  colnames(data) <- cols
+  
+  
+  print(data$PIDCond[1])
+  print(Sys.time())
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  rm(data)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+  rm(data_GF)
+  
+  data_aoi <- classify_iaoi(data_NR, min_fixation_duration = 100)
+  rm(data_NR)
+  
+  data_aoi_merge <- merge_fixations_iaoi(data_aoi)
+  rm(data_aoi)
+ 
+  
+  AOIControlETData <- rbind(AOIControlETData, data_aoi_merge)
+
+ 
+}
+write.csv(AOIControlETData, "AOIControlETData.csv")
+rm(data_aoi_merge)
+
+```
+#Wrangle Control Data
+```{r}
+AOIControlETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/AOIControlETData.csv", header = T)
+
+write.csv(AOIControlETData, "AOIControlETData.csv")
+
+ShortAOIControlETData <- AOIControlETData %>% 
+  select(PIDCond, TimeStamp, image_file, modified, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z,gazePointAOI_name, gazePoint_target_name)
+
+#ShortAOIControlETData <- ShortAOIControlETData[!duplicated(ShortAOIControlETData$TimeStamp), ]
+
+write.csv(ShortAOIControlETData, "ShortAOIControlETData.csv")
+
+ShortAOIControlETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ShortAOIControlETData.csv", header = T)
+
+
+FixShortAOIControlETData <- ShortAOIControlETData %>% 
+  subset(eventType == "fixation")
+
+#FixShortAOIControlETData <- FixShortAOIControlETData[!duplicated(FixShortAOIControlETData$eventIndex),]
+FixShortAOIControlETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOIControlETData$PIDCond)
+
+
+FixShortAOIControlETData <- FixShortAOIControlETData %>% 
+  subset( PIDCond != "P07 Control")
+
+write.csv(FixShortAOIControlETData, "FixShortAOIControlETData.csv")
+```
+
+
+```{r}
+
+FixShortAOIControlETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FixShortAOIControlETData.csv", header = T)
+
+
+# take PPt ID and find it in ClipTimes table
+
+#FixShortAOIControlETData$Valid <- FALSE
+
+ClipFixShortAOIControlETData <- data.frame()
+
+
+```
+#Validate fixations
+```{r}
+check_time <- function(row) {
+  pid_cond <- row$PIDCond
+  time_stamp <- row$TimeStamp
+  clip_rows <- ClipTimes[ClipTimes$Sort == pid_cond, ]
+  
+  for (i in 1:nrow(clip_rows)) {
+    clip_row <- clip_rows[i, ]
+    if (clip_row$ETClipStart <= time_stamp && time_stamp <= clip_row$ETClipStop) {
+      return(TRUE)
+    }
+  }
+  
+  return(FALSE)
+}
+
+check_clip_name <- function(row) {
+  pid_cond <- row$PIDCond
+  time_stamp <- row$TimeStamp
+  image_file <- ClipTimes$image_file
+  clip_rows <- ClipTimes[ClipTimes$Sort == pid_cond, ]
+  
+  for (i in 1:nrow(clip_rows)) {
+    clip_row <- clip_rows[i, ]
+    if (clip_row$ETClipStart <= time_stamp && time_stamp <= clip_row$ETClipStop) {
+      return(clip_row$image_file)
+    }
+  }
+  
+  return(FALSE)
+}
+
+```
+
+
+```{r}
+
+ValidHazardWindowAOIData <- HazardWindowAOIData %>% 
+  subset(HazardValid == TRUE)
+
+write.csv(ValidHazardWindowAOIData, "ValidHazardWindowAOIData.csv")
+
+```
+
+
+
+#Validate Control
+
+```{r}
+FixShortAOIControlETData$Valid <- sapply(1:nrow(FixShortAOIControlETData), function(i) check_time(FixShortAOIControlETData[i, ]))
+
+FixShortAOIControlETData$VideoClip <- sapply(1:nrow(FixShortAOIControlETData), function(i) check_clip_name(FixShortAOIControlETData[i, ]))
+
+```
+
+```{r}
+ValidAOIControlETData <- FixShortAOIControlETData %>% 
+  subset(Valid != "FALSE")
+
+write.csv(ValidAOIControlETData, "ValidAOIControlETData.csv")
+
+ValidAOIControlETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ValidAOIControlETData.csv", header = T)
+
+
+
+```
+
+#Wrangle HUD data
+```{r HUD Data}
+
+#listHUDdata <- split(HUDETdata, f = HUDETdata$PIDCond)
+
+#dataset <- listHUDdata[1]
+#AOIHUDETData <- data.frame()
+
+
+for(dataset in listHUDdata) {
+  data <- as.data.frame(dataset)
+  #adjust column names
+  cols <-colnames(data)
+  cols<- gsub(".*\\.", "", cols)   
+  colnames(data) <- cols
+  
+  
+  print(data$PIDCond[1])
+  print(Sys.time())
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  rm(data)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+  rm(data_GF)
+  
+  data_aoi <- classify_iaoi(data_NR, min_fixation_duration = 100)
+  rm(data_NR)
+  
+  data_aoi_merge <- merge_fixations_iaoi(data_aoi)
+  rm(data_aoi)
+
+ 
+  
+  AOIHUDETData <- rbind(AOIHUDETData, data_aoi_merge)
+
+ 
+}
+write.csv(AOIHUDETData, "AOIHUDETData.csv")
+
+
+
+```
+
+
+```{r}
+AOIHUDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/AOIHUDETData.csv", header = T)
+
+
+write.csv(AOIHUDETData, "AOIHUDETData.csv")
+
+ShortAOIHUDETData <- AOIHUDETData %>% 
+  select(PIDCond, TimeStamp, image_file, modified, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, gazePointAOI_name, gazePoint_target_name)
+
+#ShortAOIHUDETData <- ShortAOIHUDETData[!duplicated(ShortAOIHUDETData[ , c("eventIndex")]),]
+
+write.csv(ShortAOIHUDETData, "ShortAOIHUDETData.csv")
+
+ShortAOIHUDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ShortAOIHUDETData.csv", header = T)
+
+
+FixShortAOIHUDETData <- ShortAOIHUDETData %>% 
+  subset(eventType == "fixation")
+
+FixShortAOIHUDETData <- FixShortAOIHUDETData %>% 
+  subset(PIDCond != "P07 HUD")
+
+write.csv(FixShortAOIHUDETData, "FixShortAOIHUDETData.csv")
+
+
+#FixShortAOIHUDETData <- FixShortAOIHUDETData[!duplicated(FixShortAOIHUDETData$eventIndex), ]
+
+
+```
+
+
+```{r}
+
+FixShortAOIHUDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FixShortAOIHUDETData.csv", header = T)
+
+FixShortAOIHUDETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOIHUDETData$PIDCond)
+
+#FixShortAOIHUDETData$Valid <- FALSE
+
+
+#write.csv(FixShortAOIHUDETData, "FixShortAOIHUDETData.csv")
+
+
+# AOIHUDETData <- AOIHUDETData %>% 
+#   subset(eventType == "fixation")
+# 
+# 
+# AOIHUDETData <- AOIHUDETData[!duplicated(AOIHUDETData[ , c("eventIndex")]),]
+#                                                     
+
+```
+#Validate HUD
+```{r}
+#Run here tomorrow morning
+FixShortAOIHUDETData$Valid <- sapply(1:nrow(FixShortAOIHUDETData), function(i) check_time(FixShortAOIHUDETData[i, ]))
+beep()
+print(Sys.time())
+
+FixShortAOIHUDETData$VideoClip <- sapply(1:nrow(FixShortAOIHUDETData), function(i) check_clip_name(FixShortAOIHUDETData[i, ]))
+beep()
+
+```
+
+```{r}
+ValidAOIHUDETData <- FixShortAOIHUDETData %>% 
+  subset(Valid != "FALSE")
+
+write.csv(ValidAOIHUDETData, "ValidAOIHUDETData.csv")
+
+
+ValidAOIHUDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ValidAOIHUDETData.csv", header = T)
+
+
+```
+#Wrangle Cue data
+```{r}
+
+#listCuedata <- split(CueETdata, f = CueETdata$PIDCond)
+
+#dataset <- listControldata[1]
+#AOICueETData <- data.frame()
+
+
+for(dataset in listCuedata) {
+  data <- as.data.frame(dataset)
+  #adjust column names
+  cols <-colnames(data)
+  cols<- gsub(".*\\.", "", cols)   
+  colnames(data) <- cols
+  
+  
+  print(data$PIDCond[1])
+  print(Sys.time())
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  rm(data)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+  rm(data_GF)
+  
+  data_aoi <- classify_iaoi(data_NR, min_fixation_duration = 100)
+  rm(data_NR)
+  
+  data_aoi_merge <- merge_fixations_iaoi(data_aoi)
+  rm(data_aoi)
+
+ 
+  
+  AOICueETData <- rbind(AOICueETData, data_aoi_merge)
+
+ 
+}
+write.csv(AOICueETData, "AOICueETData.csv")
+
+
+```
+
+```{r}
+AOICueETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/AOICueETData.csv", header = T)
+
+#AOICueETData$TimeStamp <- AOICueETData$TimeStamp *10
+
+write.csv(AOICueETData, "AOICueETData.csv")
+
+ShortAOICueETData <- AOICueETData %>% 
+  select(PIDCond, TimeStamp, modified, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, gazePointAOI_name, gazePoint_target_name)
+
+#ShortAOICueETData$TimeStamp <- ShortAOICueETData$TimeStamp / 10
+
+write.csv(ShortAOICueETData, "ShortAOICueETData.csv")
+
+ShortAOICueETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ShortAOICueETData.csv", header = T)
+
+
+
+FixShortAOICueETData <- ShortAOICueETData %>% 
+  subset(eventType == "fixation")
+
+FixShortAOICueETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOICueETData$PIDCond)
+
+FixShortAOICueETData <- FixShortAOICueETData %>% 
+  subset(PIDCond != "P07 Cue")
+
+#FixShortAOICueETData <- FixShortAOICueETData[!duplicated(FixShortAOICueETData$eventIndex), ]
+
+
+write.csv(FixShortAOICueETData, "FixShortAOICueETData.csv")
+
+
+#FixShortAOICueETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FixShortAOICueETData.csv", header = T)
+
+
+
+```
+#Validate Cue
+```{r}
+
+print(Sys.time())
+FixShortAOICueETData$Valid <- sapply(1:nrow(FixShortAOICueETData), function(i) check_time(FixShortAOICueETData[i, ]))
+beep()
+print(Sys.time())
+FixShortAOICueETData$VideoClip <- sapply(1:nrow(FixShortAOICueETData), function(i) check_clip_name(FixShortAOICueETData[i, ]))
+beep()
+
+```
+
+```{r}
+ValidAOICueETData <- FixShortAOICueETData %>% 
+  subset(Valid != "FALSE")
+
+write.csv(ValidAOICueETData, "ValidAOICueETData.csv")
+
+ValidAOICueETData <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ValidAOICueETData", header = T)
+
+
+```
+#Wrangle HDD Data
+```{r}
+#listHDDdata <- split(HDDETdata, f = HDDETdata$PIDCond)
+
+#dataset <- listControldata[1]
+#AOIHDDETData <- data.frame()
+
+
+for(dataset in listHDDdata) {
+  data <- as.data.frame(dataset)
+  #adjust column names
+  cols <-colnames(data)
+  cols<- gsub(".*\\.", "", cols)   
+  colnames(data) <- cols
+  
+  
+  print(data$PIDCond[1])
+  print(Sys.time())
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  rm(data)
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+  rm(data_GF)
+  
+  data_aoi <- classify_iaoi(data_NR, min_fixation_duration = 100)
+  rm(data_NR)
+  
+  data_aoi_merge <- merge_fixations_iaoi(data_aoi)
+  rm(data_aoi)
+
+ 
+  
+  AOIHDDETData <- rbind(AOIHDDETData, data_aoi_merge)
+
+ 
+}
+write.csv(AOIHDDETData, "AOIHDDETData.csv")
+rm(data_aoi_merge)
+
+
+
+
+```
+
+
+```{r}
+
+AOIHDDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/AOIHDDETData.csv", header = T)
+
+AOIHDDETData$TimeStamp <- AOIHDDETData$TimeStamp / 10
+
+write.csv(AOIHDDETData, "AOIHDDETData.csv")
+
+ShortAOIHDDETData <- AOIHDDETData %>% 
+  select(PIDCond, TimeStamp, modified, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, gazePointAOI_name, gazePoint_target_name)
+
+ShortAOIHDDETData$TimeStamp <- ShortAOIHDDETData$TimeStamp / 10
+
+write.csv(ShortAOIHDDETData, "ShortAOIHDDETData.csv")
+
+
+ShortAOIHDDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ShortAOIHDDETData.csv", header = T)
+
+
+
+FixShortAOIHDDETData <- ShortAOIHDDETData %>% 
+  subset(eventType == "fixation")
+
+FixShortAOIHDDETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOIHDDETData$PIDCond)
+
+
+FixShortAOIHDDETData <- FixShortAOIHDDETData %>% 
+  subset(PIDCond != "P07 HDD")
+
+#FixShortAOIHDDETData <- FixShortAOIHDDETData[!duplicated(FixShortAOIHDDETData$eventIndex),]
+
+
+write.csv(FixShortAOIHDDETData, "FixShortAOIHDDETData.csv")
+
+FixShortAOIHDDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FixShortAOIHDDETData.csv", header = T)
+
+
+# AOIHUDETData <- AOIHUDETData %>% 
+#   subset(eventType == "fixation")
+# 
+# 
+# AOIHUDETData <- AOIHUDETData[!duplicated(AOIHUDETData[ , c("eventIndex")]),]
+#                                                     
+
+```
+#Validate HDD
+```{r}
+print(Sys.time)
+FixShortAOIHDDETData$Valid <- sapply(1:nrow(FixShortAOIHDDETData), function(i) check_time(FixShortAOIHDDETData[i, ]))
+beep()
+print(Sys.time())
+
+FixShortAOIHDDETData$VideoClip <- sapply(1:nrow(FixShortAOIHDDETData), function(i) check_clip_name(FixShortAOIHDDETData[i, ]))
+beep()
+beep()
+
+```
+#Create final sorted dataset
+```{r}
+ValidAOIHDDETData <- FixShortAOIHDDETData %>% 
+  subset(Valid != "FALSE")
+beep()
+beep()
+
+write.csv(ValidAOIHDDETData, "ValidAOIHDDETData.csv")
+
+ValidAOIHDDETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ValidAOIHDDETData.csv", header = T)
+
+beep()
+
+```
+
+```{r}
+
+# ValidAOIControlETData <- ValidAOIControlETData %>% 
+#   select(-c(image_file))
+# 
+# ValidAOICueETData <- ValidAOICueETData %>% 
+#   select(-c(X, X.1))
+# 
+# ValidAOIHUDETData <- ValidAOIHUDETData %>% 
+#   select(-c(X.1, X,image_file))
+# 
+# ValidAOIHDDETData <- ValidAOIHDDETData %>% 
+#   select(-c(X.1, X,))
+
+FinalValidAOIETData <- rbind(ValidAOIControlETData, ValidAOICueETData, ValidAOIHUDETData, ValidAOIHDDETData)
+
+#ValidAOIETData <- ValidAOIETData %>% 
+ # separate(PIDCond,)
+
+write.csv(FinalValidAOIETData, "FinalValidAOIETData.csv")
+
+FinalValidAOIETData[c('ID', 'Condition')] <- str_split_fixed(FinalValidAOIETData$PIDCond, ' ', 2)
+
+FinalValidAOIETData$VideoClip <- gsub("[^0-9]", "", FinalValidAOIETData$VideoClip)# remove all non-numeric characters
+
+FinalValidAOIETData$DupSort <- paste(FinalValidAOIETData$PIDCond, FinalValidAOIETData$eventIndex)
+
+FinalValidAOIETData <- FinalValidAOIETData[!duplicated(FinalValidAOIETData$DupSort),]
+
+
+```
+#Read in final dataset
+```{r}
+FinalValidAOIETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalValidAOIETData.csv", header = T)
+
+# FinalValidAOIETData <- FinalValidAOIETData %>% 
+#   select(-c(X.1, X, DupSort))
+
+ScreenData <- FinalValidAOIETData %>% 
+  subset(gazePoint_target_name == "Wall")
+
+
+
+```
+#Split FInal Dataset by Condition (For graphs)
+
+```{r}
+ValidAOIControlETData <- FinalValidAOIETData %>% 
+  subset(Condition == "Control")
+
+ValidAOICueETData <- FinalValidAOIETData %>% 
+ subset(Condition == "Cue")
+ValidAOIHUDETData <- FinalValidAOIETData %>% 
+   subset(Condition == "HUD")
+
+ValidAOIHDDETData <- FinalValidAOIETData %>% 
+   subset(Condition == "HDD")
+
+
+```
+#Read in Hazard Clip Data
+```{r}
+HazardClipList <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalStudy4HazardSheet.csv", header = T)
+
+HazardClipList$VideoClip <- gsub("[^0-9]", "", HazardClipList$VideoClip)# remove all non-numeric characters
+
+HazardClipList$Onset <- HazardClipList$Offset - 4000
+
+HazardClipList$Onset <- HazardClipList$Onset / 1000
+
+HazardClipList$Offset <- HazardClipList$Offset / 1000
+
+HazardClipList$VideoClip <- as.numeric(HazardClipList$VideoClip)
+
+HazardClipList <- HazardClipList[complete.cases(HazardClipList$VideoClip), ] 
+
+
+HazardClipList <- HazardClipList %>% 
+  select(-c(xLocationOnset, xLocationOffset, convertedxLocationOnset, convertedxLocationOffset, yLocationOnset, yLocationOffset, convertedyLocationOnset, convertedyLocationOffset))
+
+
+```
+
+```{r}
+ClipTimes <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/ClipTimes.csv", header = T)
+
+HazardClipTimes <-  ClipTimes
+
+HazardClipTimes$VideoClip <- as.numeric(gsub("[^0-9]", "", HazardClipTimes$image_file))# remove all non-numeric characters
+
+HazardClipTimes <- HazardClipTimes[complete.cases(HazardClipTimes$ETClipStart), ] %>% 
+  select(-c(X.1, X))
+```
+
+#Hazard Clips Sheet
+```{r}
+HazardClips <- left_join(HazardClipTimes, HazardClipList, by = "VideoClip")
+
+HazardClips$HazardOnset <- HazardClips$ETClipStart + HazardClips$Onset
+
+HazardClips$HazardOffset <- HazardClips$ETClipStop 
+
+CorrectAOIs <- HazardClips %>% 
+  select(VideoClip, AOILocationOffset, AOILocationOffset2)
+
+CorrectAOIs <- CorrectAOIs[!duplicated((CorrectAOIs$VideoClip)),]
+
+
+```
+#Create Valid Hazard Dataset
+
+```{r}
+HazardWindowAOIData <- FinalValidAOIETData
+
+
+HazardWindowAOIData$ValidHazardWindow <- 0
+HazardWindowAOIData$CorrAOI <- 0
+
+
+HazardWindowAOIData$HazardValid <- FALSE
+
+for (i in 1:nrow(HazardWindowAOIData)){
+  
+  id_tmp <- HazardWindowAOIData$PIDCond[i]
+  Hzd_subset <- HazardClips %>%
+    filter(Sort == id_tmp)
+  
+  time_tmp <-HazardWindowAOIData$TimeStamp[i]
+  
+  Hzd_subset_nrow <- nrow(Hzd_subset)
+  Hzd_subset$Valid_tmp <- FALSE
+
+  for (j in 1:Hzd_subset_nrow){
+    Hzd_subset$Valid_tmp[j] <- (Hzd_subset$HazardOnset[j] <= time_tmp && time_tmp <= Hzd_subset$HazardOffset[j])
+    
+  }
+  
+  HazardWindowAOIData$HazardValid[i] <- any(Hzd_subset$Valid_tmp)
+  
+  for (k in 1:Hzd_subset_nrow){
+      if (Hzd_subset$Valid_tmp[k] == TRUE) {
+        HazardWindowAOIData$VideoClip[i] <- Hzd_subset$VideoClip[k]
+        break  # Exit loop after finding the first True value
+      }
+  }
+}
+
+ValidHazardWindowAOIData <- HazardWindowAOIData %>% 
+  subset(HazardValid == TRUE)
+
+
+FinalValidHazardAOIETData <- left_join(ValidHazardWindowAOIData, CorrectAOIs, by = "VideoClip")
+
+for (row in 1:nrow(FinalValidHazardAOIETData)){
+
+FinalValidHazardAOIETData$CorrAOI[row] <- if_else((FinalValidHazardAOIETData$gazePointAOI_name[row] == FinalValidHazardAOIETData$AOILocationOffset[row] || FinalValidHazardAOIETData$gazePointAOI_name[row] == FinalValidHazardAOIETData$AOILocationOffset2[row]), 1,0 )
+}
+
+
+write.csv(FinalValidHazardAOIETData, "FinalValidHazardAOIETData.csv")
+
+```
+#ZScoring & Final Dataset
+```{r}
+
+beep()
+df <- data.frame(FinalValidAOIETData$eventDuration)
+z_scores <- as.data.frame(sapply(df, function(df) (abs(df-mean(df))/sd(df))))
+
+z_scores$ZScores <- z_scores$FinalValidAOIETData.eventDuration
+z_scores <- z_scores %>% 
+  select(-1)
+
+FinalValidAOIETData$ZScore <- z_scores$ZScores
+
+FinalValidAOIETDataRMOut <- FinalValidAOIETData %>% 
+  subset(z_scores <= 3)
+
+FinalValidAOIETDataRMOut <- FinalValidAOIETDataRMOut %>% 
+  select(-c(X.1, X))
+
+FinalValidAOIETDataRMOut <- FinalValidAOIETDataRMOut[complete.cases(FinalValidAOIETDataRMOut),]
+
+write.csv(FinalValidAOIETDataRMOut, "FinalValidAOIETDataRMOut.csv")
+
+```
+
+```{r}
+Hazdf <- data.frame(FinalValidHazardAOIETData$eventDuration)
+Hazz_scores <- as.data.frame(sapply(Hazdf, function(Hazdf) (abs(Hazdf-mean(Hazdf))/sd(Hazdf))))
+
+Hazz_scores$HazZScores <- Hazz_scores$FinalValidHazardAOIETData.eventDuration
+
+
+FinalValidHazardAOIETData$ZScore <- Hazz_scores$HazZScores
+
+FinalValidHazardAOIETDataRMOut <- FinalValidHazardAOIETData %>% 
+  subset(ZScore <= 3)
+
+FinalValidHazardAOIETDataRMOut <- FinalValidHazardAOIETDataRMOut[complete.cases(FinalValidHazardAOIETDataRMOut),]
+
+
+write.csv(FinalValidHazardAOIETDataRMOut, "FinalValidHazardAOIETDataRMOut.csv")
+
+```
+#START FROM HERE
+#Final dataset without outliers
+```{r}
+
+FinalValidAOIETDataRMOut <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalValidAOIETDataRMOut.csv", header = T)
+
+
+ValidControl <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Control")
+
+ValidHUD <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "HUD")
+
+ValidCue <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Cue")
+
+ValidHDD <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "HDD")
+
+
+```
+
+```{r}
+ValidControlPlot <- ggplot(data=ValidControl, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.3, 0.3)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Control")
+
+ValidCHUDPlot <- ggplot(data=ValidHUD, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.3, 0.3)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "HUD")
+
+ValidCuePlot <- ggplot(data=ValidCue, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.3, 0.3)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Cue")
+
+ValidHDDPlot <- ggplot(data=ValidHDD, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+   xlim(-0.5, 0.5)+
+  ylim(-0.3, 0.3)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "HDD")
+
+
+
+AOIFixationPlot <- plot_grid(ValidControlPlot, ValidCHUDPlot, ValidCuePlot, ValidHDDPlot,ncol = 2)
+AOIFixationPlot
+
+
+ggsave(
+    filename = "AOIFixationPlot.png",
+    plot = AOIFixationPlot,
+    width = 15, height = 10
+  )
+
+```
+
+```{r}
+FinalValidHazardAOIETDataRMOut <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalValidHazardAOIETDataRMOut.csv", header = T)
+
+ValidHazardControl <- FinalValidHazardAOIETDataRMOut %>% 
+  subset(Condition == "Control")
+
+ValidHazardHUD <- FinalValidHazardAOIETDataRMOut %>% 
+  subset(Condition == "HUD")
+
+ValidHazardCue <- FinalValidHazardAOIETDataRMOut %>% 
+  subset(Condition == "Cue")
+
+ValidHazardHDD <- FinalValidHazardAOIETDataRMOut %>% 
+  subset(Condition == "HDD")
+
+
+```
+
+```{r}
+ggplot(data=ValidHazardControl, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+   # xlim(-0.5, 0.5)+
+  #ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Control")
+
+ggplot(data=ValidHazardHUD, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+   # xlim(-0.5, 0.5)+
+  #ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "HUD")
+
+ggplot(data=ValidHazardCue, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+   # xlim(-0.5, 0.5)+
+  #ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Cue")
+
+ggplot(data=ValidHazardHDD, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+   # xlim(-0.5, 0.5)+
+  #ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "HDD")
+
+```
+
+#TTFF
+
+```{r}
+FirstFixation <- FinalValidHazardAOIETDataRMOut %>% 
+  subset(CorrAOI == 1)
+
+FirstFixation <- FirstFixation[!duplicated((FirstFixation$PIDCond)),]
+
+TTFF <- left_join(FirstFixation, HazardClips, by = (c("VideoClip" = "VideoClip", "PIDCond" = "Sort")))
+  
+TTFF$FirstFixationTime <- TTFF$TimeStamp - TTFF$HazardOnset
+
+
+TTFFSummary <- TTFF %>% 
+  group_by(Condition.x, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(FirstFixationTime))
+
+```
+
+#CountData
+```{r}
+CountData <- FinalValidAOIETDataRMOut
+
+CountData$Sort <- paste(CountData$PIDCond,CountData$eventIndex)
+  
+CountData <- CountData[!duplicated(CountData$Sort),]
+
+
+CorrHazardCountData <- FinalValidHazardAOIETDataRMOut$Sort 
+
+CorrHazardCountData$Sort <-paste(FinalValidHazardAOIETDataRMOut$PIDCond, FinalValidHazardAOIETDataRMOut$eventIndex)
+CorrHazardCountData <- CorrHazardCountData[!duplicated(CorrHazardCountData$Sort),]
+```
+
+#Summaries
+
+```{r}
+
+DurationSummary <- CountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+ClipSummary <- CountData %>% 
+  group_by(Condition, VideoClip) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+ClipSummaryAOI <- CountData %>% 
+  group_by(Condition, VideoClip, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+CountSummaryAOI <- CountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n())
+
+AOITargetSummary <- CountData %>% 
+  group_by(Condition, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T))
+
+AOIObjectSummary <- CountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T),
+            ARFixation = sum(gazePoint_target_name != "Wall", na.rm = T),
+            ScreenFixation = sum(gazePoint_target_name == "Wall" ,na.rm = T),
+            ARProp = (sum(gazePoint_target_name != "Wall", na.rm = T) / n() )* 100,
+            ScreenProp = (sum(gazePoint_target_name == "Wall", na.rm = T) / n() )* 100
+            )
+
+```
+#Hazard Summaries
+```{r}
+HazardSummaryAOI <- CorrHazardCountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+HazardClipSummaryAOI <- CorrHazardCountData %>% 
+  group_by(Condition, VideoClip) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+HazardAOITargetSummary <- CorrHazardCountData %>%  
+  group_by(Condition, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T))
+
+HazardAOIObjectSummary <- CorrHazardCountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T),
+            ARFixation = sum(gazePoint_target_name != "Wall", na.rm = T),
+            ScreenFixation = sum(gazePoint_target_name == "Wall" ,na.rm = T),
+            ARProp = (sum(gazePoint_target_name != "Wall", na.rm = T) / n() )* 100,
+            ScreenProp = (sum(gazePoint_target_name == "Wall", na.rm = T) / n() )* 100
+            )
+
+HazardCorrSummary <- CorrHazardCountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            sumCorr = sum(CorrAOI),
+            meanCorr = mean(CorrAOI))
+
+
+```
+
+#FixCount Summaries
+```{r}
+
+FixCountSummary <- CorrHazardCountData %>% 
+  group_by(Condition, Target = (gazePoint_target_name == "Wall")) %>% 
+  summarise(n = n(),
+            NumCorr = sum(CorrAOI, na.rm = T),
+            prop = (NumCorr) / n() * 100) %>% 
+  drop_na(Target)
+
+FixCountSummary$Target[FixCountSummary$Target == TRUE] <- "Video"
+FixCountSummary$Target[FixCountSummary$Target == FALSE] <- "AR"
+
+FixCountSummary$Condition <- factor(FixCountSummary$Condition, ordered = FALSE)
+
+
+FixCountSummaryScreen <- FixCountSummary %>% 
+  subset(Target == "Video")
+
+FixCountSummaryAR <- FixCountSummary %>% 
+  subset(Target == "AR")
+
+TTFFSummary <- CorrHazardCountData %>% 
+  group_by(Condition, PIDCond, CorrAOI) %>% 
+  summarise(n = n(),
+          TTFF = min(TimeStamp)) %>% 
+  group_by(Condition, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(TTFF))
+
+
+```
+
+#STATS
+
+#Fixation Count
+```{r}
+
+FixCountSummary$Condition <- factor(FixCountSummary$Condition, levels = c( "HUD", "HDD", "Cue","Control"))
+
+CountGLM <- glm(data = FixCountSummary, n ~ Condition, family = poisson)
+summary(CountGLM)
+
+CountGLMScreen <- glmer(data = FixCountSummaryScreen, n ~ Condition + (1|pa), family = poisson, )
+summary(CountGLMScreen)
+
+#FixCountSummaryScreen$Condition <- relevel(FixCountSummaryAR$Condition, ref = "HUD")
+
+#FixCountSummaryAR$Condition <- as.factor(FixCountSummary$Condition)
+#FixCountSummaryAR$Condition <- relevel(FixCountSummaryAR$Condition, ref = "HUD")
+
+CountGLMAR <- glm(data = FixCountSummaryAR, n ~ Condition, family = poisson)
+summary(CountGLMAR)
+
+```
+
+```{r}
+ggplot(data = FixCountSummary, aes(x = Condition, y = n, fill = Condition))+
+  geom_col()+ 
+  ylab("Number of Fixations")+
+ # scale_fill_brewer(palette = "BrBG")+
+  theme_classic()
+```
+```{r}
+ggplot(data = CorrHazardCountData, aes(x = Condition, y = CorrAOI, fill = Condition))+
+  geom_col()+ 
+  ylab("Number of Correct Fixations")+
+ # scale_fill_brewer(palette = "BrBG")+
+  theme_classic()
+
+
+ggplot(data = CorrHazardCountData, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(width = 0.2) +
+  ylab("Duration of  Correct Fixations")+
+ # scale_fill_brewer(palette = "BrBG")+
+  theme_classic()
+
+```
+
+#Correct Count GLMERs
+```{r}
+NullCorrModel <- glmer(CorrAOI ~ (1|ID), family = binomial, data = CorrHazardCountData)
+summary(NullCorrModel)
+
+BasicCorrModel <- glmer(CorrAOI ~ Condition + (1|ID), family = binomial(link = "logit"), data = CorrHazardCountData)
+summary(BasicCorrModel)
+
+CorrModel1 <- glmer(CorrAOI ~ Condition + (1|ID) + (1|VideoClip), family = binomial(link = "logit"), data = CorrHazardCountData)
+summary(CorrModel1)
+
+# CorrModel2 <- glmer(CorrAOI ~ Condition + (1|ID) + (1|VideoClip) + (1|TimeStamp), family = binomial(link = "logit"), data = CorrHazardCountData)
+# summary(CorrModel2) # no significant effect of Time
+
+CorrModel2 <- glmer(CorrAOI ~ Condition + (1|ID) +(1|VideoClip)+  (1|AOILocationOffset), family = binomial(link = "logit"), data = CorrHazardCountData)
+summary(CorrModel2)
+
+#FinalValidHazardAOIETDataRMOut$Condition <- relevel(FinalValidHazardAOIETDataRMOut$Condition, ref = "HUD")
+
+# CorrModel3 <- glmer(CorrAOI ~ Condition + (1|ID) +(1|VideoClip) + (1|AOILocationOffset) + (1 + ID|VideoClip), family = binomial(link = "logit"), data = FinalValidHazardAOIETDataRMOut) # too big and complicated
+
+# CorrModel3 <- glmer(CorrAOI ~ Condition + (1|ID) +(1|VideoClip)+  (1|AOILocationOffset), family = binomial(link = "logit"), data = FinalValidHazardAOIETDataRMOut)
+
+#summary(CorrModel3)
+
+anova(NullCorrModel, BasicCorrModel, CorrModel1, CorrModel2)
+
+```
+
+```{r}
+
+NullCorrModel <- glmer(CorrAOI ~ (1|ID), family = binomial, data = CorrHazardCountData)
+summary(NullCorrModel)
+
+BasicCorrModel <- glmer(CorrAOI ~ Condition + (1|ID), family = binomial(link = "logit"), data = CorrHazardCountData)
+summary(BasicCorrModel)
+
+CorrModel1 <- glmer(CorrAOI ~ Condition + (1|ID) + (1|VideoClip), family = binomial(link = "logit"), data = CorrHazardCountData)
+summary(CorrModel1)
+
+ CorrModel2 <- glmer(CorrAOI ~ Condition + (1|ID) + (1|VideoClip) + (1|TimeStamp), family = binomial(link = "logit"), data = CorrHazardCountData)
+ summary(CorrModel2) # no significant effect of Time
+
+CorrModel2 <- glmer(CorrAOI ~ Condition + (1|ID) +(1|VideoClip)+  (1|AOILocationOffset), family = binomial(link = "logit"), data = CorrHazardCountData)
+summary(CorrModel2)
+
+CorrHazardCountData$Condition <- relevel(CorrHazardCountData$Condition, ref = "HUD")
+
+ # CorrModel3 <- glmer(CorrAOI ~ Condition + (1|ID) +(1|VideoClip) + (1|AOILocationOffset) + (1 + ID|VideoClip), family = binomial(link = "logit"), data = CorrHazardCountData) # too big and complicated
+ # 
+ # CorrModel3 <- glmer(CorrAOI ~ Condition + (1|ID) +(1|VideoClip)+  (1|AOILocationOffset), family = binomial(link = "logit"), data = CorrHazardCountData)
+
+summary(CorrModel3)
+
+anova(NullCorrModel, BasicCorrModel, CorrModel1, CorrModel2)
+
+
+```
+
+
+```{r}
+library(MuMIn)
+r.squaredGLMM(CorrModel2, NullCorrModel)
+
+```
+```{r}
+ef <- as.data.frame(effect("Condition", CorrModel2))
+
+head(ef)
+
+
+ggplot(ef, aes(Condition, fit, color=fit)) + 
+  geom_pointrange(aes(ymax=upper, ymin=lower), position=position_dodge(width = 0.2))+
+  theme_classic() # just for a change :)
+#Fixation Count
+
+```
+
+```{r}
+FixCountChi <- chisq.test(SummaryAOI$n, y = NULL)
+FixCountChi
+
+FixCountChi$stdres
+
+FixCountChi <- chisq.test(AOIObjectSummary$ARFixation, AOIObjectSummary$ScreenFixation)
+FixCountChi
+
+FixCountChi$stdres
+
+
+summary(glm(CorrAOI ~ Condition, family = binomial, data = FinalValidHazardAOIETDataRMOut))
+
+summary(glm(CorrAOI ~ Condition, family = binomial, data = FinalValidHazardAOIETDataRMOut))
+
+
+```
+#FixationCount Corr AOI
+
+```{r}
+FixCountCorrScreen <- chisq.test(CorrAOISummaryScreen$NumCorr, y = NULL)
+FixCountCorrScreen
+
+ggplot(data = FinalValidHazardAOIETDataRMOut, aes(x = Condition, y = CorrAOI, fill = Condition))+
+  geom_col()+ 
+  ylab("Number of 'Correct' Fixations")+
+  scale_fill_brewer(palette = "BrBG")+
+  theme_classic()
+
+plot(CorrAOISummaryScreen$NumCorr)
+```
+
+
+```{r}
+FixCountCorrScreen$stdres
+
+FixCountCorrCompare <- chisq.test(CorrAOISummaryScreen$NumCorr, CorrAOISummaryAR$NumCorr)
+FixCountCorrCompare
+
+FixCountCorrCompare$stdres
+
+```
+#Fixation Duration
+
+```{r}
+hist(FinalValidAOIETData$eventDuration)
+
+shapiro.test(FinalValidAOIETData$eventDuration[0:5000])
+ad.hoc.test(FinalValidAOIETData$eventDuration)
+
+qqnorm(sqrt(FinalValidAOIETData$eventDuration))
+ggplot(FinalValidAOIETData, aes(x = eventDuration, fill = Condition)) + geom_density(alpha = .3)
+```
+
+```{r}
+library(ggpubr)
+
+bxp <- ggboxplot(FinalValidAOIETData, x = "Condition", y = "eventDuration")
+bxp
+```
+
+```{r}
+summary(lm(eventDuration ~ Condition, data = FinalValidAOIETData))
+
+BasicDwellAOV <- summary(aov(eventDuration ~ Condition, data = FinalValidAOIETData))
+
+BasicDwellAOVPW <- pairwise.t.test()
+
+
+DwellModel <- glmer(eventDuration ~ Condition + (1|ID), data = FinalValidAOIETData, family = poisson)
+
+```
+
+
+```{r}
+bxpRMOut <- ggboxplot(FinalValidAOIETDataRMOut, x = "Condition", y = "eventDuration")
+bxpRMOut
+
+ggplot(FinalValidAOIETDataRMOut, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration (ms)")+
+  theme_classic()
+
+```
+```{r}
+a1 <- aov(eventDuration ~ Condition, data = FinalValidAOIETDataRMOut)
+summary(a1)
+
+Tukeya1 <- TukeyHSD(a1)
+Tukeya1
+
+```
+
+```{r}
+ggplot(FinalValidAOIETDataRMOut, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration (ms)")+
+  theme_classic()
+```
+
+#Fixation Duration Models
+
+```{r}
+FinalValidAOIETDataRMOut$Condition <- as.factor(FinalValidAOIETDataRMOut$Condition)
+
+DurModelNull <- lmer(eventDuration ~ (1|ID), data = FinalValidAOIETDataRMOut)
+
+DurModelBasic <- lmer(data = FinalValidAOIETDataRMOut, formula = eventDuration ~ Condition + (1|ID))
+
+summary(DurModelBasic)
+
+DurModel1 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+summary(DurModel1)
+
+DurModel2 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+summary(DurModel2)
+
+DurModel3 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
+summary(DurModel3)
+
+
+FinalValidAOIETDataRMOut$Condition <- relevel(FinalValidAOIETDataRMOut$Condition, ref = "Control")
+
+
+anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3)
+
+```
+
+```{r}
+CountData$Condition <- as.factor(CountData$Condition)
+
+DurModelNull <- lmer(eventDuration ~ (1|ID), data = CountData)
+
+DurModelBasic <- lmer(data = CountData, formula = eventDuration ~ Condition + (1|ID))
+
+summary(DurModelBasic)
+
+DurModel1 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+summary(DurModel1)
+
+DurModel2 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+summary(DurModel2)
+
+DurModel3 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
+summary(DurModel3)
+
+
+CountData$Condition <- relevel(CountData$Condition, ref = "Control")
+
+
+anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3)
+
+```
+
+```{r}
+Hazbxp <- ggboxplot(ValidHazardWindowAOIData, x = "Condition", y = "eventDuration")
+Hazbxp
+```
+
+```{r}
+df2 <- data.frame(ValidHazardWindowAOIData$eventDuration)
+z_scores2 <- as.data.frame(sapply(df2, function(df2) (abs(df2-mean(df2))/sd(df2))))
+
+
+ValidHazardWindowAOIData$ZScore <- z_scores2
+
+ValidHazardWindowAOIDataRMOut <- ValidHazardWindowAOIData %>% 
+  subset(ZScore <= 3)
+```
+
+```{r}
+HazbxpRMOut <- ggboxplot(ValidHazardWindowAOIDataRMOut, x = "Condition", y = "eventDuration")
+HazbxpRMOut
+```
+
+```{r}
+ggplot(FinalValidHazardAOIETDataRMOut, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration in Hazard Window")+
+  theme_classic()
+
+
+```
+#TTFF Model
+
+```{r}
+
+TTFF$Condition <- TTFF$Condition.x
+
+TTFF$Condition <- as.factor(TTFF$Condition)
+
+TTFF$Condition <- relevel(TTFF$Condition, ref = "HDD")
+
+
+TTFFModelNull <- lmer(FirstFixationTime ~ (1|Participant), data = TTFF)
+
+TTFFModelBasic <- lmer(data = TTFF, formula = FirstFixationTime ~ Condition + (1|Participant))
+summary(TTFFModelBasic)
+
+TTFFModel1 <- lmer(data = TTFF,  formula = FirstFixationTime ~ Condition + (1|Participant) + (1|VideoClip))
+summary(TTFFModel1)
+
+TTFFModel2 <- lmer(data = TTFF,  formula = FirstFixationTime ~ Condition + (1|Participant) + (1|VideoClip) + (1|gazePointAOI_name))
+summary(TTFFModel2)
+
+TTFFModel3 <- lmer(data = TTFF,  formula = FirstFixationTime ~ Condition + (1|Participant) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
+summary(TTFFModel3)
+
+anova(TTFFModelNull,TTFFModelBasic,TTFFModel1,TTFFModel2,TTFFModel3)
+
+```
+
+```{r}
+ggplot(TTFF, aes(x = Condition, y = FirstFixationTime, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Time to First Fixation (s)")+
+  theme_classic()
+```
+#HazardFixation Duration
+```{r}
+FinalValidHazardAOIETDataRMOut$Condition <- as.factor(FinalValidHazardAOIETDataRMOut$Condition)
+FinalValidHazardAOIETDataRMOut$Condition <- relevel(FinalValidHazardAOIETDataRMOut$Condition, ref = "HUD")
+
+HazDurModelNull <- lmer(eventDuration ~ (1|ID), data = FinalValidHazardAOIETDataRMOut)
+
+HazDurModelBasic <- lmer(data = FinalValidHazardAOIETDataRMOut, formula = eventDuration ~ Condition + (1|ID))
+
+summary(HazDurModelBasic)
+
+HazDurModel1 <- lmer(data = FinalValidHazardAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+summary(HazDurModel1)
+
+HazDurModel2 <- lmer(data = FinalValidHazardAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+summary(HazDurModel2)
+
+HazDurModel3 <- lmer(data = FinalValidHazardAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID)  + (1|gazePointAOI_name))
+summary(HazDurModel3)
+
+anova(HazDurModelNull, HazDurModelBasic, HazDurModel1, HazDurModel2, HazDurModel3)
+
+```
+
+
+#CountHazardFixationDuration
+```{r}
+CorrHazardCountData$Condition <- as.factor(CorrHazardCountData$Condition)
+CorrHazardCountData$Condition <- relevel(CorrHazardCountData$Condition, ref = "Cue")
+
+HazDurModelNull <- lmer(eventDuration ~ (1|ID), data = CorrHazardCountData)
+
+HazDurModelBasic <- lmer(data = CorrHazardCountData, formula = eventDuration ~ Condition + (1|ID))
+
+summary(HazDurModelBasic)
+
+# HazDurModel1 <- lmer(data = CorrHazardCountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+# summary(HazDurModel1)
+# 
+# HazDurModel2 <- lmer(data = CorrHazardCountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+# summary(HazDurModel2)
+# 
+# HazDurModel3 <- lmer(data = CorrHazardCountData,  formula = eventDuration ~ Condition + (1|ID)  + (1|gazePointAOI_name))
+# summary(HazDurModel3)
+# 
+# anova(HazDurModelNull, HazDurModelBasic, HazDurModel1, HazDurModel2, HazDurModel3)
+
+```
+
+```{r}
+ggplot(CorrHazardCountData, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration in Hazard Window")+
+  theme_classic()
+```
+
+
+
+```{r}
+
+listControldata <- split(ControlETdata, f = ControlETdata$PIDCond)
+
+dataset <- listControldata[1]
+
+fixationControlETData <- data.frame()
+
+
+for(dataset in listControldata) {
+  data <- as.data.frame(dataset)
+  #adjust column names
+  cols <-colnames(data)
+  cols<- gsub(".*\\.", "", cols)   
+  colnames(data) <- cols
+  
+  
+  print(data$PIDCond[1])
+  startTime = data$eyeDataRelativeTimestamp[1]
+  data$TimeStamp <- data$eyeDataRelativeTimestamp - startTime
+
+  #convert the HasValue column to boolean for gap_fill function to work
+  data$gazeHasValue <- as.logical(data$gazeHasValue)
+
+  data_GF <- gap_fill(data, max_gap_length = 75)
+  
+  
+  data_NR <- noise_reduction(data_GF, method = median, window_size = 3)
+ 
+  data_idt <- classify_idt(data = data_NR, dispersion_threshold = 1.6, time_window = 250)
+
+  data_mergeIDT <- merge_fixations_idt(data_idt, max_time = 75, dispersion_threshold = 1.6)
+  
+  data_proc <- data_mergeIDT%>% 
+    select(PIDCond, gazePoint_target_name, gazePointAOI_name, gazePointAOIHit, gazePoint_x, gazePoint_y, gazePoint_z, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, TimeStamp)
+  
+  fixationControlETData <- rbind(fixationControlETData, data_proc)
+ 
+}
+
+fixationControlETData$Condition <- "Control"
+
+FullfixationControlETData <- fixationControlETData[!duplicated(fixationControlETData[c(1,8)]),]
+FullfixationControlETData <- rename(FullfixationControlETData, Sort = PIDCond)
+FullfixationControlETData$Sort <- gsub(pattern = "_", replacement = " ", x = FullfixationControlETData$Sort)
+
+
+```
+
+```{r}
+HazardList <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/Unity Projects/TGStudy 4/Assets/Resources/FinalStudy4HazardSheet.csv")
+```
+
+
+#FullAOIGraphs
+
+```{r}
+ggplot(data=AOIControlETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.35, 0.35)+
+  ylim(-0.15, 0.35)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Control")
+
+ggplot(data=AOIHUDETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 100)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "HUD")
+
+ggplot(data=AOICueETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 100)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "Cue")
+
+ggplot(data=AOIHDDETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 100)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "HDD")
+
+```
+
+```{r}
+
+ggplot(data=test, aes(x=gazePoint_x, y=gazePoint_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 50)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Control")
+
+ggplot(data=AOIHUDETData, aes(x=gazePoint_x, y=gazePoint_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 150)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "HUD")
+
+ggplot(data=AOICueETData, aes(x=gazePoint_x, y=gazePoint_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 150)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "Cue")
+
+ggplot(data=AOIHDDETData, aes(x=gazePoint_x, y=gazePoint_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 150)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "HDD")
+
+```
+
+```{r}
+ggplot(data=ValidAOIControlETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 100)+
+    xlim(-0.35, 0.35)+
+  ylim(-0.15, 0.35)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title= "Control")
+
+ggplot(data=ValidAOIHUDETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+stat_bin_2d(bins = 100)+
+    xlim(-0.35, 0.35)+
+  ylim(-0.15, 0.35)+
+    scale_fill_continuous(type = "viridis")  +
+  labs(title = "HUD")
+
+ggplot(data=ValidAOICueETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+stat_bin_2d(bins = 100)+
+    xlim(-0.35, 0.35)+
+  ylim(-0.15, 0.35)+
+    scale_fill_continuous(type = "viridis")  +
+  labs(title = "Cue")
+
+ggplot(data=ValidAOIHDDETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+stat_bin_2d(bins = 100)+
+    xlim(-0.35, 0.35)+
+  ylim(-0.15, 0.35)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "HDD")
+
+```
+#FinalAOIGraphs
+```{r}
+ggplot(data=FinalValidAOIETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = 150)+
+    xlim(-0.5, 0.5)+
+  ylim(-0.5, 0.5)+
+    scale_fill_continuous(type = "viridis") +
+  labs(title = "All")
+
+```
+
+```{r}
+AOIControlETData$TimeStamp <- AOIControlETData$TimeStamp / 100
+AOIControlETData$DuringClip <- FALSE
+
+AOIControlETData$DuringClip <- if_else(AOIControlETData$TimeStamp >= AOIControlETData$ETClipStart && AOIControlETData$TimeStamp <= AOIControlETData$ETClipStop, TRUE, FALSE)
+
+AOIControlETData<- AOIControlETData %>% 
+  select(-(AOIControlETData$DuringClip == TRUE))
+
+AOIControlETDataClips <- subset(AOIControlETData, DuringClip)
+
+
+```
+
+```{r}
+ClipTimes <- AOIControlETData %>% 
+  select(PIDCond, image_file, ClipStart, ClipStop, ETClipStart,ETClipStop)
+
+ClipTimes <- ClipTimes[!duplicated(ClipTimes$ClipStart), ]
+```
+
+
+```{r}
+#FixationCount <- rbind(AOIControlETData, AOICueETData, AOIHDDETData, AOIHUDETData) 
+
+
+ControlFixationCountSummary <- AOIControlETData %>% 
+  group_by(Condition, gazePoint_target_name, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+
+CueFixationCountSummary <- AOICueETData %>% 
+  group_by(Condition, gazePoint_target_name,gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+
+HUDFixationCountSummary <- AOIHUDETData %>% 
+  group_by(Condition, gazePoint_target_name,gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+HDDFixationCountSummary <- AOIHDDETData %>% 
+  group_by(Condition, gazePoint_target_name,gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+```
+
+
+```{r}
+#FixationDuration <- rbind(AOIControlETData, AOICueETData, AOIHDDETData, AOIHUDETData) 
+ControlFixationDurationSummary <- AOIControlETData %>% 
+  group_by(Condition, gazePoint_target_name, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+CueFixationDurationSummary <- AOICueETData %>% 
+  group_by(Condition, gazePoint_target_name, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+
+
+HUDFixationDurationSummary <- AOIHUDETData %>% 
+  group_by(Condition, gazePoint_target_name, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+HDDFixationDurationSummary <- AOIHDDETData %>% 
+  group_by(Condition, gazePoint_target_name, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration, na.rm = T),
+            sdDuration = sd(eventDuration, na.rm = T),
+            minDuration = min(eventDuration, na.rm = T),
+            maxDuration = max(eventDuration, na.rm = T))
+
+
+
+
+```

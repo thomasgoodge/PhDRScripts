@@ -1,0 +1,140 @@
+---
+title: "Study2ArettAnalysis"
+author: "TGoodge"
+date: "2023-11-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Libraries
+```{r}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(tidyr)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(beepr)
+```
+
+#ARETT Functions
+
+```{r}
+#set the working directory to the ARETT package
+#setwd("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R/ARETT-R-Package-master/R")
+
+#source all the ARETT functions from the R folder
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/calculate_velocity.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_iaoi.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_idt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/classify_ivt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/discard_short_fixations.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/gap_fill.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_iaoi.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_idt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/merge_fixations_ivt.R")
+source("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/ARETT-R-Package-master/R/noise_reduction.R")
+```
+#Read in ET Data
+
+```{r}
+#read in the data
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/Study2ETdata/"
+
+#setwd = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study3/data/EyeTracking"
+#list.files(path = dataFolder)
+
+#Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
+file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
+
+rawETdata = data.frame()
+
+
+#Loop through the datafiles in file_list, assign them a name and then read them in
+for(i in 1:length(file_list))
+{
+  filename <- file_list[i]
+  print(filename)
+  tempData <- read.csv(filename)
+  pptInfo <- strsplit(filename, split = '-', fixed = TRUE)
+  tempData$Participant <- pptInfo[[1]][4]
+  tempData$Condition <- pptInfo[[1]][5]
+  tempData$Date <- pptInfo[[1]][2]
+  tempData$Time <- pptInfo[[1]][3]
+ #assign(paste(substr(file_list[i],24,27)), read.csv(paste0(file_list[i])))
+
+  rawETdata <- rbind(rawETdata, tempData)
+}
+
+#Sanitise the Condition column
+rawETdata$Condition <- gsub(pattern = ".csv", replacement = "", x = rawETdata$Condition)
+rawETdata$Condition <- str_sub(rawETdata$Condition, 4,-1)
+
+
+
+#data = read.csv(file_list[1])
+
+#data = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study2ETData/P01/2022_11_08-16_09_35-P01-P01Control.csv", header = T)
+
+```
+#Order ET Data
+```{r}
+#Remove all extra participants not used 
+ordETdata <- rawETdata
+
+
+#Create a sort column to organise participants later on
+ordETdata$PIDCond <- paste(ordETdata$Participant, ordETdata$Condition, sep = "_")
+ordETdata$Sort <- gsub(pattern = "_", replacement = " ", x = ordETdata$PIDCond)
+
+
+
+#ordETdata <- ordETdata %>% 
+ # drop_na(gazePoint_target_name)
+
+# ordETdata <-  ordETdata %>% 
+#   subset(gazePoint_target_name == "Wall")
+# 
+
+```
+#Extract Times form ET Data
+```{r}
+
+#Reduce dataset to when each ET recording started
+timeETData <- ordETdata %>% 
+  select(Participant, Condition, Date, Time, )
+
+#timeETData$Condition <- gsub(pattern = ".csv", replacement = "", x = timeETData$Condition)
+timeETData$Date <-    str_sub(timeETData$Date,-5,-1)
+timeETData$Date <- gsub(pattern = "_", replacement = "/", x = timeETData$Date)
+timeETData$Time <- gsub(pattern = "_", replacement = ":", x = timeETData$Time)
+
+timeETData <- timeETData[!duplicated(timeETData), ]
+
+timeETData$Sort <- paste(timeETData$Participant, timeETData$Condition)
+
+
+```
+
+#Read in WHN Data
+```{r}
+HPdataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/Study2Data/hp_data/"
+
+file_list <- list.files(path = WHNdataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+```
+
+```{r read in raw data}
+RawHPDataset <- data.frame()
+#loop through all the fills, create a temporary container, remove the first, second and last rows and then add 1 to the trials counter. Then bind it to the dataset
+for (file in file_list){
+  tempData <- read.csv(file, header = T)  
+    
+  RawHPDataset <- bind_rows(RawWHNDataset, tempData)
+}
+
+```
+
+
