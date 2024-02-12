@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-#Libraries
+
 
 ```{r}
 
@@ -28,7 +28,7 @@ library(ggthemes)
 library(report)
 library(janitor)
 ```
-#Read in Exp data
+
 ```{r}
 dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/WHNValidation/WHNdata/Exp"
 
@@ -54,7 +54,6 @@ SortedWHNDataExp$video_file <- str_sub(SortedWHNDataExp$video_file, end = -8)
 #removed for less than chance performance
 
 SortedWHNDataExp <- subset(SortedWHNDataExp, ProlificID != '632aa1271f930bbc655a32d8')
-SortedWHNDataExp <- subset(SortedWHNDataExp, ProlificID != '63ea4564de250efaacb1cceb')
 
 
 NoPptsExp <- n_distinct(SortedWHNDataExp$ProlificID)
@@ -71,7 +70,7 @@ write.csv(SortedWHNDataExp, "C:/Users/thoma/OneDrive - University of Glasgow/Des
 
 ```
 
-#Read in Novice data
+
 ```{r}
 dataFolderNov = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/WHNValidation/WHNdata/Novice"
 
@@ -108,7 +107,7 @@ NoviceIDs <- SortedWHNDataNov[!duplicated(SortedWHNDataNov$ProlificID), ]
 
 
 ```
-#Create full dataset
+
 
 ```{r}
 SortedWHNData <- rbind(SortedWHNDataExp, SortedWHNDataNov)
@@ -119,14 +118,8 @@ SortedWHNData$trialrespkey.rt <-stringr::str_remove_all(SortedWHNData$trialrespk
 SortedWHNData$trialrespkey.rt <- as.numeric(SortedWHNData$trialrespkey.rt)
 
 SortedWHNData$ProlificID[SortedWHNData$ProlificID == "6050acf587bc4d19589f8002@email.prolific.com"] <- "6050acf587bc4d19589f8002"
-SortedWHNData <- subset(SortedWHNData, ProlificID != '6050acf587bc4d19589f8002')
-
-
-#write.csv(FullDataset, "ValidationWHNFull.csv")
 
 ```
-
-#Separate IDs for filtering
 ```{r}
 IDs <- SortedWHNData %>% 
   group_by(ProlificID) %>% 
@@ -141,7 +134,7 @@ IDs$Valid = TRUE
 
   
 ```
-#Clip Summary
+
 
 ```{r}
 SummaryClipWHN <- SortedWHNData %>% 
@@ -164,7 +157,7 @@ EasyClips <- subset(SummaryClipWHN, WHNPercent > 0.9)
 ```
 
 
-#Ppt and Group Summary
+
 ```{r}
 SummaryPptWHN <-SortedWHNData %>% 
   group_by(ProlificID) %>% 
@@ -187,8 +180,6 @@ GroupSummary <- SummaryPptWHN %>%
             meanRT = mean(meanRT),
             sdRT = sd(meanRT))
 
-
-
 ```
 
 ```{r}
@@ -204,32 +195,25 @@ SummaryGroupWHN <-SortedWHNData %>%
             sumWHN = sum(trialrespkey.corr))
 
 ```
-#Plot WHN scores
+
 ```{r}
 ggplot(data = SummaryGroupWHN, aes(x = Group, y = sumWHN/30, fill = Group))+
   geom_col()+
   ylim(0,40)+
-  geom_hline(yintercept = 40)+
-  scale_fill_brewer(palette = "Set1")
+  geom_hline(yintercept = 40)
   
 ```
-#Violin plot WHN scores
 ```{r}
 ggplot(data = SummaryPptWHN, aes(x = Group, y = sumWHN, fill = Group))+
   geom_violin(alpha = 0.4)+
   geom_boxplot(width = 0.2)+
   ylim (0,40)+
-  labs(y = "Average number of Correct responses")+
-  scale_fill_brewer(palette = "Set1")+
-  theme_classic()
+  labs(y = "Average number of Correct responses")
 
 ```
-
-
-
 ```{r}
-SummarySexPptWHN <-FullDataset %>%
-  group_by(ProlificID) %>%
+SummarySexPptWHN <-FullDataset %>% 
+  group_by(ProlificID) %>% 
   summarise(n = n(),
             sumWHN = sum(trialrespkey.corr),
             meanRT = mean(trialrespkey.rt, na.rm = T),
@@ -241,13 +225,11 @@ SummarySexPptWHN <-FullDataset %>%
 ```{r}
 ggplot(data = SummarySexPptWHN, aes(x = Group, y = sumWHN, fill = Sex))+
   geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.25,position = position_dodge(0.9))+
   ylim (0,40)+
-  labs(y = "Average number of Correct responses")+
-  theme_classic()
+  labs(y = "Average number of Correct responses")
 
 ```
-
+```
 
 
 #DEMOGS
@@ -307,7 +289,7 @@ Lapses <- Lapses %>%
   select('ProlificID', 'meanLapses')
 ```
 
-#Full Demogs
+
 ```{r}
 DemogsDBQFull <- DemogsDBQ
 DemogsDBQFull$Errors <- Errors$meanErrors
@@ -317,91 +299,44 @@ DemogsDBQFull$Violations <- Violations$meanViolations
 
 ```
 
-#DBQ violin plots
+
 ```{r}
+# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Errors, fill = GroupCheck))+
+#   geom_violin(alpha = 0.4)+
+#   geom_boxplot(width = 0.2)+
+#   labs(y = "Average number of reported Errors")
 
 ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Violations, fill = GroupCheck))+
   geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  labs(y = "Average number of Violations")+
-  ylim(0,3)+
-  scale_fill_brewer(palette = "Set1")
-
-
-ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Lapses, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  ylim(0,3)+
-  labs(y = "Average number of Lapses")+
-  scale_fill_brewer(palette = "Set1")
-
-
-
-ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Errors, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  ylim(0,3)+
-  labs(y = "Average number of Errors")+
-  scale_fill_brewer(palette = "Set1")
-
-
-
-
-```
-
-#Gender DBQ Plots
-
-```{r}
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Violations, fill = Gender))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
+  geom_boxplot(width = 0.2)+
   labs(y = "Average number of Violations")
 
+# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Lapses, fill = GroupCheck))+
+#   geom_violin(alpha = 0.4)+
+#   geom_boxplot(width = 0.2)+
+#   labs(y = "Average number of Lapses")
 
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Lapses, fill = Gender))+
+ggplot(data = DemogsDBQFull, aes(x = Gender, y = Violations, fill = Gender))+
   geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
+  geom_boxplot(width = 0.2)+
   labs(y = "Average number of Lapses")
 
 
 
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Errors, fill = Gender))+
+ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Violations, fill = Gender))+
   geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  labs(y = "Average number of Errors")
-
-
-```
-#Gender x Group Plots
-
-
-```{r}
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Violations, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.1, position=position_dodge(0.9))+
-  labs(y = "Average number of Violations")+
-  scale_fill_brewer(palette = "Set1")+
-  theme_classic()
-
-
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Lapses, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15,position = position_dodge(0.9))+
-  labs(y = "Average number of Lapses")+
-  scale_fill_brewer(palette = "Set1")
+#geom_boxplot(width = 0.2)+
+  labs(y = "Average number of Lapses")
 
 
 
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Errors, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15, position = position_dodge(0.9))+
-  labs(y = "Average number of Errors")+
-  scale_fill_brewer(palette = "Set1")
 
 ```
 
 
 ```{r}
+
+
 FullDataset <- left_join(SortedWHNData, DemogsDBQFull, by = 'ProlificID') 
 #FullDataset <- na.omit(FullDataset)
 FullDataset$Age <- as.numeric(FullDataset$Age)
@@ -421,15 +356,38 @@ write.csv2(FullDataset, "FullDataset.csv")
 write.csv(FullDataset, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/FullDataset.csv", row.names=FALSE)
 
 
+FullDatasetTrim <- FullDataset %>% 
+  subset(ProlificID != "631908a8cdd88ee53fb9a0d9") %>% 
+  subset(ProlificID != "56f7560f3bd969000c1708de") %>% 
 
-FullDatasetExp <- FullDataset %>% 
-  subset(Group == "Experienced")
-
-FullDatasetNov <- FullDataset %>% 
-  subset(Group == "Novice")
 
 ```
 
+
+
+
+```{r}
+PlotData <- FullDataset %>% 
+  select(ProlificID, trialrespkey.corr,  Group) %>%   
+  group_by(ProlificID, Group) %>% 
+  summarise(ProlificID = ProlificID,
+            score = sum(trialrespkey.corr),
+            Group = Group)
+
+WHNPlot2 <- ggplot(data = PlotData, aes(x = Group, y = score, fill = Group))+
+  geom_violin(alpha = 0.8)+
+  geom_boxplot(alpha = 0, width = 0.2)+
+ 
+theme(legend.position="none") +theme(text=element_text(size = 20)) +
+
+  theme(axis.text=element_text(size=15))+
+  labs(title = "Hazard Prediction Score", x = "Driver Group", y = "Average correct responses")+
+    theme(plot.title=element_text(vjust=11.5))
+
+
+WHNPlot2
+
+```
 ```{r}
 
 PlotData2 <- FullDataset %>% 
@@ -440,19 +398,14 @@ PlotData2 <- FullDataset %>%
             YearsExp = YearsExp,
             Group = Group)
 
-
- ggplot(data = PlotData2, aes(x = YearsExp, y = score, fill = Group, colour = Group))+
+ ggplot(data = PlotData2, aes(x = score, y = YearsExp, fill = Group, colour = Group))+
   geom_point()+
-   ylim(0,40)+
-  scale_color_brewer(palette = "Set1")+
-   geom_smooth(method = lm)
-   
+   ylim(0,40)
   
  
 
 
 ```
-#Summaries
 ```{r}
 SummaryDemogs <- FullDataset %>% 
   group_by(Group) %>% 
@@ -486,41 +439,6 @@ FullGroupSummary <- SummaryPptWHNFull %>%
             sd = sd(sumWHN),
             meanRT = mean(meanRT),
             sdRT = sd(meanRT))
-
-SummaryPptWHNFullExp <-FullDatasetExp %>% 
-  group_by(ProlificID) %>% 
-  summarise(n = n(),
-            sumWHN = sum(trialrespkey.corr),
-            meanRT = mean(trialrespkey.rt, na.rm = T),
-            Group = GlasgowExp)
-
-
-ExpGroupSummary <- SummaryPptWHNFullExp %>% 
-  group_by(Group) %>% 
-  summarise(n = n()/40,
-            NClips = n()/30,
-            mean = mean(sumWHN),
-            sd = sd(sumWHN),
-            meanRT = mean(meanRT),
-            sdRT = sd(meanRT))
-
-SummaryPptWHNFullNov <-FullDatasetNov %>% 
-  group_by(ProlificID) %>% 
-  summarise(n = n(),
-            sumWHN = sum(trialrespkey.corr),
-            meanRT = mean(trialrespkey.rt, na.rm = T),
-            Group = GlasgowExp)
-
-
-NovGroupSummary <- SummaryPptWHNFullNov %>% 
-  group_by(Group) %>% 
-  summarise(n = n()/40,
-            NClips = n()/30,
-            mean = mean(sumWHN),
-            sd = sd(sumWHN),
-            meanRT = mean(meanRT),
-            sdRT = sd(meanRT))
-
 ```
 
 ```{r}
@@ -531,83 +449,45 @@ SummaryDBQ <- FullDataset %>%
             meanLapses = mean(Lapses),
             meanViolation = mean(Violations))
 
+  
 ```
 
 
 
 ```{r}
 summary(aov(data = SortedWHNData, trialrespkey.corr ~ Group))
-```
-#Score
 
-```{r}
-Scoreanova <- aov(data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp)
-summary(Scoreanova)
-TukeyHSD(Scoreanova)
-
-ScoreGLM0 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ 1)
-summary(ScoreGLM0)
-
-ScoreGLMbase <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group)
-summary(ScoreGLMbase)
-
-# ScoreGLM1 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp)
-# summary(ScoreGLM1)
-# 
-# ScoreGLM2 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * Gender)
-# summary(ScoreGLM2)
-# 
-# ScoreGLM3 <-glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp * Gender)
-# summary(ScoreGLM3)
-
-
-coef(ScoreGLM1)
-
-library(emmeans)
-em <- emmeans(ScoreGLMbase, ~ Group , trans = "response")
-contrast(em, "pairwise", adjust = "Tukey")
-
-anova(ScoreGLM0, ScoreGLMbase, ScoreGLM1,ScoreGLM2,test = "LRT")
-
+TukeyHSD(aov(data = SortedWHNData, trialrespkey.corr ~ Group))
 ```
 
 
 ```{r}
-library(report)
+#Scrores     
+ScoreGLM <- glm(family = binomial, data = FullDataset, formula = trialrespkey.corr ~ Group)
+summary(ScoreGLM)
 
-results <- report(ScoreGLMbase)
-
-print(results)
+ScoreGLM2 <- glm(family = binomial, data = FullDatasetTrim, formula = trialrespkey.corr ~ Group)
+summary(ScoreGLM2)
 ```
-
 
 
 ```{r}
 #Reaction Time
-
-
 RTLM <- lm(family = poisson, data = FullDataset, formula = trialrespkey.rt ~ Group)
 summary(RTLM)
+#
 
+ScoreExpGLM <- glm(family = binomial, data = FullDataset, formula = trialrespkey.corr ~ YearsExp )
+summary(ScoreExpGLM)
 
 ```
 
 ```{r}
-
-FullDatasetTrim <- FullDataset %>% 
-  subset(ProlificID != "60ee998ece5d505f67377c0b")
-
-
-
-GenderGLM <- glm(family = binomial, data = FullDatasetTrim, formula = trialrespkey.corr ~  Gender)
+GenderGLM <- glm(family = binomial, data = FullDataset, formula = trialrespkey.corr ~  Gender)
 summary(GenderGLM)
 
-GenderGroupGLM <- glm(family = binomial, data = FullDatasetTrim, formula = trialrespkey.corr ~ Group * Gender)
+GenderGroupGLM <- glm(family = binomial, data = FullDataset, formula = trialrespkey.corr ~ Group * Gender)
 summary(GenderGroupGLM)
-
-
-em <- emmeans(GenderGroupGLM, ~ Group * Gender , trans = "response")
-contrast(em, "pairwise", adjust = "Tukey")
 
 ```
 
@@ -633,16 +513,11 @@ summary(ErrorSexLM)
 LapseSexLM <- lm( data = DBQFullDataset, formula = Lapses ~ Group* Gender)
 summary(LapseSexLM)
 
-ViolationSexLM <- lm(data = DBQFullDataset, formula = Violations ~ Group * Gender)
+ViolationSexLM <- lm( data = DBQFullDataset, formula = Violations ~ Group * Gender)
 summary(ViolationSexLM)
 
 ```
 
-```{r}
-
-ScoreDBQGLM <- glm(data = FullDataset, formula = trialrespkey.corr ~ Group * Violations)
-summary(ScoreDBQGLM)
-```
 
 
 
