@@ -1,0 +1,500 @@
+---
+title: "Study5TLX"
+author: "TGoodge"
+date: '2024-03-18'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readr)
+library(janitor)
+library(car)
+library(emmeans)
+library(lme4)
+library(lmerTest)
+```
+
+```{r}
+TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/Qualtrics/PostBlockQs/Study5TLX.csv") %>% 
+  
+
+# Tidy the data - select scores,
+  select(starts_with('Q'))
+  TLXdataOrg <- TLXdataRaw[-c(1:2),]
+  colnames(TLXdataOrg) <- c('participant','Timepoint','Block', "Happy", "Feeling",	"Social",	"Organic",	"Compassionate",	"Emotional",	"Capable",	"Responsive",	"Interactive",	"Reliable",	"Competent",	"Knowledgeable",	"Scary",	"Strange",	"Awkward",	"Dangerous",	"Awful",	"Aggressive",'MentalDemand', 'PhysicalDemand', 'TemporalDemand', 'OverallPerformance', 'Effort', 'Frustration', 'PD/MD', 'TD/MD', 'OP/MD', 'Fr/MD','Ef/MD','TD/PD','OP/PD','Fr/PD', 'Ef/PD','TD/OP','TD/Fr','TD/Ef','OP/Fr','OP/Ef','Ef/Fr')
+
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 1"] <- "1"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 2"] <- "2"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 3"] <- "3"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Experiment"] <- "4"
+  
+  
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 0 - Control"] <- "Control"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "Visual"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Social"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - Gems"] <- "NDRT"
+  
+  TLXdataOrg <- TLXdataOrg %>% 
+  subset(participant != "P01") %>% 
+    subset(participant != "P12") 
+  
+
+  
+
+```
+
+
+```{r}
+
+RoSASOrg <- TLXdataOrg %>% 
+  select(c('participant','Timepoint','Block', "Happy", "Feeling",	"Social",	"Organic",	"Compassionate",	"Emotional",	"Capable",	"Responsive",	"Interactive",	"Reliable",	"Competent",	"Knowledgeable",	"Scary",	"Strange",	"Awkward",	"Dangerous",	"Awful"))
+
+RoSASOrg <- RoSASOrg %>% 
+  subset()
+
+```
+
+```{r}
+
+TLXdata <- TLXdataOrg %>% 
+  select(c('participant','Timepoint','Block', 'MentalDemand', 'PhysicalDemand', 'TemporalDemand', 'OverallPerformance', 'Effort', 'Frustration', 'PD/MD', 'TD/MD', 'OP/MD', 'Fr/MD','Ef/MD','TD/PD','OP/PD','Fr/PD', 'Ef/PD','TD/OP','TD/Fr','TD/Ef','OP/Fr','OP/Ef','Ef/Fr'))
+  TLXdata[4:9] = lapply(TLXdata[4:9], FUN = function(y){as.numeric(y)})
+
+
+```
+
+
+```{r}
+#Convert to wrangled dataset
+
+TLXdata$Total = rowSums(TLXdata[,c(4,9)], na.rm = T)
+
+TLXdata$participant <- as.factor(TLXdata$participant)
+TLXdata$Timepoint <- as.factor(TLXdata$Timepoint)
+TLXdata$Block <- as.factor(TLXdata$Block)
+
+TLXdata$Performance <- 100 - TLXdata$OverallPerformance
+
+
+
+write.csv(TLXdata, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/S5TLX.csv", row.names=FALSE)
+```
+
+
+
+```{r}
+TLXdataTotalSum <- TLXdata %>% 
+  group_by(Block) %>% 
+  summarise(
+    n = n(),
+    mean = mean(Total, na.rm = T),
+    sd = sd(Total)
+  )
+```
+
+
+```{r}
+TLXdataSumm <- TLXdata %>% 
+  
+  group_by(Block) %>% 
+  summarise(
+    n = n(),
+    Total_mean = mean(Total),
+    Total_sd = sd(Total),
+    Mental_mean = mean(MentalDemand, na.rm = T),
+    Mental_sd = sd(MentalDemand, na.rm = T),
+    Physical_mean = mean(Frustration, na.rm = T),
+    Physical_sd = sd(Frustration, na.rm = T),
+    Temporal_mean = mean(TemporalDemand, na.rm = T),
+    Temporal_sd = sd(TemporalDemand, na.rm = T),
+    Performance_mean = mean(Performance, na.rm = T),
+    Performance_sd = sd(Performance, na.rm = T),
+    Frustration_mean = mean(Frustration, na.rm = T),
+    Frustration_sd = sd(Frustration, na.rm = T),
+    Effort_mean = mean(Effort, na.rm = T),
+    Effort_sd = sd(Effort, na.rm = T)
+    
+  )
+
+
+```
+
+```{r}
+#library(ggpubfigs)
+ggplot(TLXdata, aes(Block, Total, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total NASA TLX scores")+
+#    scale_fill_manual(values = friendly_pal("ito_seven"))
+        theme_classic()
+
+
+ggplot(data = TLXdata, aes(x = Block, y = Total, fill = Block))+
+  stat_summary()
+  
+
+
+```
+
+
+```{r}
+ggplot(TLXdata, aes(Block, MentalDemand, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim(0,100)+
+  labs(title = "Mental Demand")
+
+ggplot(TLXdata, aes(Block, PhysicalDemand, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim(0,100)+
+    labs(title = "Physical Demand")
+
+ggplot(TLXdata, aes(Block, TemporalDemand, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim(0,100)+
+    labs(title = "Temporal Demand")
+
+ggplot(TLXdata, aes(Block,OverallPerformance, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Overall Performance")
+
+ggplot(TLXdata, aes(Block, Effort, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Effort")
+  
+ggplot(TLXdata, aes(Block, Frustration, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Frustration")
+
+
+```
+```{r Check normality Total}
+ggplot(TLXdata, aes(x=Total)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Block) %>% 
+  identify_outliers(Total)
+
+TLXdata %>% 
+  group_by(Block) %>% 
+  shapiro_test(Total)
+
+library(ggpubr)
+
+ggqqplot(TLXdata, "Total", facet.by = "Block")
+```
+
+```{r With ANOVA total}
+library(rstatix)
+TLX.aov <- anova_test(data = TLXdata, dv = Total, wid = participant, within = Block)
+
+get_anova_table(TLX.aov)
+
+TLXpwc <- TLXdata %>% 
+  pairwise_t_test(Total ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+TLXpwc <- TLXpwc %>%  add_xy_position(x = "Block")
+TLXpwc
+
+
+TLXbxp <- ggboxplot(TLXdata, x = "Block", y = "Total", add = "point")
+
+TLXbxp + 
+  stat_pvalue_manual(TLXpwc) +
+  labs(
+    subtitle = get_test_label(TLX.aov, detailed = TRUE),
+    caption = get_pwc_label(TLXpwc)
+  )
+
+```
+
+```{r}
+library(WRS2)
+t1way(formula =  Total ~ Block, data = TLXdata, nboot = 100)
+lincon(formula =  Total ~ Block, data = TLXdata)
+
+
+```
+```{r}
+# 
+# TLXModel1 <- glmer(data = TLXdata, formula = Total ~ Block + (1|participant), family = poisson, glmerControl(optimizer = "bobyqa"))
+# 
+# TLXModel2 <- glmer(data = TLXdata, formula = Total ~ Block + (1|participant) + (1|Timepoint), family = poisson, glmerControl(optimizer = "bobyqa"))
+# summary(TLXModel1)
+# 
+# TLXTotalresults <- report(TLXModel1, CI = 95)
+# 
+# print(TLXTotalresults)
+# 
+
+
+```
+
+```{r check normailty MD}
+ggplot(TLXdata, aes(x=MentalDemand)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Block) %>% 
+  identify_outliers(MentalDemand)
+
+TLXdata %>% 
+  group_by(Block) %>% 
+  shapiro_test(MentalDemand)
+
+library(ggpubr)
+
+ggqqplot(TLXdata, "MentalDemand", facet.by = "Block")
+```
+
+```{r With ANOVA MD}
+MD.aov <- anova_test(data = TLXdata, dv = MentalDemand, wid = participant, within = Block)
+
+get_anova_table(MD.aov)
+
+MDpwc <- TLXdata %>% 
+  pairwise_t_test(MentalDemand ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+MDpwc <- MDpwc %>%  add_xy_position(x = "Block")
+MDpwc
+
+
+MDbxp <- ggboxplot(TLXdata, x = "Block", y = "MentalDemand", add = "point")
+
+MDbxp + 
+  stat_pvalue_manual(MDpwc) +
+  labs(
+    subtitle = get_test_label(MD.aov, detailed = TRUE),
+    caption = get_pwc_label(MDpwc)
+  )
+
+```
+
+```{r check normailty PD}
+ggplot(TLXdata, aes(x=PhysicalDemand)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Block) %>% 
+  identify_outliers(PhysicalDemand)
+
+TLXdata %>% 
+  group_by(Block) %>% 
+  shapiro_test(PhysicalDemand)
+
+library(ggpubr)
+
+ggqqplot(TLXdata, "PhysicalDemand", facet.by = "Block")
+```
+
+```{r With ANOVA PD}
+PD.aov <- anova_test(data = TLXdata, dv = PhysicalDemand, wid = participant, within = Block)
+
+get_anova_table(PD.aov)
+
+PDpwc <- TLXdata %>% 
+  pairwise_t_test(PhysicalDemand ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+PDpwc <- PDpwc %>%  add_xy_position(x = "Block")
+PDpwc
+
+
+PDbxp <- ggboxplot(TLXdata, x = "Block", y = "PhysicalDemand", add = "point")
+
+PDbxp + 
+  stat_pvalue_manual(PDpwc) +
+  labs(
+    subtitle = get_test_label(PD.aov, detailed = TRUE),
+    caption = get_pwc_label(PDpwc)
+  )
+
+```
+```{r check normailty TD}
+ggplot(TLXdata, aes(x=TemporalDemand)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Block) %>% 
+  identify_outliers(TemporalDemand)
+
+TLXdata %>% 
+  group_by(Block) %>% 
+  shapiro_test(TemporalDemand)
+
+library(ggpubr)
+
+ggqqplot(TLXdata, "TemporalDemand", facet.by = "Block")
+```
+
+```{r With ANOVA TD}
+TD.aov <- anova_test(data = TLXdata, dv = TemporalDemand, wid = participant, within = Block)
+
+get_anova_table(TD.aov)
+
+TDpwc <- TLXdata %>% 
+  pairwise_t_test(TemporalDemand ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+TDpwc <- TDpwc %>%  add_xy_position(x = "Block")
+TDpwc
+
+
+TDbxp <- ggboxplot(TLXdata, x = "Block", y = "TemporalDemand", add = "point")
+
+TDbxp + 
+  stat_pvalue_manual(TDpwc) +
+  labs(
+    subtitle = get_test_label(TD.aov, detailed = TRUE),
+    caption = get_pwc_label(TDpwc)
+  )
+
+```
+```{r check normailty OP}
+ggplot(TLXdata, aes(x=OverallPerformance)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Block) %>% 
+  identify_outliers(Performance)
+
+TLXdata %>% 
+  group_by(Block) %>% 
+  shapiro_test(Performance)
+
+library(ggpubr)
+
+ggqqplot(TLXdata, "Performance", facet.by = "Block")
+```
+
+```{r With ANOVA OP}
+OP.aov <- anova_test(data = TLXdata, dv = Performance, wid = participant, within = Block)
+
+get_anova_table(OP.aov)
+
+OPpwc <- TLXdata %>% 
+  pairwise_t_test(Performance ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+OPpwc <- OPpwc %>%  add_xy_position(x = "Block")
+OPpwc
+
+
+OPbxp <- ggboxplot(TLXdata, x = "Block", y = "Performance", add = "point")
+
+OPbxp + 
+  stat_pvalue_manual(OPpwc) +
+  labs(
+    subtitle = get_test_label(OP.aov, detailed = TRUE),
+    caption = get_pwc_label(OPpwc)
+  )
+
+```
+```{r check normailty Ef}
+ggplot(TLXdata, aes(x=Effort)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Block) %>% 
+  identify_outliers(Effort)
+
+TLXdata %>% 
+  group_by(Block) %>% 
+  shapiro_test(Effort)
+
+library(ggpubr)
+
+ggqqplot(TLXdata, "Effort", facet.by = "Block")
+```
+
+```{r With ANOVA Ef}
+Ef.aov <- anova_test(data = TLXdata, dv = Effort, wid = participant, within = Block)
+
+get_anova_table(Ef.aov)
+
+Efpwc <- TLXdata %>% 
+  pairwise_t_test(Effort ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Efpwc <- Efpwc %>%  add_xy_position(x = "Block")
+Efpwc
+
+
+Efbxp <- ggboxplot(TLXdata, x = "Block", y = "Effort", add = "point")
+
+Efbxp + 
+  stat_pvalue_manual(Efpwc) +
+  labs(
+    subtitle = get_test_label(Ef.aov, detailed = TRUE),
+    caption = get_pwc_label(Efpwc)
+  )
+
+```
+```{r check normailty FR}
+ggplot(TLXdata, aes(x=Frustration)) +
+    geom_histogram(binwidth=0.1, colour="black", fill="white")
+
+library(rstatix)
+TLXdata %>% 
+  group_by(Block) %>% 
+  identify_outliers(Frustration)
+
+TLXdata %>% 
+  group_by(Block) %>% 
+  shapiro_test(Frustration)
+
+library(ggpubr)
+
+ggqqplot(TLXdata, "Frustration", facet.by = "Block")
+```
+
+```{r With ANOVA MD}
+Fr.aov <- anova_test(data = TLXdata, dv = Frustration, wid = participant, within = Block)
+
+get_anova_table(Fr.aov)
+
+Frpwc <- TLXdata %>% 
+  pairwise_t_test(Frustration ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Frpwc <- Frpwc %>%  add_xy_position(x = "Block")
+Frpwc
+
+
+Frbxp <- ggboxplot(TLXdata, x = "Block", y = "Frustration", add = "point")
+
+Frbxp + 
+  stat_pvalue_manual(Frpwc) +
+  labs(
+    subtitle = get_test_label(Fr.aov, detailed = TRUE),
+    caption = get_pwc_label(Frpwc)
+  )
+
+```
+
+
+
+
+

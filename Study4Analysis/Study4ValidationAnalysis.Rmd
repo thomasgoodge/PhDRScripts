@@ -27,6 +27,9 @@ library(ggplot2)
 library(ggthemes)
 library(report)
 library(janitor)
+library(cowplot)
+library(pwr)
+
 ```
 #Read in Exp data
 ```{r}
@@ -51,6 +54,8 @@ for (file in file_list){
 SortedWHNDataExp <- subset(RawWHNDataset,end_resp.keys != "space" ) %>% 
   select(ProlificID, trialrespkey.corr, video_file, trialrespkey.rt)
 SortedWHNDataExp$video_file <- str_sub(SortedWHNDataExp$video_file, end = -8)
+
+
 #removed for less than chance performance
 
 SortedWHNDataExp <- subset(SortedWHNDataExp, ProlificID != '632aa1271f930bbc655a32d8')
@@ -63,11 +68,11 @@ SortedWHNDataExp$Group <- "Experienced"
 
 ExpIDs <- SortedWHNDataExp[!duplicated(SortedWHNDataExp$ProlificID), ]
 
-
-write.csv2(SortedWHNDataExp, "ValidationExpWHN.csv")
-
-
-write.csv(SortedWHNDataExp, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/ValidationExpWHN.csv", row.names=FALSE)
+# 
+# write.csv2(SortedWHNDataExp, "ValidationExpWHN.csv")
+# 
+# 
+# write.csv(SortedWHNDataExp, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/ValidationExpWHN.csv", row.names=FALSE)
 
 ```
 
@@ -178,6 +183,8 @@ SummaryPptWHN$ID <- as.character(SummaryPptWHN$ID)
 
 SummaryPptWHN <- SummaryPptWHN[!duplicated(SummaryPptWHN$ProlificID), ]
 
+SummaryPptWHN$meanScore <- SummaryPptWHN$sumWHN/40
+
 
 GroupSummary <- SummaryPptWHN %>% 
   group_by(Group) %>% 
@@ -201,7 +208,12 @@ GroupSummary <- SummaryPptWHN %>%
 SummaryGroupWHN <-SortedWHNData %>% 
   group_by(Group) %>% 
   summarise(n = n(),
-            sumWHN = sum(trialrespkey.corr))
+            sumWHN = sum(trialrespkey.corr),
+            propWHN = sum(trialrespkey.corr) / n())
+
+
+ExpProb = SummaryGroupWHN$propWHN[1]
+NovProb = SummaryGroupWHN$propWHN[2]
 
 ```
 #Plot WHN scores
@@ -228,23 +240,23 @@ ggplot(data = SummaryPptWHN, aes(x = Group, y = sumWHN, fill = Group))+
 
 
 ```{r}
-SummarySexPptWHN <-FullDataset %>%
-  group_by(ProlificID) %>%
-  summarise(n = n(),
-            sumWHN = sum(trialrespkey.corr),
-            meanRT = mean(trialrespkey.rt, na.rm = T),
-            Group = Group,
-            Sex = Gender)
+# SummarySexPptWHN <-FullDataset %>%
+#   group_by(ProlificID) %>%
+#   summarise(n = n(),
+#             sumWHN = sum(trialrespkey.corr),
+#             meanRT = mean(trialrespkey.rt, na.rm = T),
+#             Group = Group,
+#             Sex = Gender)
 ```
 
 
 ```{r}
-ggplot(data = SummarySexPptWHN, aes(x = Group, y = sumWHN, fill = Sex))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.25,position = position_dodge(0.9))+
-  ylim (0,40)+
-  labs(y = "Average number of Correct responses")+
-  theme_classic()
+# ggplot(data = SummarySexPptWHN, aes(x = Group, y = sumWHN, fill = Sex))+
+#   geom_violin(alpha = 0.4)+
+#   geom_boxplot(width = 0.25,position = position_dodge(0.9))+
+#   ylim (0,40)+
+#   labs(y = "Average number of Correct responses")+
+#   theme_classic()
 
 ```
 
@@ -319,86 +331,36 @@ DemogsDBQFull$Violations <- Violations$meanViolations
 
 #DBQ violin plots
 ```{r}
-
-ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Violations, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  labs(y = "Average number of Violations")+
-  ylim(0,3)+
-  scale_fill_brewer(palette = "Set1")
-
-
-ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Lapses, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  ylim(0,3)+
-  labs(y = "Average number of Lapses")+
-  scale_fill_brewer(palette = "Set1")
-
-
-
-ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Errors, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  ylim(0,3)+
-  labs(y = "Average number of Errors")+
-  scale_fill_brewer(palette = "Set1")
-
+# 
+# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Violations, fill = GroupCheck))+
+#   geom_violin(alpha = 0.4)+
+#   geom_boxplot(width = 0.15)+
+#   labs(y = "Average number of Violations")+
+#   ylim(0,3)+
+#   scale_fill_brewer(palette = "Set1")
+# 
+# 
+# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Lapses, fill = GroupCheck))+
+#   geom_violin(alpha = 0.4)+
+#   geom_boxplot(width = 0.15)+
+#   ylim(0,3)+
+#   labs(y = "Average number of Lapses")+
+#   scale_fill_brewer(palette = "Set1")
+# 
+# 
+# 
+# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Errors, fill = GroupCheck))+
+#   geom_violin(alpha = 0.4)+
+#   geom_boxplot(width = 0.15)+
+#   ylim(0,3)+
+#   labs(y = "Average number of Errors")+
+#   scale_fill_brewer(palette = "Set1")
+# 
 
 
 
 ```
 
-#Gender DBQ Plots
-
-```{r}
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Violations, fill = Gender))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  labs(y = "Average number of Violations")
-
-
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Lapses, fill = Gender))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  labs(y = "Average number of Lapses")
-
-
-
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Errors, fill = Gender))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15)+
-  labs(y = "Average number of Errors")
-
-
-```
-#Gender x Group Plots
-
-
-```{r}
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Violations, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.1, position=position_dodge(0.9))+
-  labs(y = "Average number of Violations")+
-  scale_fill_brewer(palette = "Set1")+
-  theme_classic()
-
-
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Lapses, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15,position = position_dodge(0.9))+
-  labs(y = "Average number of Lapses")+
-  scale_fill_brewer(palette = "Set1")
-
-
-
-ggplot(data = DemogsDBQFull, aes(x = Gender, y = Errors, fill = GroupCheck))+
-  geom_violin(alpha = 0.4)+
-  geom_boxplot(width = 0.15, position = position_dodge(0.9))+
-  labs(y = "Average number of Errors")+
-  scale_fill_brewer(palette = "Set1")
-
-```
 
 
 ```{r}
@@ -541,6 +503,12 @@ summary(aov(data = SortedWHNData, trialrespkey.corr ~ Group))
 #Score
 
 ```{r}
+
+
+t.test(data = SummaryPptWHN, meanScore ~ Group)
+
+4.462*sqrt(2/60)
+
 Scoreanova <- aov(data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp)
 summary(Scoreanova)
 TukeyHSD(Scoreanova)
@@ -561,13 +529,13 @@ summary(ScoreGLMbase)
 # summary(ScoreGLM3)
 
 
-coef(ScoreGLM1)
+#coef(ScoreGLM1)
 
-library(emmeans)
-em <- emmeans(ScoreGLMbase, ~ Group , trans = "response")
-contrast(em, "pairwise", adjust = "Tukey")
-
-anova(ScoreGLM0, ScoreGLMbase, ScoreGLM1,ScoreGLM2,test = "LRT")
+ library(emmeans)
+# em <- emmeans(ScoreGLMbase, ~ Group , trans = "response")
+# contrast(em, "pairwise", adjust = "Tukey")
+# 
+# anova(ScoreGLM0, ScoreGLMbase, ScoreGLM1,ScoreGLM2,test = "LRT")
 
 ```
 
@@ -585,31 +553,12 @@ print(results)
 ```{r}
 #Reaction Time
 
-
 RTLM <- lm(family = poisson, data = FullDataset, formula = trialrespkey.rt ~ Group)
 summary(RTLM)
 
 
 ```
 
-```{r}
-
-FullDatasetTrim <- FullDataset %>% 
-  subset(ProlificID != "60ee998ece5d505f67377c0b")
-
-
-
-GenderGLM <- glm(family = binomial, data = FullDatasetTrim, formula = trialrespkey.corr ~  Gender)
-summary(GenderGLM)
-
-GenderGroupGLM <- glm(family = binomial, data = FullDatasetTrim, formula = trialrespkey.corr ~ Group * Gender)
-summary(GenderGroupGLM)
-
-
-em <- emmeans(GenderGroupGLM, ~ Group * Gender , trans = "response")
-contrast(em, "pairwise", adjust = "Tukey")
-
-```
 
 ```{r}
 DBQFullDataset <- FullDataset 
@@ -644,6 +593,550 @@ ScoreDBQGLM <- glm(data = FullDataset, formula = trialrespkey.corr ~ Group * Vio
 summary(ScoreDBQGLM)
 ```
 
+#Binomial Distribution
+
+```{r}
+
+dbinom(x = 0:1, size = 40, prob = ExpProb)
+
+```
+```{r}
+x <- 0:40
+
+plot(dbinom(x, size = 40, prob = ExpProb), type = "h", lwd = 2,
+     col = rgb(1,0,0),
+     main = "Binomial probability function",
+     ylab = "Probability Density", xlab = "Number of successes")
+lines(dbinom(x, size = 40, prob = NovProb), type = "h",
+      lwd = 2, col = rgb(0.18, 0.45, 0.7, 0.7))
+```
 
 
+```{r}
+ExpResults <- rbinom(1000000, size=40, prob=ExpProb)
+mean(ExpResults)
+
+NovResults <- rbinom(1000000, size=40, prob=NovProb)
+mean(NovResults)
+```
+```{r}
+a <- .05
+ExpProb + c(-qnorm(1-a/2), qnorm(1-a/2))*sqrt((1/100)*ExpProb*(1-ExpProb))
+NovProb + c(-qnorm(1-a/2), qnorm(1-a/2))*sqrt((1/100)*NovProb*(1-NovProb))
+```
+```{r}
+
+40*ExpProb
+
+40*(1-ExpProb)
+
+Expmean = 40 * ExpProb
+
+Expsd = sqrt(40 * ExpProb * (1-ExpProb))
+
+ExpZ = (45.5 - Expmean) / Expsd
+
+Novmean = 40 * NovProb
+Novsd = sqrt(40 * NovProb * (1-NovProb))
+
+NovZ = (45.5 - Novmean) / Novsd
+
+NovZ
+
+```
+```{r}
+
+WHNClassData <- FullDataset %>% 
+  select(ProlificID, trialrespkey.corr, video_file, Group) %>% 
+  pivot_wider(id_cols = "ProlificID", names_from = "video_file" ,values_from = trialrespkey.corr )
+
+Group <- FullDataset %>% 
+  select(ProlificID,Group) 
+
+Group <- Group[!duplicated(Group$ProlificID), ]
+
+
+df <- left_join(WHNClassData, Group, by = "ProlificID")
+WHNTrainingData <- left_join(WHNClassData, Group, by = "ProlificID")
+
+
+testRand <- sample(1:nrow(WHNTrainingData), nrow(WHNTrainingData)/4, replace=FALSE)
+
+testRand
+
+WHNTestData <- WHNTrainingData %>% 
+  sample_n(nrow(WHNTrainingData)/4, replace = FALSE)
+
+TestIds <- WHNTestData$ProlificID
+
+# WHNTrainingData <- WHNTrainingData %>% 
+#   subset( !(ProlificID %in% TestIds))
+
+WHNTrainingLabels <- WHNTrainingData %>% 
+  select(ProlificID, Group)
+  
+
+WHNTrainingData <- WHNTrainingData %>% 
+  select(-c(ProlificID, Group))
+  
+  
+write.csv(WHNTestData, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/WHNTestData.csv", row.names=FALSE)
+
+write.csv(WHNTrainingData, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/WHNTrainingData.csv", row.names=FALSE)
+```
+#Bernoulli
+```{r}
+library(naivebayes)
+
+M <- as.matrix(WHNTrainingData) #matrix(sample(0:1, rows * cols,  TRUE, probs), nrow = rows, ncol = cols)
+y <- WHNTrainingLabels$Group
+#colnames(M) <- paste0("V", seq_len(ncol(M)))
+laplace <- 0
+
+
+bnb <- bernoulli_naive_bayes(x = M, y = y, prior = NULL, laplace = 0)
+summary(bnb)
+
+```
+
+
+
+```{r}
+head(predict(bnb, newdata = M, type = "class")) # head(bnb %class% M)
+
+head(predict(bnb, newdata = M, type = "prob")) # head(bnb %prob% M)
+
+# Parameter estimates
+summary(coef(bnb))
+
+library(Matrix)
+M_sparse <- Matrix(M, sparse = TRUE)
+class(M_sparse) # dgCMatrix
+
+# Fit the model with sparse data
+bnb_sparse <- bernoulli_naive_bayes(M_sparse, y, laplace = laplace)
+
+# Classification
+head(predict(bnb_sparse, newdata = M_sparse, type = "class"))
+
+Preds <- as.data.frame(predict(bnb_sparse, newdata = M_sparse, type = "class"))
+
+# Posterior probabilities
+head(predict(bnb_sparse, newdata = M_sparse, type = "prob"))
+
+# Parameter estimates
+coef(bnb_sparse)
+
+COEFS <- as.data.frame(coef(bnb_sparse)) 
+
+COEFS$Discrim <- if_else(COEFS$`Experienced:1` > COEFS$`Novice:1`,T,F)
+
+COEFSsummary <- COEFS %>% 
+  summarise(meanExp0 = mean(`Experienced:0`),
+            meanExp1 = mean(`Experienced:1`),
+            meanNov0 = mean(`Novice:0`),
+            meanNov1 = mean(`Novice:1`))
+
+### Equivalent calculation with general naive_bayes function.
+### (no sparse data support by naive_bayes)
+
+# Make sure that the columns are factors with the 0-1 levels
+df2 <- as.data.frame(lapply(as.data.frame(M), factor, levels = c(0,1)))
+# sapply(df, class)
+
+nb <- naive_bayes(df2, y, laplace = laplace)
+summary(nb)
+head(predict(nb, type = "prob"))
+
+# Obtain probability tables
+a <- tables(nb)
+tables(bnb)
+
+# Visualise class conditional Bernoulli distributions
+plot(nb,  prob = "conditional")
+plot(bnb, prob = "conditional")
+
+# Check the equivalence of the class conditional distributions
+all(get_cond_dist(nb) == get_cond_dist(bnb))
+```
+
+```{r}
+ScoreGLMbase <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group)
+
+coef1 <- ScoreGLMbase$coefficients[2]
+coef0 <- ScoreGLMbase$coefficients[1]
+
+prob_novice <- plogis(coef1*1 + coef0)
+prob_exp <- plogis(coef1*0 + coef0)
+
+
+decision_novice <- rbernoulli(1, p = prob_novice)
+decision_exp <- rbernoulli(1, p = prob_exp)
+
+```
+
+
+
+
+```{r}
+
+WHNTrainingData2 <- FullDataset %>% 
+  select(Group, trialrespkey.corr)
+
+write.csv(WHNTrainingData2, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/WHNTrainingData2.csv", row.names=FALSE)
+
+```
+
+#K Folds Cross-Validation
+
+```{r playtime}
+cool_mod <- glm(family = binomial(link="logit"), data = df, formula = Group ~ Clip01	+
+Clip02	+
+Clip03	+
+Clip04	+
+Clip05	+
+Clip06	+
+Clip07	+
+Clip08	+
+Clip09	+
+Clip10	+
+Clip11	+
+Clip12	+
+Clip13	+
+Clip14	+
+Clip15	+
+Clip16	+
+Clip17	+
+Clip18	+
+Clip19	+
+Clip20	+
+Clip21	+
+Clip22	+
+Clip23	+
+Clip24	+
+Clip25	+
+Clip26	+
+Clip27	+
+Clip28	+
+Clip29	+
+Clip30	+
+Clip31	+
+Clip32	+
+Clip33	+
+Clip34	+
+Clip35	+
+Clip36	+
+Clip37	+
+Clip38	+
+Clip39	+
+Clip40	
+)
+
+
+
+```
+```{r}
+library(glmnet)
+
+
+x <- data.matrix(df[,c(
+    "Clip01",
+    "Clip02",
+    "Clip03",
+    "Clip04",
+    "Clip05",
+    "Clip06",
+    "Clip07",
+    "Clip08",
+    "Clip09",
+    "Clip10",
+    "Clip11",
+    "Clip12",
+    "Clip13",
+    "Clip14",
+    "Clip15",
+    "Clip16",
+    "Clip17",
+    "Clip18",
+    "Clip19",
+    "Clip20",
+    "Clip21",
+    "Clip22",
+    "Clip23",
+    "Clip24",
+    "Clip25",
+    "Clip26",
+    "Clip27",
+    "Clip28",
+    "Clip29",
+    "Clip30",
+    "Clip31",
+    "Clip32",
+    "Clip33",
+    "Clip34",
+    "Clip35",
+    "Clip36",
+    "Clip37",
+    "Clip38",
+    "Clip39",
+    "Clip40")]
+)
+#Code each experience group as 1 or 0. Convert to numeric, subtract 2 as originally coded as 1 = Experienced and Novice = 2, then take the absolute value (remove minus from 1 - 2)
+y <- abs(as.numeric(df$Group)-2)
+
+
+
+``` 
+
+```{r}
+
+set.seed(1234)
+cv_model <- cv.glmnet(x, y, alpha = 0)
+
+plot(cv_model)
+
+#find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+
+#produce plot of test MSE by lambda value
+plot(cv_model) 
+```
+```{r}
+
+
+best_model <- glmnet(x, y, alpha = 0, lambda = best_lambda)
+coefficients(best_model)
+
+summary(best_model)
+
+```
+
+```{r}
+coefs <- summary(coefficients(best_model))
+
+coefs$i <- coefs$i - 1
+
+
+
+# Function to add "Clip" to numeric values in a dataframe column
+add_clip <- function(dataframe, column_name) {
+  # Create a new column with modified values
+  dataframe[[paste0(column_name, "_with_clip")]] <- paste("Clip",dataframe[[column_name]],  sep = "")
+  return(dataframe)
+}
+
+# Call the function to add "Clip" to the numeric values in the column "numeric_column"
+clipCoefs <- add_clip(coefs, "i")
+
+clipCoefs <- clipCoefs %>% 
+  select(i_with_clip, x) %>% 
+  subset(i_with_clip != "Clip0") %>% 
+  rename("video_file" = i_with_clip)
+
+
+clipCoefs$video_file[clipCoefs$video_file == "Clip1"] <- "Clip01"
+clipCoefs$video_file[clipCoefs$video_file == "Clip2"] <- "Clip02"
+clipCoefs$video_file[clipCoefs$video_file == "Clip3"] <- "Clip03"
+clipCoefs$video_file[clipCoefs$video_file == "Clip4"] <- "Clip04"
+clipCoefs$video_file[clipCoefs$video_file == "Clip5"] <- "Clip05"
+clipCoefs$video_file[clipCoefs$video_file == "Clip6"] <- "Clip06"
+clipCoefs$video_file[clipCoefs$video_file == "Clip7"] <- "Clip07"
+clipCoefs$video_file[clipCoefs$video_file == "Clip8"] <- "Clip08"
+clipCoefs$video_file[clipCoefs$video_file == "Clip9"] <- "Clip09"
+
+```
+#Clip coefs plot
+```{r}
+ggplot(clipCoefs, aes(x = video_file, y = x, fill = x)) +
+  geom_col() +
+  scale_fill_gradient(high = "green", low = "red")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  xlab("Clip Number")+
+  ylab("Predictor Coefficient")
+
+
+#ggsave("clipCoefPlot.png", plot = last_plot())
+        
+```
+
+```{r cv setup}
+
+
+#choose a random number from calculator.net
+# k folds
+set.seed(329235)
+k_n = 10
+
+iter = 100
+
+meanAccuracy = rep(0, iter)
+
+for(l in 1:iter)
+{
+    
+    
+    cv_group_setup <- rep(1:k_n, each = 60/k_n)
+    cv_group <- sample(cv_group_setup, 60, replace = FALSE)
+    
+    
+    accuracy <- rep(0, k_n)
+    
+    for(k in 1:k_n){
+      # set up groups
+      sub_vector_test <- cv_group == k
+      sub_vector_train <- !sub_vector_test
+      
+      # training data
+      y_train <- y[sub_vector_train]
+      x_train <- x[sub_vector_train,]
+      
+      # testing data
+      y_test <- y[sub_vector_test]
+      x_test <- x[sub_vector_test,]
+      
+      # fit model with parameters from above 
+      train_model <- glmnet(x_train, y_train, alpha = 0, lambda = best_lambda)
+      
+      # predict group membership (0 = experience, 1 = novice) - using rounding as decision rule
+      test_decision <- round(predict.glmnet(train_model, x_test))
+      
+      # calc accuracy
+      hits <- test_decision == y_test
+      score <- mean(hits)
+      accuracy[k] = score
+    }
+  meanAccuracy[l] = mean(accuracy)
+
+    
+}
+
+meanAccTibble <- tibble(meanAccuracy)
+    # print(accuracy)
+    # print(mean(accuracy))
+ggplot(
+  data = meanAccTibble,
+  aes(x = meanAccuracy, fill = meanAccuracy)) +
+  geom_density()+
+  geom_vline(aes(xintercept =mean(meanAccuracy)), color = "red")+
+  xlab("Mean Accuracy over 100 iterations of k=10")
+
+#ggsave("meanAccPlot.png", last_plot())
+mean(meanAccTibble$meanAccuracy)
+
+
+```
+
+```{r}
+
+MeanAcc <- SummaryClipWHN %>% 
+  pivot_wider(names_from = Group, values_from = WHNPercent) %>% 
+  select(video_file, Experienced,Novice) 
+
+
+
+MeanAcc <- MeanAcc %>%
+  group_by(video_file) %>%
+  summarise(Experienced = max(Experienced, na.rm = TRUE),
+            Novice = max(Novice, na.rm = TRUE))
+
+MeanAcc$video_file <- as.factor(MeanAcc$video_file)
+clipCoefs$video_file <- as.factor(clipCoefs$video_file)
+
+MeanAccFinal <- full_join(MeanAcc, clipCoefs, by = "video_file") %>% 
+  subset(video_file != "Clip0") %>% 
+  rename("Coefficient" = x) %>% 
+  rename("Clip Number" = video_file) %>% 
+  mutate(Diff = Experienced - Novice)
+
+
+#MeanAcc <- left_join(MeanAcc, clipCoefs, by = video_file)
+
+
+
+
+```
+
+```{r}
+
+# Load necessary library
+library(ggplot2)
+
+# Assuming SummaryClipWHN is your dataframe
+
+# Calculate 1 - the score
+SummaryClipWHN$Complement_WHNPercent <- 1 - SummaryClipWHN$WHNPercent
+
+# Generate plots for each video_file
+plots_list <- lapply(unique(SummaryClipWHN$video_file), function(vid_file) {
+  # Subset data for the current video_file
+  data_subset <- subset(SummaryClipWHN, video_file == vid_file)
+  
+  # Plot
+  ggplot(data_subset, aes(x = video_file, y = WHNPercent, fill = "WHNPercent")) +
+    geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.35) +
+    geom_bar(data = data_subset, aes(x = video_file, y = Complement_WHNPercent, fill = "Complement_WHNPercent"), 
+             stat = "identity", position = position_dodge(width = 0.9), width = 0.35) +
+    labs(title = paste("Comparison of", vid_file, "and its Complement"), y = "Score", x = "Clip Number") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+})
+
+# Output plots
+plots_list
+
+```
+#Best Clips
+```{r}
+WHNBest <- FullDataset %>% 
+  subset(video_file != "Clip30") %>% 
+  subset(video_file != "Clip34") %>% 
+  subset(video_file != "Clip36") %>% 
+  subset(video_file != "Clip22") %>% 
+  subset(video_file != "Clip09") %>% 
+  subset(video_file != "Clip05") %>% 
+  subset(video_file != "Clip25") %>% 
+  subset(video_file != "Clip10") %>% 
+  subset(video_file != "Clip14") %>% 
+  subset(video_file != "Clip08") 
+  
+  
+
+```
+
+```{r}
+SummaryPptWHNBest <-WHNBest %>% 
+  group_by(ProlificID) %>% 
+  summarise(n = n(),
+            sumWHN = sum(trialrespkey.corr),
+            meanRT = mean(trialrespkey.rt, na.rm = T),
+            Group = Group)
+
+SummaryPptWHNBest <- rowid_to_column(SummaryPptWHNBest , "ID")
+SummaryPptWHNBest$ID <- as.character(SummaryPptWHNBest$ID)
+
+SummaryPptWHNBest <- SummaryPptWHNBest[!duplicated(SummaryPptWHNBest$ProlificID), ]
+
+SummaryPptWHNBest$meanScore <- SummaryPptWHNBest$sumWHN/30
+
+```
+
+
+
+
+```{r}
+ggplot(data = SummaryPptWHNBest, aes(x = Group, y = sumWHN, fill = Group))+
+  geom_violin(alpha = 0.4)+
+  geom_boxplot(width = 0.2)+
+  ylim (0,30)+
+  labs(y = "Average number of Correct responses")+
+  scale_fill_brewer(palette = "Set1")+
+  theme_classic()
+```
+```{r}
+ScoreGLMBest <- glm(family = binomial(link="logit"), data = WHNBest, formula = trialrespkey.corr ~ Group)
+summary(ScoreGLMbase)
+summary(ScoreGLMBest)
+```
 

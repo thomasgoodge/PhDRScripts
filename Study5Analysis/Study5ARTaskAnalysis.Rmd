@@ -1,8 +1,8 @@
 ---
-title: "ScoreProportionAnalysis"
+title: "Study5ARTaskAnalysis"
 author: "TGoodge"
-date: '2022-11-01'
-output: pdf_document
+date: "2024-04-22"
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -18,8 +18,6 @@ library(ggplot2)
 
 
 ```{r}
-
-dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Score"
 
 dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/AR Task"
 
@@ -97,10 +95,6 @@ scoreDataset <- scoreDatasetRaw
   
 scoreDataset$ID <- substring(scoreDataset$ID,2,5)
 
-scoreDataset <- scoreDataset %>%
-#subset(image_file != "Slide24") %>%
-  subset(ID != "P01") %>%
-  subset(ID != "P12") 
   
 ```
 
@@ -164,30 +158,8 @@ APbxp +
   #stat_pvalue_manual(pwc) +
   labs(
     subtitle = get_test_label(AP.aov, detailed = TRUE),
-    caption = get_pwc_label(pwc)
+    caption = get_pwc_label(APpwc)
   )
 
 
 ```
-```{r}
-TabletScores = read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 3/data/Score/TabletScore.csv") %>% 
-#subset(image_file != "Slide24") %>%
-  subset(ID != "P03") %>%
-  subset(ID != "P04") %>%
-  subset(ID != "P15") %>% 
-  subset(ID != "P16") %>%
-  subset(ID != "P24") %>%
-  subset(ID != "P01") %>% 
-  subset(ID != "P02")
-  
-```
-
-
-
-```{r}
-TabletScoresSummary <- TabletScores %>% 
-  summarise(n = n(),
-            meanLevel = mean(Level),
-            meanScore = mean(Score))
-```
-

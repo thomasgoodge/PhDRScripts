@@ -1,0 +1,614 @@
+---
+title: "TGStudy5Rosas"
+author: "TGoodge"
+date: '2024-03-18'
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(readr)
+library(janitor)
+library(car)
+library(emmeans)
+library(lme4)
+library(lmerTest)
+library(rstatix)
+library(ggpubr)
+```
+
+```{r}
+TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/Qualtrics/PostBlockQs/Study5TLX.csv") %>% 
+  
+
+# Tidy the data - select scores,
+  select(starts_with('Q'))
+  TLXdataOrg <- TLXdataRaw[-c(1:2),]
+  colnames(TLXdataOrg) <- c('participant','Timepoint','Block', "Happy", "Feeling",	"Social",	"Organic",	"Compassionate",	"Emotional",	"Capable",	"Responsive",	"Interactive",	"Reliable",	"Competent",	"Knowledgeable",	"Scary",	"Strange",	"Awkward",	"Dangerous",	"Awful",	"Aggressive",'MentalDemand', 'PhysicalDemand', 'TemporalDemand', 'OverallPerformance', 'Effort', 'Frustration', 'PD/MD', 'TD/MD', 'OP/MD', 'Fr/MD','Ef/MD','TD/PD','OP/PD','Fr/PD', 'Ef/PD','TD/OP','TD/Fr','TD/Ef','OP/Fr','OP/Ef','Ef/Fr')
+
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 1"] <- "1"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 2"] <- "2"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Block 3"] <- "3"
+  TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Experiment"] <- "4"
+  
+  
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 0 - Control"] <- "Control"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "Visual"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Social"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - Gems"] <- "NDRT"
+  
+
+```
+
+
+```{r}
+RoSASOrg <- TLXdataOrg %>% 
+  select(c('participant','Timepoint','Block', "Happy", "Feeling",	"Social",	"Organic",	"Compassionate",	"Emotional",	"Capable",	"Responsive",	"Interactive",	"Reliable",	"Competent",	"Knowledgeable",	"Scary",	"Strange",	"Awkward",	"Dangerous",	"Awful"))
+
+RoSASOrg <- RoSASOrg %>% 
+  subset(Block != "Control") %>% 
+    subset(Block != "NDRT")
+
+
+  RoSASOrg <- RoSASOrg %>% 
+  subset(participant != "P01") %>% 
+    subset(participant != "P12") 
+```
+
+
+```{r}
+RoSASOrg[4:20] = lapply(RoSASOrg[4:20], FUN = function(y){as.numeric(y)})
+
+
+#TLXdata$Total = rowSums(TLXdata[,c(4,9)], na.rm = T)
+
+RoSASOrg$Warmth = rowMeans(RoSASOrg[,c(4,9)], na.rm = T)
+RoSASOrg$Competence = rowMeans(RoSASOrg[,c(10,15)], na.rm = T)
+RoSASOrg$Discomfort =rowMeans(RoSASOrg[,c(16,20)], na.rm = T)
+
+RoSASFull <- RoSASOrg
+
+```
+
+
+```{r}
+
+RoSASShortSummary <- RoSASFull %>% 
+  group_by(Block) %>% 
+  summarise(n = n(),
+            Warmth = mean(Warmth),
+            Competence = mean(Competence),
+            Discomfort = mean(Discomfort))
+
+
+RosasFullSummary <- RoSASFull %>% 
+  group_by(Block) %>% 
+  summarise(n = n(),
+            Happy = mean(Happy),
+            Feeling = mean(Feeling),
+            Social = mean(Social),
+            Organic = mean(Organic),
+            Compassionate = mean(Compassionate),
+            Emotional = mean(Emotional),
+            Capable = mean(Capable),
+            Responsive = mean(Responsive),
+            Interactive = mean(Interactive),
+            Reliable = mean(Reliable),
+            Competent = mean(Competent),
+            Knowledgeable = mean(Knowledgeable),
+            Scary = mean(Scary),
+            Strange = mean(Strange),
+            Awkward = mean(Awkward),
+            Dangerous = mean(Dangerous),
+            Awful = mean(Awful))
+
+```
+
+```{r}
+#library(ggpubfigs)
+ggplot(RoSASFull, aes(Block, Warmth, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total NASA TLX scores")+
+#    scale_fill_manual(values = friendly_pal("ito_seven"))
+        theme_classic()
+
+ggplot(RoSASFull, aes(Block, Competence, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total NASA TLX scores")+
+#    scale_fill_manual(values = friendly_pal("ito_seven"))
+        theme_classic()
+
+ggplot(RoSASFull, aes(Block, Discomfort, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total NASA TLX scores")+
+#    scale_fill_manual(values = friendly_pal("ito_seven"))
+        theme_classic()
+
+```
+
+```{r}
+RosasWarmth.aov <- anova_test(data = RoSASFull, dv = Warmth, wid = participant, within = Block)
+
+get_anova_table(RosasWarmth.aov)
+
+Warmrthpwc <- RoSASFull %>% 
+  pairwise_t_test(Warmth ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Warmrthpwc <- Warmrthpwc %>%  add_xy_position(x = "Block")
+Warmrthpwc
+
+
+Warmthbxp <- ggboxplot(RoSASFull, x = "Block", y = "Warmth", add = "point")
+
+Warmthbxp + 
+  stat_pvalue_manual(Warmrthpwc) +
+  labs(
+    subtitle = get_test_label(RosasWarmth.aov, detailed = TRUE),
+    caption = get_pwc_label(Warmrthpwc)
+  )
+
+```
+```{r}
+RosasCompetence.aov <- anova_test(data = RoSASFull, dv = Competence, wid = participant, within = Block)
+
+get_anova_table(RosasCompetence.aov)
+
+Warmrthpwc <- RoSASFull %>% 
+  pairwise_t_test(Competence ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Warmrthpwc <- Warmrthpwc %>%  add_xy_position(x = "Block")
+Warmrthpwc
+
+
+Competencebxp <- ggboxplot(RoSASFull, x = "Block", y = "Competence", add = "point")
+
+Competencebxp + 
+  stat_pvalue_manual(Warmrthpwc) +
+  labs(
+    subtitle = get_test_label(RosasCompetence.aov, detailed = TRUE),
+    caption = get_pwc_label(Warmrthpwc)
+  )
+
+```
+
+```{r}
+RosasDiscomfort.aov <- anova_test(data = RoSASFull, dv = Discomfort, wid = participant, within = Block)
+
+get_anova_table(RosasDiscomfort.aov)
+
+Warmrthpwc <- RoSASFull %>% 
+  pairwise_t_test(Discomfort ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Warmrthpwc <- Warmrthpwc %>%  add_xy_position(x = "Block")
+Warmrthpwc
+
+
+Discomfortbxp <- ggboxplot(RoSASFull, x = "Block", y = "Discomfort", add = "point")
+
+Discomfortbxp + 
+  stat_pvalue_manual(Warmrthpwc) +
+  labs(
+    subtitle = get_test_label(RosasDiscomfort.aov, detailed = TRUE),
+    caption = get_pwc_label(Warmrthpwc)
+  )
+
+```
+
+```{r}
+RosasHappy.aov <- anova_test(data = RoSASFull, dv = Happy, wid = participant, within = Block)
+
+get_anova_table(RosasHappy.aov)
+
+Happypwc <- RoSASFull %>% 
+  pairwise_t_test(Happy ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Happypwc <- Happypwc %>%  add_xy_position(x = "Block")
+Happypwc
+
+Happybxp <- ggboxplot(RoSASFull, x = "Block", y = "Happy", add = "point")
+
+Happybxp + 
+  stat_pvalue_manual(Happypwc) +
+  labs(
+    subtitle = get_test_label(RosasHappy.aov, detailed = TRUE),
+    caption = get_pwc_label(Happypwc)
+  )
+
+```
+```{r}
+# Feeling
+RosasFeeling.aov <- anova_test(data = RoSASFull, dv = Feeling, wid = participant, within = Block)
+
+get_anova_table(RosasFeeling.aov)
+
+Feelingpwc <- RoSASFull %>% 
+  pairwise_t_test(Feeling ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Feelingpwc <- Feelingpwc %>%  add_xy_position(x = "Block")
+Feelingpwc
+
+Feelingbxp <- ggboxplot(RoSASFull, x = "Block", y = "Feeling", add = "point")
+
+Feelingbxp + 
+  stat_pvalue_manual(Feelingpwc) +
+  labs(
+    subtitle = get_test_label(RosasFeeling.aov, detailed = TRUE),
+    caption = get_pwc_label(Feelingpwc)
+  )
+```
+
+
+```{r}
+# Social
+RosasSoc.aov <- anova_test(data = RoSASFull, dv = Social, wid = participant, within = Block)
+
+get_anova_table(RosasSoc.aov)
+
+Socialpwc <- RoSASFull %>% 
+  pairwise_t_test(Social ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Socialpwc <- Socialpwc %>%  add_xy_position(x = "Block")
+Socialpwc
+
+Socialbxp <- ggboxplot(RoSASFull, x = "Block", y = "Social", add = "point")
+
+Socialbxp + 
+  stat_pvalue_manual(Socialpwc)+
+
+  labs(
+    subtitle = get_test_label(RosasSoc.aov, detailed = TRUE),
+    caption = get_pwc_label(Socialpwc)
+  )
+```
+
+```{r}
+RosasOrganic.aov <- anova_test(data = RoSASFull, dv = Organic, wid = participant, within = Block)
+
+get_anova_table(RosasOrganic.aov)
+
+Organicpwc <- RoSASFull %>% 
+  pairwise_t_test(Organic ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Organicpwc <- Organicpwc %>%  add_xy_position(x = "Block")
+Organicpwc
+
+Organicbxp <- ggboxplot(RoSASFull, x = "Block", y = "Organic", add = "point")
+
+Organicbxp + 
+  stat_pvalue_manual(Organicpwc) +
+  labs(
+    subtitle = get_test_label(RosasOrganic.aov, detailed = TRUE),
+    caption = get_pwc_label(Organicpwc)
+  )
+```
+
+
+```{r}
+# Compassionate
+RosasCompassionate.aov <- anova_test(data = RoSASFull, dv = Compassionate, wid = participant, within = Block)
+
+get_anova_table(RosasCompassionate.aov)
+
+Compassionatepwc <- RoSASFull %>% 
+  pairwise_t_test(Compassionate ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Compassionatepwc <- Compassionatepwc %>%  add_xy_position(x = "Block")
+Compassionatepwc
+
+Compassionatebxp <- ggboxplot(RoSASFull, x = "Block", y = "Compassionate", add = "point")
+
+Compassionatebxp + 
+  stat_pvalue_manual(Compassionatepwc) +
+  labs(
+    subtitle = get_test_label(RosasCompassionate.aov, detailed = TRUE),
+    caption = get_pwc_label(Compassionatepwc)
+  )
+
+```
+
+```{r}
+# Emotional
+RosasEmotional.aov <- anova_test(data = RoSASFull, dv = Emotional, wid = participant, within = Block)
+
+get_anova_table(RosasEmotional.aov)
+
+Emotionalpwc <- RoSASFull %>% 
+  pairwise_t_test(Emotional ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Emotionalpwc <- Emotionalpwc %>%  add_xy_position(x = "Block")
+Emotionalpwc
+
+Emotionalbxp <- ggboxplot(RoSASFull, x = "Block", y = "Emotional", add = "point")
+
+Emotionalbxp + 
+  stat_pvalue_manual(Emotionalpwc) +
+  labs(
+    subtitle = get_test_label(RosasEmotional.aov, detailed = TRUE),
+    caption = get_pwc_label(Emotionalpwc)
+  )
+```
+
+
+```{r}
+# Capable
+RosasCapable.aov <- anova_test(data = RoSASFull, dv = Capable, wid = participant, within = Block)
+
+get_anova_table(RosasCapable.aov)
+
+Capablepwc <- RoSASFull %>% 
+  pairwise_t_test(Capable ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Capablepwc <- Capablepwc %>%  add_xy_position(x = "Block")
+Capablepwc
+
+Capablebxp <- ggboxplot(RoSASFull, x = "Block", y = "Capable", add = "point")
+
+Capablebxp + 
+  stat_pvalue_manual(Capablepwc) +
+  labs(
+    subtitle = get_test_label(RosasCapable.aov, detailed = TRUE),
+    caption = get_pwc_label(Capablepwc)
+  )
+```
+
+
+```{r}
+# Responsive
+RosasResponsive.aov <- anova_test(data = RoSASFull, dv = Responsive, wid = participant, within = Block)
+
+get_anova_table(RosasResponsive.aov)
+
+Responsivepwc <- RoSASFull %>% 
+  pairwise_t_test(Responsive ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Responsivepwc <- Responsivepwc %>%  add_xy_position(x = "Block")
+Responsivepwc
+
+Responsivebxp <- ggboxplot(RoSASFull, x = "Block", y = "Responsive", add = "point")
+
+Responsivebxp + 
+  stat_pvalue_manual(Responsivepwc) +
+  labs(
+    subtitle = get_test_label(RosasResponsive.aov, detailed = TRUE),
+    caption = get_pwc_label(Responsivepwc)
+  )
+
+```
+
+```{r}
+# Interactive
+RosasInteractive.aov <- anova_test(data = RoSASFull, dv = Interactive, wid = participant, within = Block)
+
+get_anova_table(RosasInteractive.aov)
+
+Interactivepwc <- RoSASFull %>% 
+  pairwise_t_test(Interactive ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Interactivepwc <- Interactivepwc %>%  add_xy_position(x = "Block")
+Interactivepwc
+
+Interactivebxp <- ggboxplot(RoSASFull, x = "Block", y = "Interactive", add = "point")
+
+Interactivebxp + 
+  stat_pvalue_manual(Interactivepwc) +
+  labs(
+    subtitle = get_test_label(RosasInteractive.aov, detailed = TRUE),
+    caption = get_pwc_label(Interactivepwc)
+  )
+```
+
+
+```{r}
+# Reliable
+RosasReliable.aov <- anova_test(data = RoSASFull, dv = Reliable, wid = participant, within = Block)
+
+get_anova_table(RosasReliable.aov)
+
+Reliablepwc <- RoSASFull %>% 
+  pairwise_t_test(Reliable ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Reliablepwc <- Reliablepwc %>%  add_xy_position(x = "Block")
+Reliablepwc
+
+Reliablebxp <- ggboxplot(RoSASFull, x = "Block", y = "Reliable", add = "point")
+
+Reliablebxp + 
+  stat_pvalue_manual(Reliablepwc) +
+  labs(
+    subtitle = get_test_label(RosasReliable.aov, detailed = TRUE),
+    caption = get_pwc_label(Reliablepwc)
+  )
+```
+
+
+```{r}
+# Competent
+RosasCompetent.aov <- anova_test(data = RoSASFull, dv = Competent, wid = participant, within = Block)
+
+get_anova_table(RosasCompetent.aov)
+
+Competentpwc <- RoSASFull %>% 
+  pairwise_t_test(Competent ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Competentpwc <- Competentpwc %>%  add_xy_position(x = "Block")
+Competentpwc
+
+Competentbxp <- ggboxplot(RoSASFull, x = "Block", y = "Competent", add = "point")
+
+Competentbxp + 
+  stat_pvalue_manual(Competentpwc) +
+  labs(
+    subtitle = get_test_label(RosasCompetent.aov, detailed = TRUE),
+    caption = get_pwc_label(Competentpwc)
+  )
+
+```
+
+
+```{r}
+# Knowledgeable
+RosasKnowledgeable.aov <- anova_test(data = RoSASFull, dv = Knowledgeable, wid = participant, within = Block)
+
+get_anova_table(RosasKnowledgeable.aov)
+
+Knowledgeablepwc <- RoSASFull %>% 
+  pairwise_t_test(Knowledgeable ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Knowledgeablepwc <- Knowledgeablepwc %>%  add_xy_position(x = "Block")
+Knowledgeablepwc
+
+Knowledgeablebxp <- ggboxplot(RoSASFull, x = "Block", y = "Knowledgeable", add = "point")
+
+Knowledgeablebxp + 
+  stat_pvalue_manual(Knowledgeablepwc) +
+  labs(
+    subtitle = get_test_label(RosasKnowledgeable.aov, detailed = TRUE),
+    caption = get_pwc_label(Knowledgeablepwc)
+  )
+```
+
+
+```{r}
+# Scary
+RosasScary.aov <- anova_test(data = RoSASFull, dv = Scary, wid = participant, within = Block)
+
+get_anova_table(RosasScary.aov)
+
+Scarypwc <- RoSASFull %>% 
+  pairwise_t_test(Scary ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Scarypwc <- Scarypwc %>%  add_xy_position(x = "Block")
+Scarypwc
+
+Scarybxp <- ggboxplot(RoSASFull, x = "Block", y = "Scary", add = "point")
+
+Scarybxp + 
+  stat_pvalue_manual(Scarypwc) +
+  labs(
+    subtitle = get_test_label(RosasScary.aov, detailed = TRUE),
+    caption = get_pwc_label(Scarypwc)
+  )
+```
+
+
+```{r}
+# Strange
+RosasStrange.aov <- anova_test(data = RoSASFull, dv = Strange, wid = participant, within = Block)
+
+get_anova_table(RosasStrange.aov)
+
+Strangepwc <- RoSASFull %>% 
+  pairwise_t_test(Strange ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Strangepwc <- Strangepwc %>%  add_xy_position(x = "Block")
+Strangepwc
+
+Strangebxp <- ggboxplot(RoSASFull, x = "Block", y = "Strange", add = "point")
+
+Strangebxp + 
+  stat_pvalue_manual(Strangepwc) +
+  labs(
+    subtitle = get_test_label(RosasStrange.aov, detailed = TRUE),
+    caption = get_pwc_label(Strangepwc)
+  )
+
+```
+
+
+```{r}
+# Awkward
+RosasAwkward.aov <- anova_test(data = RoSASFull, dv = Awkward, wid = participant, within = Block)
+
+get_anova_table(RosasAwkward.aov)
+
+Awkwardpwc <- RoSASFull %>% 
+  pairwise_t_test(Awkward ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Awkwardpwc <- Awkwardpwc %>%  add_xy_position(x = "Block")
+Awkwardpwc
+
+Awkwardbxp <- ggboxplot(RoSASFull, x = "Block", y = "Awkward", add = "point")
+
+Awkwardbxp + 
+  stat_pvalue_manual(Awkwardpwc) +
+  labs(
+    subtitle = get_test_label(RosasAwkward.aov, detailed = TRUE),
+    caption = get_pwc_label(Awkwardpwc)
+  )
+```
+
+
+```{r}
+# Dangerous
+RosasDangerous.aov <- anova_test(data = RoSASFull, dv = Dangerous, wid = participant, within = Block)
+
+get_anova_table(RosasDangerous.aov)
+
+Dangerouspwc <- RoSASFull %>% 
+  pairwise_t_test(Dangerous ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Dangerouspwc <- Dangerouspwc %>%  add_xy_position(x = "Block")
+Dangerouspwc
+
+Dangerousbxp <- ggboxplot(RoSASFull, x = "Block", y = "Dangerous", add = "point")
+
+Dangerousbxp + 
+  stat_pvalue_manual(Dangerouspwc) +
+  labs(
+    subtitle = get_test_label(RosasDangerous.aov, detailed = TRUE),
+    caption = get_pwc_label(Dangerouspwc)
+  )
+```
+
+
+```{r}
+# Awful
+RosasAwful.aov <- anova_test(data = RoSASFull, dv = Awful, wid = participant, within = Block)
+
+get_anova_table(RosasAwful.aov)
+
+Awfulpwc <- RoSASFull %>% 
+  pairwise_t_test(Awful ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+Awfulpwc <- Awfulpwc %>%  add_xy_position(x = "Block")
+Awfulpwc
+
+Awfulbxp <- ggboxplot(RoSASFull, x = "Block", y = "Awful", add = "point")
+
+Awfulbxp + 
+  stat_pvalue_manual(Awfulpwc) +
+  labs(
+    subtitle = get_test_label(RosasAwful.aov, detailed = TRUE),
+    caption = get_pwc_label(Awfulpwc)
+  )
+
+```
+

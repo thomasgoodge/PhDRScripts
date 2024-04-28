@@ -132,6 +132,9 @@ ggqqplot(scoreDataset, "meanRT", facet.by = "Condition")
 
 RT.aov <- anova_test(data = scoreDataset, dv = meanRT, wid = ID, within = Condition)
 
+
+
+
 get_anova_table(RT.aov)
 
 RTpwc <- scoreDataset %>% 
@@ -148,7 +151,7 @@ RTbxp +
   #stat_pvalue_manual(pwc) +
   labs(
     subtitle = get_test_label(RT.aov, detailed = TRUE),
-    caption = get_pwc_label(pwc)
+    caption = get_pwc_label(RTpwc)
   )
 
 
@@ -165,14 +168,15 @@ scoreDataset %>%
   group_by(Condition) %>% 
   shapiro_test(numbersDialled)
 
+scoreDataset$Condition <- factor(scoreDataset$Condition, levels = c("Cue", "HUD", "HDD"))
+
+scoreDataset$Condition <- relevel(scoreDataset$Condition, ref = "Cue")
 
 
 ggqqplot(scoreDataset, "numbersDialled", facet.by = "Condition")
 ```
 
 ```{r}
-
-
 ND.aov <- anova_test(data = scoreDataset, dv = numbersDialled, wid = ID, within = Condition)
 
 get_anova_table(ND.aov)
@@ -191,8 +195,52 @@ NDbxp +
   #stat_pvalue_manual(pwc) +
   labs(
     subtitle = get_test_label(ND.aov, detailed = TRUE),
-    caption = get_pwc_label(pwc)
+    caption = get_pwc_label(NDpwc)
   )
+```
+
+
+```{r}
+cvi_palettes = function(name, n, all_palettes = cvi_colours, type = c("discrete", "continuous")) {
+  palette = all_palettes[[name]]
+  if (missing(n)) {
+    n = length(palette)
+  }
+  type = match.arg(type)
+  out = switch(type,
+               continuous = grDevices::colorRampPalette(palette)(n),
+               discrete = palette[1:n]
+  )
+  structure(out, name = name, class = "palette")
+}
+
+cvi_colours = list(
+  cvi_purples = c("#381532", "#4b1b42", "#5d2252", "#702963",
+                 "#833074", "#953784", "#a83e95"),
+  my_favourite_colours = c("#702963", "#637029",    "#296370"),
+  my_palette <- c("#FDAE61", "#74ADD1","#08306B" )
+)
+
+
+cvi_palettes("my_palette", type = "discrete")
+```
+
+
+```{r}
+numbersDialled <-ggplot(data = scoreDataset, aes(x = Condition, y = numbersDialled, fill = Condition))+
+  geom_violin(width = 1)+
+  geom_boxplot(width = 0.12)+
+  ylab("Numbers Dialled in the AR Task")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme_classic()+
+    theme(legend.position="none")
+numbersDialled
+
+
+
+# "#A50026", "#D73027", "#F46D43", "#FDAE61", "#FEE090", "#FFFFBF", "#E0F3F8", , "#74ADD1", "#4575B4", "#313695", "#08306B"
+# "#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7", "#F7F7F7", "#D1E5F0", "#92C5DE"
+
 
 
 ```
@@ -236,7 +284,14 @@ ERbxp +
     subtitle = get_test_label(Er.aov, detailed = TRUE),
     caption = get_pwc_label(pwc)
   )
-
+errors <-ggplot(data = scoreDataset, aes(x = Condition, y = Errors, fill = Condition))+
+  geom_violin(width = 1)+
+  geom_boxplot(width = 0.12)+
+  ylab("Numbers Errors in the AR Task")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme_classic()+
+    theme(legend.position="none")
+errors
 
 ```
 
@@ -280,5 +335,14 @@ ERbxp +
     caption = get_pwc_label(pwc)
   )
 
+
+keyPresses <-ggplot(data = scoreDataset, aes(x = Condition, y = Keypresses, fill = Condition))+
+  geom_violin(width = 1)+
+  geom_boxplot(width = 0.12)+
+  ylab("Numbers Dialled in the AR Task")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme_classic()+
+    theme(legend.position="none")
+keyPresses
 
 ```

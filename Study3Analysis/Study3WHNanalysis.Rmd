@@ -258,6 +258,13 @@ WHNSummary <- WHNDataset %>%
             trialRespSD = sd(trialResp.rt, na.rm=T)
             )
 
+CorrConfSummary <- WHNDataset %>% 
+  group_by(Block, trialResp.corr) %>% 
+  summarise(n = n(),
+            conf = mean(conf_slider.response),
+                        WHNPercent = sum((trialResp.corr / NoPpts) /10) * 100,
+)
+
 ```
 
 ```{r Create dataset with Cue as intercept}

@@ -19,6 +19,9 @@ library(lme4)
 library(lmerTest)
 library(beepr)
 library(cowplot)
+library(ggplot2)
+library(scatterplot3d)
+library(rgl)
 ```
 #ARETT Functions
 
@@ -61,41 +64,50 @@ ValidHDD <- FinalValidAOIETDataRMOut %>%
 ```
 
 ```{r}
+
+binwidth <- 75  # Adjust the binwidth as needed
+
+# Define the limits for the color scale
+color_limits <- c(0, 1000)  # Adjust these limits as needed
+
+# Define the color for values exceeding the limit
+exceeding_limit_color <- "yellow"  # Adjust this color as needed
+
 ValidControlPlot <- ggplot(data=ValidControl, aes(x=fixation_x, y=fixation_y)) +
   # geom_point()+
   # geom_bin2d()+
-  stat_bin_2d(bins = 50)+
-    xlim(-0.5, 0.5)+
-  ylim(-0.3, 0.3)+
-    scale_fill_continuous(type = "viridis") +
-  labs(title= "Control")
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "a) Control")
 
 ValidCHUDPlot <- ggplot(data=ValidHUD, aes(x=fixation_x, y=fixation_y)) +
   # geom_point()+
   # geom_bin2d()+
-  stat_bin_2d(bins = 50)+
-    xlim(-0.5, 0.5)+
-  ylim(-0.3, 0.3)+
-    scale_fill_continuous(type = "viridis") +
-  labs(title= "HUD")
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "b) HUD")
 
 ValidCuePlot <- ggplot(data=ValidCue, aes(x=fixation_x, y=fixation_y)) +
   # geom_point()+
   # geom_bin2d()+
-  stat_bin_2d(bins = 50)+
-    xlim(-0.5, 0.5)+
-  ylim(-0.3, 0.3)+
-    scale_fill_continuous(type = "viridis") +
-  labs(title= "Cue")
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "c) Cue")
 
 ValidHDDPlot <- ggplot(data=ValidHDD, aes(x=fixation_x, y=fixation_y)) +
   # geom_point()+
   # geom_bin2d()+
-  stat_bin_2d(bins = 50)+
-   xlim(-0.5, 0.5)+
-  ylim(-0.3, 0.3)+
-    scale_fill_continuous(type = "viridis") +
-  labs(title= "HDD")
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "d) HDD")
 
 
 
@@ -110,7 +122,43 @@ ggsave(
   )
 
 ```
+#3D Plots
+```{r}
+scatterplot3d(x = ValidControl$fixation_x, y = ValidControl$fixation_z, z = ValidControl$fixation_y, highlight.3d = T)
 
+scatterplot3d(x = ValidHUD$fixation_x, y = ValidHUD$fixation_z, z = ValidHUD$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidCue$fixation_x, y = ValidCue$fixation_z, z = ValidCue$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidHDD$fixation_x, y = ValidHDD$fixation_z, z = ValidHDD$fixation_y, highlight.3d = T)
+```
+
+#3D Plots
+```{r}
+ValidHUD$FixTarget <- if_else(ValidHUD$gazePoint_target_name == "Wall", "navy", "cyan")
+
+ValidControl$FixTarget <- if_else(ValidControl$gazePoint_target_name == "Wall", "darkgreen", "lightgreen")
+ValidCue$FixTarget <- if_else(ValidCue$gazePoint_target_name == "Wall", "red", "pink")
+ValidHDD$FixTarget <- if_else(ValidHDD$gazePoint_target_name == "Wall", "orange", "yellow")
+
+
+Control3D <- plot3d(x =ValidControl$fixation_x, y = ValidControl$fixation_z, z = ValidControl$fixation_y, col =  ValidControl$FixTarget )
+HUD3D <- plot3d(x =ValidHUD$fixation_x, y = ValidHUD$fixation_z, z = ValidHUD$fixation_y,  col = ValidHUD$FixTarget)
+Cue3D<- plot3d(x =ValidCue$fixation_x, y = ValidCue$fixation_z, z = ValidCue$fixation_y, col = ValidCue$FixTarget )
+HDD3D <- plot3d(x =ValidHDD$fixation_x, y = ValidHDD$fixation_z, z = ValidHDD$fixation_y, col = ValidHDD$FixTarget )
+```
+
+
+```{r}
+library(plot3D)
+scatter3D(x =ValidHUD$fixation_x, y = ValidHUD$fixation_z, z = ValidHUD$fixation_y, pch = 2,colvar = ValidHUD$fixation_z,bty = "b2", theta = 15, phi = 20 )
+
+scatter3D(x =ValidHDD$fixation_x, y = ValidHDD$fixation_z, z = ValidHDD$fixation_y, pch = 2,colvar = ValidHDD$fixation_z,bty = "b2", theta = 15, phi = 20 )
+
+```
+
+
+#Valid Hazard AOI Plots
 ```{r}
 FinalValidHazardAOIETDataRMOut <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalValidHazardAOIETDataRMOut.csv", header = T)
 
@@ -167,6 +215,33 @@ ggplot(data=ValidHazardHDD, aes(x=fixation_x, y=fixation_y)) +
   labs(title= "HDD")
 
 ```
+```{r}
+scatterplot3d(x = ValidHazardControl$fixation_x, y = ValidHazardControl$fixation_z, z = ValidHazardControl$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidHazardHUD$fixation_x, y = ValidHazardHUD$fixation_z, z = ValidHazardHUD$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidHazardCue$fixation_x, y = ValidHazardCue$fixation_z, z = ValidHazardCue$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidHazardHDD$fixation_x, y = ValidHazardHDD$fixation_z, z = ValidHazardHDD$fixation_y, highlight.3d = T)
+
+
+data(trees)
+  s3d <- scatterplot3d(trees, type="h", highlight.3d=TRUE,
+      angle=55, scale.y=0.7, pch=16, main="scatterplot3d - 5")
+  # Now adding some points to the "scatterplot3d"
+  s3d$points3d(seq(10,20,2), seq(85,60,-5), seq(60,10,-10),
+      col="blue", type="h", pch=16)
+  # Now adding a regression plane to the "scatterplot3d"
+  attach(trees)
+  my.lm <- lm(Volume ~ Girth + Height)
+  s3d$plane3d(my.lm, lty.box = "solid")
+  
+
+```
+
+
+
+
 #Read in Hazard Clip Data
 ```{r}
 HazardClipList <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalStudy4HazardSheet.csv", header = T)
@@ -228,13 +303,24 @@ TTFF <- left_join(FirstFixation, HazardClips, by = (c("VideoClip" = "VideoClip",
   
 TTFF$FirstFixationTime <- TTFF$TimeStamp - TTFF$HazardOnset
 
+
+
+TTFF <- TTFF[!duplicated(TTFF$PIDCond),]
+
+TTFFWall <- TTFF %>% 
+  subset(gazePoint_target_name == "Wall")
+
+
 TTFFSummary <- TTFF %>% 
   group_by(Condition.x, CorrAOI) %>% 
   summarise(n = n(),
             TTFF = mean(FirstFixationTime))
 
 
-
+TTFFWallSummary <- TTFFWall %>% 
+  group_by(Condition.x, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(FirstFixationTime))
 
 ```
 
@@ -379,6 +465,13 @@ CorrHazardPptSummaryAOI <- CorrHazardCountData %>%
             sdDuration = sd(eventDuration),
             sumCorr = sum(CorrAOI),)
 
+
+CorrHazCount <- CorrHazardPptSummaryAOI %>% 
+group_by(Condition) %>% 
+  summarise(n = n(),
+             avgcorrhazfix = mean(sumCorr),
+            sd = sd(sumCorr))
+
 CorrHazardPptSummaryAOI[c('Ppt','Condition')] <- str_split_fixed(CorrHazardPptSummaryAOI$PIDCond," ",2)
 
 
@@ -426,10 +519,24 @@ FixCountSummaryScreen <- FixCountSummary %>%
 FixCountSummaryAR <- FixCountSummary %>% 
   subset(Target == "AR")
 
+
+
 FixCountSummaryTotal <- CountData %>% 
   group_by(Condition) %>% 
-  summarise(n = n())
+  summarise(n = n(),
+            AVG = n() / length(unique(CountData$ID)),
+            SD = sd(n() / length(unique(CountData$ID)))
+            )
 
+PptFixCountTotal <- CountData %>% 
+  group_by(ID, Condition) %>% 
+  summarise(FixCount = n())
+
+PptFixCountTotalSummary <- PptFixCountTotal %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            avg = mean(FixCount),
+            sd = sd(FixCount))
 
 ```
 
@@ -454,8 +561,12 @@ PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control",
 PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 
 
-FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition, family = "poisson")
+FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition,  family = "poisson")
 summary(FixCountLM)
+
+
+FixCountLMER <- lmer(data =PptSummaryAOI, NoF ~ Condition + (1|Ppt) )
+summary(FixCountLMER)
 
 
 
@@ -465,8 +576,8 @@ summary(FixCountLM)
 #Total NoF Plot
 ```{r}
 TotalNoFPlot <-ggplot(data = PptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_violin()+
-  geom_boxplot(width = 0.07)+
+  geom_violin(width = 1.8)+
+  geom_boxplot(width = 0.12)+
   ylab("Mean Number of Fixations")+
   scale_fill_brewer(palette = "RdYlBu")+
   theme_classic()+
@@ -520,6 +631,19 @@ HazFixCountSummaryTotal <- CorrHazardCountData %>%
   group_by(Condition) %>% 
   summarise(n = n())
 
+
+PptHazFixCountTotal <- CorrHazardCountData %>% 
+  group_by(ID, Condition) %>% 
+  summarise(HazFixCount = n())
+
+PptHazFixCountTotalSummary <- PptHazFixCountTotal %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            avgHaz = mean(HazFixCount),
+            sd = sd(HazFixCount))
+
+
+
 ```
 #haz Fix Count Stats
 
@@ -543,6 +667,11 @@ summary(HazFixCountLM)
 
 
 
+HazFixCountLMER <- lmer(data =CorrHazardPptSummaryAOI, NoF ~ Condition + (1|Ppt))
+summary(HazFixCountLMER)
+
+
+
 
 ```
 
@@ -561,6 +690,8 @@ PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "HUD")
 
 FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition, family = "poisson")
 summary(FixCountLM)
+
+
 
 
 
@@ -586,7 +717,7 @@ ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condit
   geom_col()+ 
   ylab("Number of Fixations in Hazard Window")+
   scale_fill_brewer(palette = "BrBG")+
-  theme_classic()+
+  theme_classic()
 
 ```
 
@@ -596,14 +727,13 @@ ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condit
 CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
 
 TotalHazardNoFPlot <- ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_violin()+
+  geom_violin(width = 1.8)+
   geom_boxplot(width = 0.07)+
   ylab("Mean Number of Fixations during Hazard Window")+
   scale_fill_brewer(palette = "RdYlBu")+
   theme_classic()+
-   theme(legend.position="none")
-
-
+  theme(legend.position="none",
+        axis.title.y = element_text(size = 9))
 
 TotalHazardNoFPlot
 
@@ -625,8 +755,12 @@ FixCountCorrScreen
 
 CorrHazFixLM <- lm( sumCorr ~ Condition, data = CorrHazardPptSummaryAOI)
 summary(CorrHazFixLM)
-```
 
+CorrHazFixLMER <- lmer(sumCorr ~ Condition + (1|Ppt), data = CorrHazardPptSummaryAOI)
+summary(CorrHazFixLM)
+
+
+```
 
 ```{r}
 ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = sumCorr, fill = Condition))+
@@ -652,7 +786,7 @@ CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, l
 TotalCorrHazardNoFPlot <- ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = sumCorr, fill = Condition))+
   geom_violin()+
   geom_boxplot(width = 0.07)+
-  ylab("Mean Number of Correct Fixations during Hazard Window")+
+  ylab("Mean Number of Correct Fixations during Hazard Window" )+
   scale_fill_brewer(palette = "RdYlBu")+
   theme_classic()
 
@@ -904,7 +1038,14 @@ TTFF$Condition <- TTFF$Condition.x
 
 TTFF$Condition <- as.factor(TTFF$Condition)
 
-TTFF$Condition <- relevel(TTFF$Condition, ref = "HDD")
+TTFFWall$Condition <- TTFFWall$Condition.x
+
+TTFFWall$Condition <- as.factor(TTFFWall$Condition)
+
+TTFF$Condition <- relevel(TTFF$Condition, ref = "Control")
+
+TTFFWall$Condition <- relevel(TTFFWall$Condition, ref = "Cue")
+
 
 TTFFANOVA <- aov(FirstFixationTime ~ Condition, data = TTFF)
 
@@ -929,13 +1070,18 @@ summary(TTFFANOVA)
 ```
 
 ```{r}
-TTFFModelBasic <- lm(data = CorrHazardCountData, formula = eventDuration ~ Condition)
-
-#DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+TTFFModelBasic <- lm(data = TTFF, formula = eventDuration ~ Condition)
 
 summary(TTFFModelBasic)
 
-PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Cue")
+
+TTFFWallModelBasic <- lm(data = TTFFWall, formula = eventDuration ~ Condition.x)
+
+#DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+
+summary(TTFFWallModelBasic)
+
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 ```
 
 
