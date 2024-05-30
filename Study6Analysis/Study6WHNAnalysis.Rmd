@@ -28,6 +28,7 @@ library(lmerTest)
 library(afex)
 library(effects)
 library(ggplot2)
+library(paletteer)
 library(ggthemes)
 library(report)
 library(janitor)
@@ -35,7 +36,7 @@ library(stringr)
 ```
 #power
 ```{r}
-pwr.t.test(n = 30, sig.level = 0.05, d = 0.814646, type = "two.sample")
+pwr.t.test(n = 24, sig.level = 0.05, d = 0.814646, type = "two.sample")
 
 
 # Plot sample size curves for detecting correlations of
@@ -156,16 +157,10 @@ OrderWHNDataset <- OrderWHNDataset %>%
     subset(participant != "SP12") 
 
 
-
-  
-
-
-
 ```
 
 ```{r}
 WHNDataset <- OrderWHNDataset
-
 ```
 
 #Demographics
@@ -203,8 +198,6 @@ rename(c(`Do you have any history of motion sickness? - Selected Choice` = "Moti
 rename(c(`Do you have any history of motion sickness? - Other (Please describe) - Text` = "MotionSicknessText"))
 
 
-
-
 ```
 
 
@@ -217,8 +210,6 @@ DemogDataOrg$YearsExp = as.numeric(DemogDataOrg$YearsExp)
 DemogDataOrg$UKYearsExp = as.numeric(DemogDataOrg$UKYearsExp)
 DemogDataOrg$GlasgowYearsExp = as.numeric(DemogDataOrg$GlasgowYearsExp)
 
-
-
 DemogDataOrg <- DemogDataOrg[!is.na(DemogDataOrg$Age),]
 
 #table(DemogDataOrg$`How familiar are you with augmented reality (AR) prior to this experiment?`)
@@ -230,29 +221,29 @@ DemogDataOrg <- DemogDataOrg %>%
   subset(`What is your participant ID? 
 (First two letters of your first name, the month  number of your birthday and the last two letters of your mothers maiden name - eg TH03ON)` != "MA05ER") %>% 
     subset(`What is your participant ID? 
-(First two letters of your first name, the month  number of your birthday and the last two letters of your mothers maiden name - eg TH03ON)` != "WJ08SH") 
-  
-
-
+(First two letters of your first name, the month  number of your birthday and the last two letters of your mothers maiden name - eg TH03ON)` != "WJ08SH")  %>% 
+    subset(`What is your participant ID? 
+(First two letters of your first name, the month  number of your birthday and the last two letters of your mothers maiden name - eg TH03ON)` != "IG02SC")  %>% 
+    subset(`What is your participant ID? 
+(First two letters of your first name, the month  number of your birthday and the last two letters of your mothers maiden name - eg TH03ON)` != "JI02NG") 
 
 ```
 #Demog Summary
 ```{r}
 DemogSummaryTotal <- DemogDataOrg 
 
-DemogSummaryTotal <- DemogSummaryTotal %>% 
+DemogSummaryTotal <- DemogDataOrg %>% 
   summarise(
   AgeMean = mean(Age),
   AgeSD = sd(Age, na.rm = T),
   Male = sum(Gender == 'Male'),
   Female = sum(Gender == "Female"),
-  YearsExp = mean(YearsExp),
-  YearsExpsd = sd(YearsExp, na.rm = T),
+  TotalYearsExp = mean(YearsExp),
+  TotalYearsExpsd = sd(YearsExp, na.rm = T),
   UKLicense = sum(UKLicense == 'Yes'),
   UKExp = mean(UKYearsExp, na.rm = T),
   UKExpmin = min(UKYearsExp, na.rm = T),
   UKExpmax = max(UKYearsExp, na.rm = T),
-  
   UKEXPsd = sd(UKYearsExp, na.rm = T),
   GlasgowExp = mean(GlasgowYearsExp, na.rm = T),
   GlasgowExpmin = min(GlasgowYearsExp, na.rm = T),
@@ -281,7 +272,6 @@ IDs <- IDs[!duplicated(IDs), ]
 
 IDs <- as.data.frame(IDs)
 
-  
 ```
 
 ```{r}
@@ -308,8 +298,6 @@ Violations$meanViolations = rowMeans(Violations[2:9])
 
 Violations <- Violations %>% 
   select('participant', 'meanViolations')
-
-
 
 Lapses <- DBQ %>% 
   select('participant', starts_with('L')) 
@@ -367,6 +355,7 @@ WHNDataset$image_file[WHNDataset$image_file == "Slide7"] <- "Slide07"
 WHNDataset$image_file[WHNDataset$image_file == "Slide8"] <- "Slide08"
 WHNDataset$image_file[WHNDataset$image_file == "Slide9"] <- "Slide09"
 
+WHNDataset$image_file <- as.factor(WHNDataset$image_file)
 
 #WHNDataset$Block <- factor(WHNDataset$Block, levels = c("0 Control", "1 Visual",  "2 Social", "3 NDRT"))
 ```
@@ -459,6 +448,7 @@ AttSum <- WHNDataset %>%
 ```
 #WHN Col Plot
 ```{r}
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control - 2")
 
 WHNBaseline <- as.numeric(WHNSummary[1,3])
 
@@ -489,7 +479,7 @@ PlotData <- WHNDataset %>%
 WHNPlot2 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
   geom_violin(alpha = 0.8)+
   geom_boxplot(alpha = 0, width = 0.2)+
-  scale_fill_brewer(palette = "Set2")+
+#  scale_fill_brewer(palette = "Set1")+
     theme_classic()+
 theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
@@ -544,7 +534,7 @@ ConfPlot2 <- ggplot(data = WHNDataset, aes(x = Block, y = conf_slider.response, 
   geom_violin(alpha = 0.8) + geom_boxplot(alpha=0.2, width = 0.2)+
   labs(title = "Average Confidence Score", y = "Mean Confidence Rating", x = "", key= FALSE)+
   ylim(0,1.0)+
-  scale_fill_brewer(palette = "Set2")+
+ # scale_fill_brewer(palette = "Set1")+
   theme_classic()+
   theme(legend.position="none")+
   theme(text=element_text(size = 15)) +
@@ -576,10 +566,10 @@ ggplot(data = AttSum, aes(x = Block, y = mean, fill = Block))+
 AttBaseline <- as.double(AttSum[1,3])
 
 AttPlot2 <- ggplot(data = WHNDataset, aes(x = Block, y = Attention_slider.response, fill = Block))+
-  geom_violin(alpha = 0.8)+geom_boxplot(alpha = 0.2, width = 0.2)+
+  geom_violin(alpha = 0.8)+geom_boxplot(alpha = 0.2, width = 0.1)+
  
   labs(title = "Subjective Attention Rating", y = "Mean Attention Rating", x = "NDRT Presentation Condition")+
-  scale_fill_brewer(palette = "Set2")+
+  #scale_fill_brewer(palette = "Set2")+
     theme_classic()+
 theme(legend.position="none")+
   theme(text=element_text(size = 15))+
@@ -636,7 +626,7 @@ ggsave(filename = "Robo2FullPlot2.png",
 ```{r}
 
 
-WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control")
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Social Cue")
 
 WHNNullModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~ 1 + (1|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 
@@ -646,9 +636,9 @@ WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1
 
 # WHNModel1 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant)  , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
-# WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+# WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + participant|image_file), family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
-# WHNModel3 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+# WHNModel3 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + image_file|participant), family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
 # WHNModel4 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block  + meanViolations + (1|image_file)  , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
@@ -657,7 +647,7 @@ WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1
 # anova(WHNModelBasic, WHNModel)
 
 
-summary(WHNModelBasic)
+#summary(WHNModel2)
 library(effects)
 
 ef <- as.data.frame(effect("Block", WHNModelBasic))
@@ -673,19 +663,19 @@ summary(WHNResults)
 #Confidence Stats
 ```{r}
 
-WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control")
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Avatar Cue")
 
 ConfNullModel <- glmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant) + (1|image_file), family = binomial)
 
 ConfModel = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
 summary(ConfModel)
-# 
-# ConfModel1 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
-# summary(ConfModel1)
-# 
-# ConfModel2 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + Block|image_file), family = binomial, glmerControl(optimizer = "bobyqa"))
-# 
-# ConfModel3 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1 + Block|participant) + (1 + Block|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
+
+ # ConfModel1 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+ # summary(ConfModel1)
+ # 
+ ConfModel2 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + image_file|participant), family = binomial, glmerControl(optimizer = "bobyqa"))
+ # 
+ # ConfModel3 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1 + Block|participant) + (1 + Block|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
 
 
 #anova(ConfModel, ConfModel1, ConfModel2, ConfModel3)
@@ -750,7 +740,7 @@ ggqqplot(AttentionDataset, "Attention_slider.response", facet.by = "Block")
 
 ```{r}
 
-AttentionDataset$Block <- relevel(AttentionDataset$Block, ref = "Control")
+AttentionDataset$Block <- relevel(AttentionDataset$Block, ref = "Control - 2")
 
 Att.aov <- anova_test(data = AttentionDataset, dv = Attention_slider.response, wid = participant, within = Block)
 
@@ -780,7 +770,7 @@ bxp +
 #Attention Glmers
 ```{r}
 
-AttentionDataset$Block <- relevel(AttentionDataset$Block, ref = "Control")
+AttentionDataset$Block <- relevel(AttentionDataset$Block, ref = "Control - 2")
 
 AttModel1 <- lmer(data = AttentionDataset, formula = Attention_slider.response ~ Block + (1|participant))
 

@@ -1,0 +1,749 @@
+---
+title: "Study5&6Comparison"
+author: "TGoodge"
+date: "2024-04-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(pwr)
+library(tidyverse)
+library(splitstackshape)
+library(stringr)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(lme4)
+library(lmerTest)
+library(afex)
+library(effects)
+library(ggplot2)
+library(ggthemes)
+library(ggpubr)
+library(report)
+library(janitor)
+library(stringr)
+```
+
+```{r}
+Study5WHN <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/data/S5WHN.csv")
+
+Study5WHN$Study <-5
+
+Study5WHN$Study <-as.factor(Study5WHN$Study)
+
+Study6WHN <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/Study6data/S6WHN.csv")
+
+Study6WHN$Study <-6
+Study6WHN$Study <-as.factor(Study6WHN$Study)
+
+Study6WHN$Block[Study6WHN$Block == "Control"] <- "Control - 2"
+
+
+FullWHN <- rbind(Study5WHN, Study6WHN)
+
+FullWHN$Block <- as.factor(FullWHN$Block)
+
+
+FullWHNPptDataset <- FullWHN %>% 
+  group_by(participant, Block) %>% 
+  summarise(sumWHN = sum(trialResp.corr),
+            Study = Study,
+            RTmean = mean(trialResp.rt))
+
+
+ControlData <- FullWHN %>% 
+  subset(Block == "Control" | Block == "Control - 2")
+
+VisualData <- FullWHN %>% 
+  subset(Block == "Visual" | Block == "Visual Cue")
+
+AvatarData <- FullWHN %>% 
+  subset(Block == "Social"| Block == "Avatar Cue")
+
+SocialData <- FullWHN %>% 
+  subset(Block == "Social"| Block == "Social Cue")
+
+
+NDRTVisualData <- FullWHN %>% 
+  subset(Block == "NDRT" | Block == "Visual Cue")
+
+NDRTAvatarData <- FullWHN %>% 
+  subset(Block == "NDRT"| Block == "Avatar Cue")
+
+NDRTSocialData <- FullWHN %>% 
+  subset(Block == "NDRT"| Block == "Social Cue")
+
+
+
+```
+#Hazard Prediction
+```{r}
+
+FullWHNSummary <- FullWHN %>% 
+  group_by(Block, Study) %>% 
+  summarise(WHN = sum(trialResp.corr / 24) ,
+            WHNMean = mean(trialResp.corr),
+            WHNPercent = sum((trialResp.corr / 24) /10) * 100,
+            sdWHN = sd(trialResp.corr),
+            seWHN = (sd(trialResp.corr))/ sqrt(24),
+            meanConf = mean(conf_slider.response, na.rm = T),
+            sdConf = sd(conf_slider.response),
+            seConf = (sd(conf_slider.response))/ sqrt(24),
+            meanAttention = mean(Attention_slider.response, na.rm = T),
+            sdAttention = sd(Attention_slider.response, na.rm=T),
+            seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(24),
+            trialRespmean = mean(trialResp.rt, na.rm=T),
+            trialRespSD = sd(trialResp.rt, na.rm=T)
+            )
+
+
+FullWHNPptSummary <- FullWHNPptDataset %>% 
+  group_by(Block) %>% 
+  summarise(WHN = mean(sumWHN),
+            propWHN = (mean(sumWHN) / 10) * 100)
+
+
+ControlSummary <- ControlData %>% 
+  group_by(Block, Study) %>% 
+  summarise(WHN = sum(trialResp.corr / 24) ,
+            WHNPercent = sum((trialResp.corr / 24) /10) * 100,
+            sdWHN = sd(trialResp.corr),
+            seWHN = (sd(trialResp.corr))/ sqrt(24),
+            meanConf = mean(conf_slider.response, na.rm = T),
+            sdConf = sd(conf_slider.response),
+            seConf = (sd(conf_slider.response))/ sqrt(24),
+            meanAttention = mean(Attention_slider.response, na.rm = T),
+            sdAttention = sd(Attention_slider.response, na.rm=T),
+            seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(24),
+            trialRespmean = mean(trialResp.rt, na.rm=T),
+            trialRespSD = sd(trialResp.rt, na.rm=T)
+            )
+
+VisualSummary <- VisualData %>% 
+  group_by(Block, Study) %>% 
+  summarise(WHN = sum(trialResp.corr / 24) ,
+            WHNPercent = sum((trialResp.corr / 24) /10) * 100,
+            sdWHN = sd(trialResp.corr),
+            seWHN = (sd(trialResp.corr))/ sqrt(24),
+            meanConf = mean(conf_slider.response, na.rm = T),
+            sdConf = sd(conf_slider.response),
+            seConf = (sd(conf_slider.response))/ sqrt(24),
+            meanAttention = mean(Attention_slider.response, na.rm = T),
+            sdAttention = sd(Attention_slider.response, na.rm=T),
+            seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(24),
+            trialRespmean = mean(trialResp.rt, na.rm=T),
+            trialRespSD = sd(trialResp.rt, na.rm=T)
+            )
+
+AvatarSummary <- AvatarData %>% 
+  group_by(Block, Study) %>% 
+  summarise(WHN = sum(trialResp.corr / 24) ,
+            WHNPercent = sum((trialResp.corr / 24) /10) * 100,
+            sdWHN = sd(trialResp.corr),
+            seWHN = (sd(trialResp.corr))/ sqrt(24),
+            meanConf = mean(conf_slider.response, na.rm = T),
+            sdConf = sd(conf_slider.response),
+            seConf = (sd(conf_slider.response))/ sqrt(24),
+            meanAttention = mean(Attention_slider.response, na.rm = T),
+            sdAttention = sd(Attention_slider.response, na.rm=T),
+            seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(24),
+            trialRespmean = mean(trialResp.rt, na.rm=T),
+            trialRespSD = sd(trialResp.rt, na.rm=T)
+            )
+
+SocialSummary <- SocialData %>% 
+  group_by(Block, Study) %>% 
+  summarise(WHN = sum(trialResp.corr / 24) ,
+            WHNPercent = sum((trialResp.corr / 24) /10) * 100,
+            sdWHN = sd(trialResp.corr),
+            seWHN = (sd(trialResp.corr))/ sqrt(24),
+            meanConf = mean(conf_slider.response, na.rm = T),
+            sdConf = sd(conf_slider.response),
+            seConf = (sd(conf_slider.response))/ sqrt(24),
+            meanAttention = mean(Attention_slider.response, na.rm = T),
+            sdAttention = sd(Attention_slider.response, na.rm=T),
+            seAttention = (sd(Attention_slider.response, na.rm=T))/ sqrt(24),
+            trialRespmean = mean(trialResp.rt, na.rm=T),
+            trialRespSD = sd(trialResp.rt, na.rm=T)
+            )
+```
+
+```{r}
+PlotData <- FullWHN %>% 
+  select(participant, trialResp.corr, trials_3.thisTrialN, Block, Study) %>%   group_by(participant, Block, Study) %>% 
+  summarise(participant = participant,
+            score = sum(trialResp.corr),
+            Block = Block)
+
+WHNPlot2 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
+  geom_violin(alpha = 0.8)+
+  geom_boxplot(alpha = 0, width = 0.1)+
+  scale_fill_brewer(palette = "Paired")+
+    theme_classic()+
+theme(legend.position="none") +theme(text=element_text(size = 20)) +
+
+  theme(axis.text=element_text(size=15))+
+  labs(title = "Hazard Prediction Score", x = "NDRT Presentation Condition", y = "Average correct responses")+
+    theme(plot.title=element_text(vjust=7))+
+
+  theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
+
+
+
+WHNPlot2
+```
+
+```{r}
+ConfPlot2 <- ggplot(data = FullWHN, aes(x = Block, y = conf_slider.response, fill = Block))+
+  geom_violin(alpha = 0.8) + geom_boxplot(alpha=0.2, width = 0.2)+
+  labs(title = "Average Confidence Score", y = "Mean Confidence Rating", x = "", key= FALSE)+
+  ylim(0,1.0)+
+  scale_fill_brewer(palette = "Set2")+
+  theme_classic()+
+  theme(legend.position="none")+
+  theme(text=element_text(size = 15)) +
+  theme(axis.text=element_text(size=10))+
+  theme(plot.title=element_text(vjust=10))+
+
+  theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
+
+
+ConfPlot2
+
+AttPlot2 <- ggplot(data = FullWHN, aes(x = Block, y = Attention_slider.response, fill = Block))+
+  geom_violin(alpha = 0.8)+geom_boxplot(alpha = 0.2, width = 0.2)+
+ 
+  labs(title = "Subjective Attention Rating", y = "Mean Attention Rating", x = "NDRT Presentation Condition")+
+  scale_fill_brewer(palette = "Set2")+
+    theme_classic()+
+theme(legend.position="none")+
+  theme(text=element_text(size = 15))+
+ theme(plot.title=element_text(vjust=10))+
+  theme(axis.text=element_text(size=10))+
+  theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
+
+  AttPlot2
+  
+```
+
+#FullPlot
+```{r group all graphs together}
+library(cowplot)
+
+subPlot<- plot_grid(ConfPlot2, AttPlot2, labels = c('b)','c)'),ncol = 1)
+
+subPlot
+
+
+legend_b <- get_legend(
+  WHNPlot2 + 
+    guides(color = guide_legend(nrow = 1)) +
+   theme(legend.position = "bottom")
+)
+
+FullPlot <- plot_grid(WHNPlot2, subPlot, labels = ('a)'))
+
+FinalPlot <- plot_grid(FullPlot, legend_b, ncol = 1, rel_heights = c(1, .1))
+
+FinalPlot
+
+file1 <- tempfile("file1", fileext = ".png")
+
+width = 1920
+
+ggsave(filename = "Robo2FullPlot2.png",
+       plot = FinalPlot,
+       scale = 3,
+       device = png,
+       width = 3840,
+       units = "px",
+       dpi = 700)
+
+```
+
+```{r}
+
+FullWHNAOV <- aov(data = FullWHN, trialResp.corr ~ Study * Block)
+summary(FullWHNAOV)
+TukeyHSD(FullWHNAOV)
+
+
+# PptWHNAOV <- aov(data = FullWHNPptDataset, sumWHN ~ Study * Block + Error(participant/Block))
+# summary(PptWHNAOV)
+# TukeyHSD(PptWHNAOV)
+
+# model.tables(PptWHNAOV, "means")
+```
+
+
+```{r}
+print("Control")
+
+ControlANOVA <- aov(data = ControlData, formula = trialResp.corr ~ Study)
+summary(ControlANOVA)
+
+print("Visual")
+
+VisualANOVA <- aov(data = VisualData, formula = trialResp.corr ~ Study)
+summary(VisualANOVA)
+print("Avatar")
+
+AvatarANOVA <- aov(data = AvatarData, formula = trialResp.corr ~ Study)
+summary(AvatarANOVA)
+print("Social")
+
+SocialANOVA <- aov(data = SocialData, formula = trialResp.corr ~ Study)
+summary(SocialANOVA)
+
+print("NDRTVisual")
+NDRTVisualANOVA <- aov(data = NDRTVisualData, formula = trialResp.corr ~ Study)
+summary(NDRTVisualANOVA)
+print("NDRTAvatar")
+
+NDRTAvatarANOVA <- aov(data = NDRTAvatarData, formula = trialResp.corr ~ Study)
+summary(NDRTAvatarANOVA)
+print("NDRTSocial")
+
+NDRTSocialANOVA <- aov(data = NDRTSocialData, formula = trialResp.corr ~ Study)
+summary(NDRTSocialANOVA)
+```
+
+
+```{r}
+bxp <- ggboxplot(
+  FullWHNPptDataset, x = "Block", y = "sumWHN",
+  color = "Block", palette = "jco"
+  )
+
+bxp
+```
+
+```{r}
+
+bxp <- ggpaired(
+  FullWHNPptDataset, x = "Block", y = "sumWHN",  color = "Block", palette = "jco",id = "participant",
+  line.color = "gray", linetype = "dashed"
+  )
+
+bxp
+```
+
+```{r}
+FullWHNPptDataset %>%
+  group_by(Study,Block) %>%
+  identify_outliers(sumWHN)
+
+
+FullWHNPptDataset %>%
+  group_by(Study,Block) %>%
+  shapiro_test(sumWHN)
+```
+
+
+
+```{r}
+tukey.plot.aov<-aov(data = FullWHN, trialResp.corr ~ Block * Study)
+tukey.plot.test<-TukeyHSD(tukey.plot.aov)
+plot(tukey.plot.test, las = 1)
+```
+
+
+```{r}
+FullWHN$Block <- relevel(FullWHN$Block, ref = "NDRT")
+
+WHNModelBasic <- glmer(data = FullWHN, formula = trialResp.corr ~  Block + Study + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+
+summary(WHNModelBasic)
+# library(effects)
+# 
+# ef <- as.data.frame(effect("Block", WHNModelBasic))
+# head(ef)
+
+library(report)
+WHNResults <- report(WHNModelBasic, CI = 95)
+
+summary(WHNResults)
+```
+
+#Confidence
+
+```{r}
+FullConfAOV <- aov(data = FullWHN, conf_slider.response ~ Block * Study)
+
+summary(FullConfAOV)
+
+FullConfAOV2 <- aov(data = FullWHN, conf_slider.response ~ Study * Block)
+summary(FullConfAOV2)
+
+TukeyHSD(FullConfAOV)
+
+
+ConfLM<- lm(data = FullWHN, formula = conf_slider.response~ Study*Block)
+summary(ConfLM)
+
+```
+
+
+```{r}
+print("Control")
+
+ControlANOVAConf <- aov(data = ControlData, formula = conf_slider.response ~ Study)
+summary(ControlANOVAConf)
+
+print("Visual")
+
+VisualANOVAConf <- aov(data = VisualData, formula = conf_slider.response ~ Study)
+summary(VisualANOVAConf)
+print("Avatar")
+
+AvatarANOVAConf <- aov(data = AvatarData, formula = conf_slider.response ~ Study)
+summary(AvatarANOVAConf)
+print("Social")
+
+SocialANOVAConf <- aov(data = SocialData, formula = conf_slider.response ~ Study)
+summary(SocialANOVAConf)
+
+print("NDRTVisual")
+NDRTVisualANOVAConf <- aov(data = NDRTVisualData, formula = conf_slider.response ~ Study)
+summary(NDRTVisualANOVAConf)
+print("NDRTAvatar")
+
+NDRTAvatarANOVAConf <- aov(data = NDRTAvatarData, formula = conf_slider.response ~ Study)
+summary(NDRTAvatarANOVAConf)
+print("NDRTSocial")
+
+NDRTSocialANOVAConf <- aov(data = NDRTSocialData, formula = conf_slider.response ~ Study)
+summary(NDRTSocialANOVAConf)
+```
+#Subjective Attention
+
+```{r}
+
+AttentionDataset <- FullWHN %>% 
+  subset(!is.na(Attention_slider.response))
+
+
+AttAOV <- aov(data = AttentionDataset,formula =  Attention_slider.response ~ Block * Study)
+summary(AttAOV)
+TukeyHSD(AttAOV)
+
+```
+
+
+
+
+```{r}
+print("Control")
+
+ControlANOVAAtt <- aov(data = ControlData, formula = Attention_slider.response ~ Study)
+summary(ControlANOVAAtt)
+
+print("Visual")
+
+VisualANOVAAtt <- aov(data = VisualData, formula = Attention_slider.response ~ Study)
+summary(VisualANOVAAtt)
+print("Avatar")
+
+AvatarANOVAAtt <- aov(data = AvatarData, formula = Attention_slider.response ~ Study)
+summary(AvatarANOVAAtt)
+print("Social")
+
+SocialANOVAAtt <- aov(data = SocialData, formula = Attention_slider.response ~ Study)
+summary(SocialANOVAAtt)
+
+print("NDRTVisual")
+NDRTVisualANOVAAtt <- aov(data = NDRTVisualData, formula = Attention_slider.response ~ Study)
+summary(NDRTVisualANOVAAtt)
+print("NDRTAvatar")
+
+NDRTAvatarANOVAAtt <- aov(data = NDRTAvatarData, formula = Attention_slider.response ~ Study)
+summary(NDRTAvatarANOVAAtt)
+print("NDRTSocial")
+
+NDRTSocialANOVAAtt <- aov(data = NDRTSocialData, formula = Attention_slider.response ~ Study)
+summary(NDRTSocialANOVAAtt)
+```
+
+#NASATLX
+```{r}
+Study5TLX <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/S5TLX.csv")
+Study5TLX$Study <- 5
+
+
+Study6TLX<-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/Study6Data/S6TLX.csv")
+Study6TLX$Study <- 6
+
+FullTLXData<- rbind(Study5TLX, Study6TLX)
+
+FullTLXData$Block <- as.factor(FullTLXData$Block)
+FullTLXData$Study <- as.factor(FullTLXData$Study)
+FullTLXData$participant <- as.factor(FullTLXData$participant)
+
+
+
+
+```
+
+```{r}
+#detach(package:plyr)
+TLXdataTotalSum <- FullTLXData %>% 
+  group_by(Block) %>% 
+  summarise(
+    n = n(),
+    mean = mean(Total, na.rm = T),
+    sd = sd(Total)
+  )
+```
+
+
+```{r}
+TLXdataSumm <- FullTLXData %>% 
+  
+  group_by(Block) %>% 
+  summarise(
+    n = n(),
+    Total_mean = mean(Total),
+    Total_sd = sd(Total),
+    Mental_mean = mean(MentalDemand, na.rm = T),
+    Mental_sd = sd(MentalDemand, na.rm = T),
+    Physical_mean = mean(Frustration, na.rm = T),
+    Physical_sd = sd(Frustration, na.rm = T),
+    Temporal_mean = mean(TemporalDemand, na.rm = T),
+    Temporal_sd = sd(TemporalDemand, na.rm = T),
+    Performance_mean = mean(Performance, na.rm = T),
+    Performance_sd = sd(Performance, na.rm = T),
+    Frustration_mean = mean(Frustration, na.rm = T),
+    Frustration_sd = sd(Frustration, na.rm = T),
+    Effort_mean = mean(Effort, na.rm = T),
+    Effort_sd = sd(Effort, na.rm = T)
+    
+  )
+
+
+FullTLX <- ggplot(FullTLXData, aes(Block, Total, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Total NASA TLX scores")+
+
+  theme_classic()+
+        theme(plot.title=element_text(vjust=7))+
+  theme(text=element_text(size = 25))+
+
+    theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
+FullTLX
+
+ggplot(data = FullTLXData, aes(x = Block, y = Total, fill = Block))+
+  stat_summary()
+  
+```
+
+
+```{r}
+ggplot(FullTLXData, aes(Block, MentalDemand, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim(0,100)+
+  labs(title = "Mental Demand")
+
+ggplot(FullTLXData, aes(Block, PhysicalDemand, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim(0,100)+
+    labs(title = "Physical Demand")
+
+ggplot(FullTLXData, aes(Block, TemporalDemand, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim(0,100)+
+    labs(title = "Temporal Demand")
+
+ggplot(FullTLXData, aes(Block,OverallPerformance, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Overall Performance")
+
+ggplot(FullTLXData, aes(Block, Effort, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Effort")
+  
+ggplot(FullTLXData, aes(Block, Frustration, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+
+    labs(title = "Frustration")
+
+
+```
+
+
+```{r With ANOVA total}
+library(rstatix)
+  TLX.aov <- anova_test(data = FullTLXData, dv = Total, wid = participant, between = Study)
+
+get_anova_table(TLX.aov)
+
+TLXpwc <- FullTLXData %>% 
+  pairwise_t_test(Total ~ Block, paired = TRUE,
+                  p.adjust.method = "bonferroni")
+
+TLXpwc <- TLXpwc %>%  add_xy_position(x = "Block")
+TLXpwc
+
+
+TLXbxp <- ggboxplot(FullTLXData, x = "Block", y = "Total", add = "point")
+
+TLXbxp + 
+  stat_pvalue_manual(TLXpwc) +
+  labs(
+    subtitle = get_test_label(TLX.aov, detailed = TRUE),
+    caption = get_pwc_label(TLXpwc)
+  )
+
+```
+#RoSAS
+```{r}
+Study5RoSAS <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S5RoSAS.csv")
+Study5RoSAS$Study <- 5
+
+
+Study6RoSAS <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S6RoSAS.csv")
+Study6RoSAS$Study <- 6
+
+
+FullRoSAS <- rbind(Study5RoSAS, Study6RoSAS)
+```
+
+```{r}
+
+
+
+RoSASShortSummary <- FullRoSAS %>% 
+  group_by(Block) %>% 
+  summarise(n = n(),
+            Warmth = mean(Warmth),
+            Competence = mean(Competence),
+            Discomfort = mean(Discomfort))
+
+
+RosasFullSummary <- FullRoSAS %>% 
+  group_by(Block) %>% 
+  summarise(n = n(),
+            Happy = mean(Happy),
+            Feeling = mean(Feeling),
+            Social = mean(Social),
+            Organic = mean(Organic),
+            Compassionate = mean(Compassionate),
+            Emotional = mean(Emotional),
+            Capable = mean(Capable),
+            Responsive = mean(Responsive),
+            Interactive = mean(Interactive),
+            Reliable = mean(Reliable),
+            Competent = mean(Competent),
+            Knowledgeable = mean(Knowledgeable),
+            Scary = mean(Scary),
+            Strange = mean(Strange),
+            Awkward = mean(Awkward),
+            Dangerous = mean(Dangerous),
+            Awful = mean(Awful),
+            Aggressive = mean(Aggressive))
+
+
+```
+
+
+```{r}
+
+RoSASANOVA <- aov(data = FullRoSAS, formula = Competence ~  Block)
+summary(RoSASANOVA)
+TukeyHSD(RoSASANOVA)
+
+```
+
+
+```{r}
+
+
+#library(ggpubfigs)
+ggplot(FullRoSAS, aes(Block, Warmth, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Warmth")+
+#    scale_fill_manual(values = friendly_pal("ito_seven"))
+        theme_classic()
+
+ggplot(FullRoSAS, aes(Block, Competence, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Competence")+
+#    scale_fill_manual(values = friendly_pal("ito_seven"))
+        theme_classic()
+
+ggplot(FullRoSAS, aes(Block, Discomfort, fill = Block ))+
+  geom_boxplot(width = 0.3)+
+  geom_violin(alpha = 0.5)+
+  labs(title = "Discomfort")+
+#    scale_fill_manual(values = friendly_pal("ito_seven"))
+        theme_classic()
+
+
+```
+
+
+```{r}
+
+```
+
+#NDRT Performance
+
+```{r}
+Study5NDRT <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S5NDRT.csv")
+Study5NDRT$Study <- 5
+
+
+Study6NDRT <-  read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S6NDRT.csv")
+Study6NDRT$Study <- 6
+
+FullNDRT <- rbind(Study5NDRT, Study6NDRT)
+
+```
+
+```{r}
+
+FullNDRTSummary <- FullNDRT %>% 
+    group_by(Condition, Study) %>% 
+  summarise(mean = mean(AverageProportion, na.rm = T),
+            sd = sd(AverageProportion, na.rm = T),
+            meanDiamond = mean(Diamond, na.rm = T),
+            sdDiamond = sd(Diamond, na.rm=T),
+            meanEmerald = mean(Emerald,na.rm=T),
+            sdEmerald = sd(Emerald, na.rm = T))
+
+
+```
+```{r}
+ggplot(FullNDRTSummary, aes(x = Condition, y = mean, fill = Condition))+
+  geom_col()+
+  geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
+                width = 0.2, 
+                position = position_dodge(0.9))
+```
+```{r}
+scoreAnova <- aov(AverageProportion ~ Condition, data = FullNDRT)
+summary(scoreAnova)
+
+diaAnova <- aov(Diamond ~ Condition, data = FullNDRT)
+summary(diaAnova)
+TukeyHSD(diaAnova)
+
+emeAnova <- aov(Emerald ~ Condition, data = FullNDRT)
+summary(emeAnova)
+TukeyHSD(emeAnova)
+
+```
+

@@ -23,7 +23,7 @@ library(ggpubr)
 ```
 
 ```{r}
-TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/Qualtrics/PostBlockQs/Study5TLX.csv") %>% 
+TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/Study6Data/Qualtrics/PostQs/Study6TLX.csv") %>% 
   
 
 # Tidy the data - select scores,
@@ -38,11 +38,20 @@ TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
   
   
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 0 - Control"] <- "Control"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "Visual"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Social"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - Gems"] <- "NDRT"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "VisualCue"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "AvatarCue"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - SocAvatar"] <- "SocialCue"
   
+  
+  
+TLXdataOrg$Block <- as.factor( TLXdataOrg$Block)
+TLXdataOrg$Block <- relevel(TLXdataOrg$Block, ref = "Control")
 
+  
+  TLXdataOrg <- TLXdataOrg %>% 
+  subset(participant != "SP10") %>% 
+    subset(participant != "SP12") 
+  
 ```
 
 
@@ -55,9 +64,14 @@ RoSASOrg <- RoSASOrg %>%
     subset(Block != "NDRT")
 
 
+
+RoSASOrg$Block <-  factor(RoSASOrg$Block, levels = c("VisualCue", "AvatarCue", "SocialCue"))
+
+
+
   RoSASOrg <- RoSASOrg %>% 
-  subset(participant != "P01") %>% 
-    subset(participant != "P12") 
+  subset(participant != "SP10") %>% 
+    subset(participant != "SP12") 
 ```
 
 
@@ -73,7 +87,8 @@ RoSASOrg$Discomfort =rowMeans(RoSASOrg[,c(16,21)], na.rm = T)
 
 RoSASFull <- RoSASOrg
 
-write.csv(RoSASFull, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S5RoSAS.csv", row.names=FALSE)
+
+write.csv(RoSASFull, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S6RoSAS.csv", row.names=FALSE)
 
 
 ```
@@ -118,21 +133,21 @@ RosasFullSummary <- RoSASFull %>%
 ggplot(RoSASFull, aes(Block, Warmth, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
-  labs(title = "Total NASA TLX scores")+
+  labs(title = "Warmth")+
 #    scale_fill_manual(values = friendly_pal("ito_seven"))
         theme_classic()
 
 ggplot(RoSASFull, aes(Block, Competence, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
-  labs(title = "Total NASA TLX scores")+
+  labs(title = "Competence")+
 #    scale_fill_manual(values = friendly_pal("ito_seven"))
         theme_classic()
 
 ggplot(RoSASFull, aes(Block, Discomfort, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
-  labs(title = "Total NASA TLX scores")+
+  labs(title = "Discomfort")+
 #    scale_fill_manual(values = friendly_pal("ito_seven"))
         theme_classic()
 
@@ -146,6 +161,7 @@ get_anova_table(RosasWarmth.aov)
 Warmrthpwc <- RoSASFull %>% 
   pairwise_t_test(Warmth ~ Block, paired = TRUE,
                   p.adjust.method = "bonferroni")
+
 
 Warmrthpwc <- Warmrthpwc %>%  add_xy_position(x = "Block")
 Warmrthpwc
@@ -615,6 +631,7 @@ Awfulbxp +
   )
 
 ```
+
 ```{r}
 # Aggressive
 RosasAggressive.aov <- anova_test(data = RoSASFull, dv = Aggressive, wid = participant, within = Block)

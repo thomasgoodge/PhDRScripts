@@ -459,7 +459,7 @@ HazardCorrSummary <- CorrHazardCountData %>%
 ```{r}
 
 CorrHazardPptSummaryAOI <- CorrHazardCountData %>% 
-  group_by(PIDCond) %>% 
+  group_by(PIDCond, Condition) %>% 
   summarise(NoF = sum(modified),
             meanDuration = mean(eventDuration),
             sdDuration = sd(eventDuration),
@@ -558,7 +558,7 @@ TukeyHSD(FixCountAnova)
 
 PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
 
-PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "HUD")
 
 
 FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition,  family = "poisson")
@@ -570,6 +570,11 @@ summary(FixCountLMER)
 
 
 
+library(report)
+FixCountResults <- report(FixCountLMER, CI = 95)
+ #ef <- as.data.frame(effects("Condition", FixCountResults))
+#head(ef)
+summary(FixCountResults)
 
 ```
 
@@ -659,18 +664,22 @@ TukeyHSD(NumHazFix)
 
 CorrHazardPptSummaryAOI$Condition <- as.factor(PptSummaryAOI$Condition)
 
-CorrHazardPptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "HUD")
+
+CorrHazardPptSummaryAOI$Ppt <- as.factor(PptSummaryAOI$Ppt)
+
+CorrHazardPptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 
 
 HazFixCountLM <- lm(data =CorrHazardPptSummaryAOI, NoF ~ Condition, family = "poisson")
 summary(HazFixCountLM)
 
 
-
 HazFixCountLMER <- lmer(data =CorrHazardPptSummaryAOI, NoF ~ Condition + (1|Ppt))
 summary(HazFixCountLMER)
 
+HazFixCountResults <- report(HazFixCountLM, CI = 95)
 
+summary(HazFixCountResults)
 
 
 ```
@@ -726,6 +735,8 @@ ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condit
 
 CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
 
+
+
 TotalHazardNoFPlot <- ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
   geom_violin(width = 1.8)+
   geom_boxplot(width = 0.07)+
@@ -757,7 +768,7 @@ CorrHazFixLM <- lm( sumCorr ~ Condition, data = CorrHazardPptSummaryAOI)
 summary(CorrHazFixLM)
 
 CorrHazFixLMER <- lmer(sumCorr ~ Condition + (1|Ppt), data = CorrHazardPptSummaryAOI)
-summary(CorrHazFixLM)
+summary(CorrHazFixLMER)
 
 
 ```
@@ -826,6 +837,13 @@ CorrHazardPptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "HUD
 
 CorrHazFixCountLM <- lm(data =CorrHazardPptSummaryAOI, sumCorr ~ Condition, family = "poisson")
 summary(CorrHazFixCountLM)
+
+CorrHazFixLMER <- lmer(sumCorr ~ Condition + (1|Ppt), data = CorrHazardPptSummaryAOI)
+summary(CorrHazFixLMER)
+
+CorrHazFixCountResults <- report(CorrHazFixLMER, CI = 95)
+
+summary(CorrHazFixCountResults)
 
 ```
 
@@ -986,13 +1004,24 @@ DurModelNull <- lmer(meanDuration ~ (1|Ppt), data = PptSummaryAOI)
 
 DurModelBasic <- lm(data = PptSummaryAOI, formula = meanDuration ~ Condition, family = "poisson")
 
+
+
+
 #DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
 
-summary(DurModelBasic)
+summary(DurModelBasicLMER)
 qqnorm(sqrt(PptSummaryAOI$meanDuration))
 PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "HUD")
 
 #anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3, DurModel4)
+
+DurModelBasicLMER <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+
+DurModelResults <- report(DurModelBasicLMER, CI = 95)
+
+summary(DurModelResults)
+
+
 ```
 
 #Total Fix Dur Plot
@@ -1122,10 +1151,21 @@ anova(HazDurModelNull, HazDurModelBasic, HazDurModel1, HazDurModel2, HazDurModel
 #CountHazardFixationDuration - Ppt summary
 ```{r}
 CorrHazardPptSummaryAOI$Condition <- as.factor(CorrHazardPptSummaryAOI$Condition)
+CorrHazardPptSummaryAOI$Condition <- relevel(CorrHazardPptSummaryAOI$Condition, ref = "Control")
+
 CorrHazardPptSummaryAOI$Condition <- relevel(CorrHazardPptSummaryAOI$Condition, ref = "Cue")
 
-HazDurModelBasic <- lm(data = CorrHazardPptSummaryAOI, formula = meanDuration ~ Condition)
+
+FixDurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+summary(FixDurModelBasic)
+
+
+HazDurModelBasic <- lmer(data = CorrHazardPptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
 summary(HazDurModelBasic)
+
+HazFixDurResults <- report(HazDurModelBasic, CI = 95)
+
+summary(HazFixDurResults)
 
 ```
 #Haz Fix Dura  Plot

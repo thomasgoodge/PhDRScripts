@@ -19,7 +19,7 @@ library(ggplot2)
 
 ```{r}
 
-dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/AR Task"
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/Study6Data/ARTasks"
 
 fileList <- list.files(path = dataFolder, pattern = "..txt$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
@@ -71,7 +71,7 @@ scoreDatasetRaw$`"DiamondProportion"` <- as.numeric( scoreDatasetRaw$`"DiamondPr
 scoreDatasetRaw$`"EmeraldProportion"` <- as.numeric( scoreDatasetRaw$`"EmeraldProportion"`)
 scoreDatasetRaw$`"Average Proportion"` <- as.numeric( scoreDatasetRaw$`"Average Proportion"`)
 
-scoreDatasetRaw[c('Ppt','Block')] <- str_split_fixed(scoreDatasetRaw$`"ID"`, 'S5', 4)
+scoreDatasetRaw[c('Ppt','Block')] <- str_split_fixed(scoreDatasetRaw$`"ID"`, 'S6', 4)
 
 ```
 
@@ -95,7 +95,10 @@ scoreDataset <- scoreDatasetRaw
   
 scoreDataset$ID <- substring(scoreDataset$ID,2,5)
 
-write.csv(scoreDataset, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S5NDRT.csv", row.names=FALSE)
+
+write.csv(scoreDataset, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/ComparisonData/S6NDRT.csv", row.names=FALSE)
+
+
 
 ```
 

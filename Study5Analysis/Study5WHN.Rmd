@@ -624,17 +624,17 @@ ggsave(filename = "RoboFullPlot2.png",
 ```{r}
 
 
-WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Visual")
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control")
 
-WHNNullModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~ 1 + (1|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
-
-WHNModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block  + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
-
-WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
-
+# WHNNullModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~ 1 + (1|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+# 
+# WHNModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block  + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+# 
+# WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+# 
 # WHNModel1 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant)  , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
-# WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+ WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1|image_file) , family = binomial, glmerControl(optimizer = "bobyqa"))
 # 
 # WHNModel3 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1 + Block|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
@@ -648,7 +648,7 @@ WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1
 summary(WHNModelBasic)
 library(effects)
 
-ef <- as.data.frame(effect("Block", WHNModelBasic))
+ef <- as.data.frame(effect("Block", WHNModel2))
 head(ef)
 
 library(report)

@@ -288,7 +288,7 @@ WHNDataset$image_file[WHNDataset$image_file == "Slide8"] <- "Slide08"
 WHNDataset$image_file[WHNDataset$image_file == "Slide9"] <- "Slide09"
 
 
-WHNDataset$Block <- factor(WHNDataset$Block, levels = c("Control", "HUD",  "Cue", "HDD"))
+WHNDataset$Block <- factor(WHNDataset$Block, levels = c("Control", "Cue",  "HUD", "HDD"))
 ```
 
 
@@ -472,11 +472,14 @@ WHNPlot2 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
   geom_violin(alpha = 0.8)+
   geom_boxplot(alpha = 0, width = 0.2)+
   #scale_fill_manual(values = friendly_pal("ito_seven"))+
-    theme_classic()+
+  scale_fill_brewer(palette = "RdYlBu")+
+    labs( x = "NDRT Presentation Condition", y = "Average number of correct responses")+
+
+    theme_classic()
++
 theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
   theme(axis.text=element_text(size=15))+
-  labs(title = "Hazard Prediction Score", x = "NDRT Presentation Condition", y = "Average correct responses")+
     theme(plot.title=element_text(vjust=11.5))+
 
   theme(plot.margin =unit(c(2,0,0,0),"cm"))
@@ -484,6 +487,13 @@ theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
 
 WHNPlot2
+
+ggsave(filename = "TAPSWHNPlot.png",
+       plot = WHNPlot2,
+       scale = 3,
+       device = png,
+       units = "px",
+       dpi = 700)
 ```
 
 
