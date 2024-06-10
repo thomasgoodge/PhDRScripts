@@ -133,7 +133,7 @@ scatterplot3d(x = ValidCue$fixation_x, y = ValidCue$fixation_z, z = ValidCue$fix
 scatterplot3d(x = ValidHDD$fixation_x, y = ValidHDD$fixation_z, z = ValidHDD$fixation_y, highlight.3d = T)
 ```
 
-#3D Plots
+#3D Plots Pop outs
 ```{r}
 ValidHUD$FixTarget <- if_else(ValidHUD$gazePoint_target_name == "Wall", "navy", "cyan")
 
