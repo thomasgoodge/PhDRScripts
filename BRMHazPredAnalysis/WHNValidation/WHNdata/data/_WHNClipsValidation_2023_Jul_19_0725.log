@@ -1,0 +1,130 @@
+8.7469 	WARNING 	Requested an unavailable screen number - using first available.
+8.7501 	WARNING 	User requested fullscreen with size [1920 1080], but screen is actually [3840, 2160]. Using actual size
+13.1453 	EXP 	Created window1 = Window(allowGUI=False, allowStencil=False, autoLog=True, backendConf=UNKNOWN, bitsMode=UNKNOWN, blendMode='avg', bpc=(8, 8, 8), color=array([0, 0, 0]), colorSpace='rgb', depthBits=8, fullscr=<method-wrapper '__getattribute__' of attributeSetter object at 0x000001E00F9076D8>, gamma=None, gammaErrorPolicy='raise', lms=UNKNOWN, monitor=<psychopy.monitors.calibTools.Monitor object at 0x000001E00F8E9B00>, multiSample=False, name='window1', numSamples=2, pos=[0.0, 0.0], screen=1, size=array([3840, 2160]), stencilBits=0, stereo=False, units='height', useFBO=True, useRetina=False, viewOri=0.0, viewPos=None, viewScale=None, waitBlanking=True, winType='pyglet')
+13.1461 	EXP 	window1: mouseVisible = True
+13.1462 	EXP 	window1: recordFrameIntervals = False
+13.3055 	EXP 	window1: recordFrameIntervals = True
+13.4893 	EXP 	window1: recordFrameIntervals = False
+14.5906 	EXP 	Created text = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz=method-wrapper(...), alignText='center', alignVert=method-wrapper(...), anchorHoriz='center', anchorVert='center', antialias=True, autoLog=True, bold=False, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0.0, flipHoriz=False, flipVert=False, font='Open Sans', fontFiles=[], height=0.02, italic=False, languageStyle='LTR', name='text', opacity=1, ori=0.0, pos=array([0., 0.]), rgb=UNKNOWN, text=str(...), units='height', win=Window(...), wrapWidth=1)
+14.6249 	EXP 	Created Info = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz=method-wrapper(...), alignText='center', alignVert=method-wrapper(...), anchorHoriz='center', anchorVert='center', antialias=True, autoLog=True, bold=False, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0.0, flipHoriz=False, flipVert=False, font='Open Sans', fontFiles=[], height=0.02, italic=False, languageStyle='LTR', name='Info', opacity=1, ori=0.0, pos=array([0., 0.]), rgb=UNKNOWN, text=str(...), units='height', win=Window(...), wrapWidth=1)
+15.4541 	EXP 	Created pracWHNvideo = MovieStim3(__class__=<class 'psychopy.visual.movie3.MovieStim3'>, autoLog=True, color=UNKNOWN, colorSpace=UNKNOWN, depth=0.0, filename='WHNPractice2.mp4', flipHoriz=False, flipVert=False, fps=UNKNOWN, interpolate=True, loop=False, name='pracWHNvideo', noAudio=False, opacity=1, ori=method-wrapper(...), pos=array([0., 0.]), size=method-wrapper(...), units='pix', vframe_callback=UNKNOWN, volume=UNKNOWN, win=Window(...))
+15.8829 	EXP 	Created practice_fixation = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz=method-wrapper(...), alignText='center', alignVert=method-wrapper(...), anchorHoriz='center', anchorVert='center', antialias=True, autoLog=True, bold=False, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=-2.0, flipHoriz=False, flipVert=False, font='Open Sans', fontFiles=[], height=0.1, italic=False, languageStyle='LTR', name='practice_fixation', opacity=1, ori=0.0, pos=array([0., 0.]), rgb=UNKNOWN, text='+', units='height', win=Window(...), wrapWidth=1)
+16.1364 	EXP 	Created pracImage = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0.0, flipHoriz=False, flipVert=False, image='WHNPractice2.jpg', interpolate=True, mask=None, maskParams=None, name='pracImage', opacity=1, ori=0.0, pos=array([0., 0.]), size=array([1920., 1080.]), texRes=128.0, units='pix', win=Window(...))
+16.1519 	EXP 	Created practice_end_text = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz=method-wrapper(...), alignText='center', alignVert=method-wrapper(...), anchorHoriz='center', anchorVert='center', antialias=True, autoLog=True, bold=False, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0.0, flipHoriz=False, flipVert=False, font='Open Sans', fontFiles=[], height=0.02, italic=False, languageStyle='LTR', name='practice_end_text', opacity=1, ori=0.0, pos=array([0., 0.]), rgb=UNKNOWN, text=str(...), units='height', win=Window(...), wrapWidth=1)
+16.1552 	EXP 	Created fixation_cross = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz=method-wrapper(...), alignText='center', alignVert=method-wrapper(...), anchorHoriz='center', anchorVert='center', antialias=True, autoLog=True, bold=False, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=-2.0, flipHoriz=False, flipVert=False, font='Open Sans', fontFiles=[], height=0.1, italic=False, languageStyle='LTR', name='fixation_cross', opacity=1, ori=0.0, pos=array([0., 0.]), rgb=UNKNOWN, text='+', units='height', win=Window(...), wrapWidth=1)
+16.1595 	EXP 	Created WHNAnswer_2 = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0.0, flipHoriz=False, flipVert=False, image='sin', interpolate=True, mask=None, maskParams=None, name='WHNAnswer_2', opacity=1, ori=0.0, pos=array([0., 0.]), size=array([1920., 1080.]), texRes=128.0, units='pix', win=Window(...))
+16.1708 	EXP 	Created break_text = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz=method-wrapper(...), alignText='center', alignVert=method-wrapper(...), anchorHoriz='center', anchorVert='center', antialias=True, autoLog=True, bold=False, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0.0, flipHoriz=False, flipVert=False, font='Open Sans', fontFiles=[], height=0.02, italic=False, languageStyle='LTR', name='break_text', opacity=1, ori=0.0, pos=array([0., 0.]), rgb=UNKNOWN, text=str(...), units='height', win=Window(...), wrapWidth=1)
+16.2109 	EXP 	Created end_text = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz=method-wrapper(...), alignText='center', alignVert=method-wrapper(...), anchorHoriz='center', anchorVert='center', antialias=True, autoLog=True, bold=False, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0.0, flipHoriz=False, flipVert=False, font='Arial', fontFiles=[], height=0.05, italic=False, languageStyle='LTR', name='end_text', opacity=1, ori=0, pos=array([0., 0.]), rgb=UNKNOWN, text=str(...), units='height', win=Window(...), wrapWidth=1)
+16.2557 	EXP 	pracWHNvideo: autoLog = True
+16.2557 	EXP 	pracWHNvideo: movie = 'WHNPractice2.mp4'
+16.2557 	EXP 	pracWHNvideo: size = array([1920., 1080.])
+16.2557 	EXP 	pracWHNvideo: ori = 1.0
+16.2557 	EXP 	text: autoDraw = True
+42.1773 	DATA 	Keypress: space
+42.1820 	EXP 	text: autoDraw = False
+42.1820 	EXP 	Info: autoDraw = True
+48.7000 	DATA 	Keypress: space
+48.7234 	EXP 	Info: autoDraw = False
+48.7234 	EXP 	practice_fixation: autoDraw = True
+49.2384 	EXP 	pracWHNvideo: autoDraw = True
+49.2425 	WARNING 	0.034844650072045624: Video catchup needed, advancing self._nextFrameT from 0.0 to 0.016683350016683352
+49.2763 	EXP 	practice_fixation: autoDraw = False
+49.2798 	WARNING 	0.0721410500118509: Video catchup needed, advancing self._nextFrameT from 0.033366700033366704 to 0.05005005005005006
+49.3110 	WARNING 	0.10336405003909022: Video catchup needed, advancing self._nextFrameT from 0.06673340006673341 to 0.08341675008341676
+49.3752 	WARNING 	0.1676003501052037: Video catchup needed, advancing self._nextFrameT from 0.13346680013346682 to 0.15015015015015018
+49.4415 	WARNING 	0.23389765003230423: Video catchup needed, advancing self._nextFrameT from 0.20020020020020027 to 0.21688355021688363
+49.5469 	WARNING 	0.33921385009307414: Video catchup needed, advancing self._nextFrameT from 0.3003003003003004 to 0.3169836503169838
+49.5920 	WARNING 	0.38438425003550947: Video catchup needed, advancing self._nextFrameT from 0.3503503503503505 to 0.36703370036703387
+49.6755 	WARNING 	0.4678084501065314: Video catchup needed, advancing self._nextFrameT from 0.4337671004337673 to 0.4504504504504507
+49.7592 	WARNING 	0.5515033500269055: Video catchup needed, advancing self._nextFrameT from 0.5005005005005008 to 0.5171838505171841
+49.7593 	WARNING 	0.5516028500860557: Video catchup needed, advancing self._nextFrameT from 0.5171838505171841 to 0.5338672005338674
+49.7593 	WARNING 	Max reportNDroppedFrames reached, will not log any more dropped frames
+58.2735 	EXP 	Set pracWHNvideo finished
+58.3485 	EXP 	pracWHNvideo: autoDraw = False
+58.3485 	EXP 	practice_fixation: autoDraw = False
+58.3485 	EXP 	pracImage: autoDraw = True
+59.5565 	DATA 	Keypress: 3
+59.5611 	EXP 	pracImage: autoDraw = False
+59.5611 	EXP 	practice_end_text: autoDraw = True
+60.7080 	EXP 	Imported WHNVideoList.xlsx as conditions, 40 conditions, 8 params
+60.7087 	EXP 	Created sequence: random, trialTypes=40, nReps=1, seed=None
+60.7091 	EXP 	New trial (rep=0, index=0): {'video_file': 'Clip14WHN.mp4', 'image_file': 'Slide14.jpg', 'Correct': 2, 'Ans1': 'A police car pulls out into the road from the side road on the left', 'Ans2': 'A pedestrian walks across the road from the right', 'Ans3': 'The white car on the left pulls off in front of you', 'Ans4': 'A group of school children run across the road from the left', 'CorrAns': [1]}
+60.7096 	EXP 	Created hazard_video = MovieStim3(__class__=<class 'psychopy.visual.movie3.MovieStim3'>, autoLog=True, color=UNKNOWN, colorSpace=UNKNOWN, depth=0.0, filename='Clip14WHN.mp4', flipHoriz=False, flipVert=False, fps=UNKNOWN, interpolate=True, loop=False, name='hazard_video', noAudio=False, opacity=1, ori=method-wrapper(...), pos=array([0., 0.]), size=method-wrapper(...), units='pix', vframe_callback=UNKNOWN, volume=UNKNOWN, win=Window(...))
+60.8766 	DATA 	Keypress: space
+60.8808 	EXP 	practice_end_text: autoDraw = False
+60.8808 	EXP 	hazard_video: autoLog = True
+60.8808 	EXP 	hazard_video: movie = 'Clip14WHN.mp4'
+60.8808 	EXP 	hazard_video: size = array([1920., 1080.])
+60.8808 	EXP 	hazard_video: ori = 0
+60.8808 	EXP 	fixation_cross: autoDraw = True
+61.6915 	EXP 	fixation_cross: autoDraw = False
+61.8768 	EXP 	hazard_video: autoDraw = True
+61.9567 	WARNING 	0.08125235000625253: Video catchup needed, advancing self._nextFrameT from 0.033366700033366704 to 0.05005005005005006
+61.9861 	WARNING 	0.11063925002235919: Video catchup needed, advancing self._nextFrameT from 0.06673340006673341 to 0.08341675008341676
+62.0197 	WARNING 	0.14424895006231964: Video catchup needed, advancing self._nextFrameT from 0.1001001001001001 to 0.11678345011678345
+62.0697 	WARNING 	0.1942573500564322: Video catchup needed, advancing self._nextFrameT from 0.13346680013346682 to 0.15015015015015018
+62.0697 	WARNING 	0.19431495002936572: Video catchup needed, advancing self._nextFrameT from 0.15015015015015018 to 0.16683350016683354
+62.1101 	WARNING 	0.23462785000447184: Video catchup needed, advancing self._nextFrameT from 0.1835168501835169 to 0.20020020020020027
+62.1101 	WARNING 	0.23470615001861006: Video catchup needed, advancing self._nextFrameT from 0.20020020020020027 to 0.21688355021688363
+62.1544 	WARNING 	0.2789971500169486: Video catchup needed, advancing self._nextFrameT from 0.233566900233567 to 0.25025025025025033
+62.1894 	WARNING 	0.3139604500029236: Video catchup needed, advancing self._nextFrameT from 0.2669336002669337 to 0.28361695028361705
+62.2447 	WARNING 	0.3692817500559613: Video catchup needed, advancing self._nextFrameT from 0.3003003003003004 to 0.3169836503169838
+62.2447 	WARNING 	Max reportNDroppedFrames reached, will not log any more dropped frames
+70.1515 	DATA 	Keypress: y
+70.2313 	EXP 	hazard_video: autoDraw = False
+70.2313 	EXP 	fixation_cross: autoDraw = False
+70.2313 	EXP 	WHNAnswer_2: image = 'Slide14.jpg'
+70.2313 	EXP 	WHNAnswer_2: autoDraw = True
+70.9504 	DATA 	Keypress: 3
+70.9734 	EXP 	New trial (rep=0, index=1): {'video_file': 'Clip36WHN.mp4', 'image_file': 'Slide36.jpg', 'Correct': 1, 'Ans1': 'A car reverses backwards into the road ahead of you', 'Ans2': 'A pedestrian steps out from the right', 'Ans3': 'A pedestrian steps out from behind the parked cars on the left', 'Ans4': 'The black car parked on the left pulls off in front of you', 'CorrAns': [0]}
+70.9750 	EXP 	Created hazard_video = MovieStim3(__class__=<class 'psychopy.visual.movie3.MovieStim3'>, autoLog=True, color=UNKNOWN, colorSpace=UNKNOWN, depth=0.0, filename='Clip36WHN.mp4', flipHoriz=False, flipVert=False, fps=UNKNOWN, interpolate=True, loop=False, name='hazard_video', noAudio=False, opacity=1, ori=method-wrapper(...), pos=array([0., 0.]), size=method-wrapper(...), units='pix', vframe_callback=UNKNOWN, volume=UNKNOWN, win=Window(...))
+71.1866 	EXP 	WHNAnswer_2: autoDraw = False
+71.1866 	EXP 	break_text: autoDraw = True
+71.1866 	EXP 	break_text: autoDraw = False
+71.1866 	EXP 	hazard_video: autoLog = True
+71.1866 	EXP 	hazard_video: movie = 'Clip36WHN.mp4'
+71.1866 	EXP 	hazard_video: size = array([1920., 1080.])
+71.1866 	EXP 	hazard_video: ori = 0
+71.1866 	EXP 	fixation_cross: autoDraw = True
+71.9919 	EXP 	fixation_cross: autoDraw = False
+72.1937 	EXP 	hazard_video: autoDraw = True
+72.2791 	WARNING 	0.08711405005306005: Video catchup needed, advancing self._nextFrameT from 0.033366700033366704 to 0.05005005005005006
+72.2792 	WARNING 	0.08718925004359335: Video catchup needed, advancing self._nextFrameT from 0.05005005005005006 to 0.06673340006673341
+72.3371 	WARNING 	0.145137449959293: Video catchup needed, advancing self._nextFrameT from 0.08341675008341676 to 0.1001001001001001
+72.3372 	WARNING 	0.14517955004703254: Video catchup needed, advancing self._nextFrameT from 0.1001001001001001 to 0.11678345011678345
+72.3739 	WARNING 	0.18194635002873838: Video catchup needed, advancing self._nextFrameT from 0.13346680013346682 to 0.15015015015015018
+72.4026 	WARNING 	0.2106424500234425: Video catchup needed, advancing self._nextFrameT from 0.16683350016683354 to 0.1835168501835169
+72.4295 	WARNING 	0.23754104995168746: Video catchup needed, advancing self._nextFrameT from 0.20020020020020027 to 0.21688355021688363
+72.4656 	WARNING 	0.2735998500138521: Video catchup needed, advancing self._nextFrameT from 0.233566900233567 to 0.25025025025025033
+72.5180 	WARNING 	0.3260386500041932: Video catchup needed, advancing self._nextFrameT from 0.2669336002669337 to 0.28361695028361705
+72.5181 	WARNING 	0.32610325003042817: Video catchup needed, advancing self._nextFrameT from 0.28361695028361705 to 0.3003003003003004
+72.5181 	WARNING 	Max reportNDroppedFrames reached, will not log any more dropped frames
+72.6354 	DATA 	Keypress: y
+72.7147 	EXP 	hazard_video: autoDraw = False
+72.7147 	EXP 	fixation_cross: autoDraw = False
+72.7147 	EXP 	WHNAnswer_2: image = 'Slide36.jpg'
+72.7147 	EXP 	WHNAnswer_2: autoDraw = True
+73.2501 	DATA 	Keypress: 4
+73.2708 	EXP 	New trial (rep=0, index=2): {'video_file': 'Clip15WHN.mp4', 'image_file': 'Slide15.jpg', 'Correct': 2, 'Ans1': 'A delivery worker steps into the road from behind the white van on the left', 'Ans2': 'Oncoming cyclists encroach on your lane', 'Ans3': 'A pedestrian steps out from behind the car parked on the right', 'Ans4': 'The door opens from the white car parked on the right and the driver steps out', 'CorrAns': [1]}
+73.2725 	EXP 	Created hazard_video = MovieStim3(__class__=<class 'psychopy.visual.movie3.MovieStim3'>, autoLog=True, color=UNKNOWN, colorSpace=UNKNOWN, depth=0.0, filename='Clip15WHN.mp4', flipHoriz=False, flipVert=False, fps=UNKNOWN, interpolate=True, loop=False, name='hazard_video', noAudio=False, opacity=1, ori=method-wrapper(...), pos=array([0., 0.]), size=method-wrapper(...), units='pix', vframe_callback=UNKNOWN, volume=UNKNOWN, win=Window(...))
+73.4927 	EXP 	WHNAnswer_2: autoDraw = False
+73.4927 	EXP 	break_text: autoDraw = True
+73.4927 	EXP 	break_text: autoDraw = False
+73.4927 	EXP 	hazard_video: autoLog = True
+73.4927 	EXP 	hazard_video: movie = 'Clip15WHN.mp4'
+73.4927 	EXP 	hazard_video: size = array([1920., 1080.])
+73.4927 	EXP 	hazard_video: ori = 0
+73.4927 	EXP 	fixation_cross: autoDraw = True
+74.2920 	EXP 	fixation_cross: autoDraw = False
+74.4771 	EXP 	hazard_video: autoDraw = True
+74.5630 	WARNING 	0.08733295009005815: Video catchup needed, advancing self._nextFrameT from 0.033366700033366704 to 0.05005005005005006
+74.5631 	WARNING 	0.0873950500972569: Video catchup needed, advancing self._nextFrameT from 0.05005005005005006 to 0.06673340006673341
+74.6054 	WARNING 	0.12967675004620105: Video catchup needed, advancing self._nextFrameT from 0.08341675008341676 to 0.1001001001001001
+74.6348 	WARNING 	0.15909445006400347: Video catchup needed, advancing self._nextFrameT from 0.11678345011678345 to 0.13346680013346682
+74.6721 	WARNING 	0.19644295005127788: Video catchup needed, advancing self._nextFrameT from 0.15015015015015018 to 0.16683350016683354
+74.7003 	WARNING 	0.22460985009092838: Video catchup needed, advancing self._nextFrameT from 0.1835168501835169 to 0.20020020020020027
+74.7175 	DATA 	Keypress: escape
+74.7279 	WARNING 	0.2521848500473425: Video catchup needed, advancing self._nextFrameT from 0.21688355021688363 to 0.233566900233567
+74.7624 	WARNING 	0.2867427500896156: Video catchup needed, advancing self._nextFrameT from 0.25025025025025033 to 0.2669336002669337
+74.8440 	WARNING 	0.3683302500285208: Video catchup needed, advancing self._nextFrameT from 0.33366700033366714 to 0.3503503503503505
+76.2047 	EXP 	window1: mouseVisible = True
