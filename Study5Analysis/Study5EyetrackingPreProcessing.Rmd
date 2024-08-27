@@ -262,7 +262,7 @@ ClipTimes <- timeDataExport %>%
 #ClipTimes <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ClipTimes.csv", header = T)
 
 
-#write.csv(ClipTimes, "ClipTimes.csv")
+write.csv(ClipTimes, "ClipTimes.csv")
 
 # 
 # P07Time <- ClipTimes %>% 
@@ -300,19 +300,6 @@ timeDataExport <- timeDataExport %>%
   subset(Participant != "P09") %>%
   subset(Participant != "P12")
   
-
-
-ControlTimedata <- timeDataExport %>% 
-  subset(Condition == "Control")
-
-HUDTimedata <- timeDataExport %>% 
-  subset(Condition == "HUD")
-
-CueTimedata <- timeDataExport %>% 
-  subset(Condition == "Cue")
-
-HDDTimedata <- timeDataExport %>% 
-   subset(Condition == "HDD")
 
 ```
 
@@ -354,7 +341,10 @@ print(Sys.time())
 #READ IN FULL ET DATA
 
 ```{r}
+print(Sys.time())
+
 ETdata <- read.csv("D:/Study5Data/FullETdata.csv", header = T)
+print(Sys.time())
 
 beep()
 ```
@@ -530,7 +520,10 @@ ValidAOIControlETData <- FixShortAOIControlETData %>%
   subset(Valid != "FALSE")
 
 write.csv(ValidAOIControlETData, "ValidAOIControlETData.csv")
+```
 
+#Final Control dataset
+```{r}
 ValidAOIControlETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOIControlETData.csv", header = T)
 
 ```
@@ -586,7 +579,7 @@ write.csv(AOIVisualETData, "AOIVisualETData.csv")
 
 
 ```{r}
-#AOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/AOIVisualETData.csv", header = T)
+AOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/AOIVisualETData.csv", header = T)
 
 
 #write.csv(AOIVisualETData, "AOIVisualETData.csv")
@@ -620,7 +613,7 @@ beep()
 
 ```{r}
 
-#FixShortAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FixShortAOIVisualETData.csv", header = T)
+FixShortAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FixShortAOIVisualETData.csv", header = T)
 
 FixShortAOIVisualETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOIVisualETData$PIDCond)
 
@@ -640,11 +633,15 @@ FixShortAOIVisualETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = Fi
 ```
 #Validate Visual
 ```{r}
+print(Sys.time())
+
 FixShortAOIVisualETData$Valid <- sapply(1:nrow(FixShortAOIVisualETData), function(i) check_time(FixShortAOIVisualETData[i, ]))
 beep()
 print(Sys.time())
 
 FixShortAOIVisualETData$VideoClip <- sapply(1:nrow(FixShortAOIVisualETData), function(i) check_clip_name(FixShortAOIVisualETData[i, ]))
+print(Sys.time())
+
 beep()
 
 ```
@@ -654,9 +651,11 @@ ValidAOIVisualETData <- FixShortAOIVisualETData %>%
   subset(Valid != "FALSE")
 
 write.csv(ValidAOIVisualETData, "ValidAOIVisualETData.csv")
+```
 
-
-#ValidAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOIVisualETData.csv", header = T)
+#Final Visual dataset
+```{r}
+ValidAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOIVisualETData.csv", header = T)
 
 
 ```
@@ -666,9 +665,17 @@ write.csv(ValidAOIVisualETData, "ValidAOIVisualETData.csv")
 #Wrangle Avatar data
 ```{r Avatar Data}
 
-listAvatardata <- split(AvatarETdata, f = AvatarETdata$PIDCond)
+#AOIAvatarETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/AOIAvatarETData.csv", header = T)
+
+# listAvatardata <- split(AvatarETdata, f = AvatarETdata$PIDCond)
+# listAvatardataFull <- listAvatardata
+#find where last participant that was run was and cute dataset before them to continure
+
+#listAvatardata<- listAvatardata[-c(1:16)]
 
 dataset <- listAvatardata[1]
+#AOIAvatarETDataDone <- AOIAvatarETData
+#comment this line to continue position
 AOIAvatarETData <- data.frame()
 
 
@@ -706,18 +713,26 @@ for(dataset in listAvatardata) {
 
  
 }
+
+
+# AOIAvatarETDataDone <- AOIAvatarETDataDone %>% 
+#   select(-X)
+AOIAvatarETData$TimeStamp <- AOIAvatarETData$TimeStamp/100
 write.csv(AOIAvatarETData, "AOIAvatarETData.csv")
 
-
+# AOIAvatarETDataComplete <- rbind(AOIAvatarETDataDone, AOIAvatarETData)
+# 
+# write.csv(AOIAvatarETDataComplete, "AOIAvatarETData.csv")
 
 ```
+
 ```{r}
 beep()
 ```
 
 
 ```{r}
-#AOIAvatarETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/AOIAvatarETData.csv", header = T)
+AOIAvatarETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/AOIAvatarETData.csv", header = T)
 
 
 #write.csv(AOIAvatarETData, "AOIAvatarETData.csv")
@@ -743,7 +758,8 @@ write.csv(FixShortAOIAvatarETData, "FixShortAOIAvatarETData.csv")
 
 #FixShortAOIAvatarETData <- FixShortAOIAvatarETData[!duplicated(FixShortAOIAvatarETData$eventIndex), ]
 
-
+rm(AOIAvatarETData)
+beep()
 ```
 
 
@@ -787,12 +803,10 @@ ValidAOIAvatarETData <- FixShortAOIAvatarETData %>%
 write.csv(ValidAOIAvatarETData, "ValidAOIAvatarETData.csv")
 
 
-#ValidAOIAvatarETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOIAvatarETData.csv", header = T)
+ValidAOIAvatarETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOIAvatarETData.csv", header = T)
 
 
 ```
-
-
 
 #Wrangle NDRT data
 ```{r NDRT Data}
@@ -800,7 +814,15 @@ write.csv(ValidAOIAvatarETData, "ValidAOIAvatarETData.csv")
 listNDRTdata <- split(NDRTETdata, f = NDRTETdata$PIDCond)
 
 dataset <- listNDRTdata[1]
+
+
 AOINDRTETData <- data.frame()
+
+
+
+#AOINDRTETDataDone <- AOINDRTETData
+#listNDRTdata<- listNDRTdata[-c(1:7)]
+
 
 
 for(dataset in listNDRTdata) {
@@ -837,9 +859,14 @@ for(dataset in listNDRTdata) {
 
  
 }
+
+
 write.csv(AOINDRTETData, "AOINDRTETData.csv")
+beep()
 
-
+# AOINDRTETDataComplete <- rbind(AOINDRTETDataDone, AOINDRTETData)
+#  
+#  write.csv(AOINDRTETDataComplete, "AOINDRTETData.csv")
 
 ```
 
@@ -897,7 +924,6 @@ FixShortAOINDRTETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixS
 ```
 #Validate NDRT
 ```{r}
-#Run here tomorrow morning
 FixShortAOINDRTETData$Valid <- sapply(1:nrow(FixShortAOINDRTETData), function(i) check_time(FixShortAOINDRTETData[i, ]))
 beep()
 print(Sys.time())
@@ -914,17 +940,297 @@ ValidAOINDRTETData <- FixShortAOINDRTETData %>%
 write.csv(ValidAOINDRTETData, "ValidAOINDRTETData.csv")
 
 
-#ValidAOINDRTETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOINDRTETData.csv", header = T)
+ValidAOINDRTETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOINDRTETData.csv", header = T)
 
 
 ```
 
+#Create final valid dataset
+
+```{r}
+
+FinalValidAOIETData <- rbind(ValidAOIControlETData, ValidAOIVisualETData, ValidAOIAvatarETData, ValidAOINDRTETData)
+
+#ValidAOIETData <- ValidAOIETData %>% 
+ # separate(PIDCond,)
+
+
+FinalValidAOIETData[c('ID', 'Condition')] <- str_split_fixed(FinalValidAOIETData$PIDCond, ' ', 2)
+
+FinalValidAOIETData$VideoClip <- gsub("[^0-9]", "", FinalValidAOIETData$VideoClip)# remove all non-numeric characters
+
+FinalValidAOIETData$DupSort <- paste(FinalValidAOIETData$PIDCond, FinalValidAOIETData$eventIndex)
+
+write.csv(FinalValidAOIETData, "FinalValidAOIETData.csv")
+#check if this command needs running
+#FinalValidAOIETData <- FinalValidAOIETData[!duplicated(FinalValidAOIETData$DupSort),]
+
+print(Sys.time())
+```
+
+```{r}
+
+FinalValidAOIETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FinalValidAOIETData.csv", header = T)
+
+
+ValidAOIControlETData <- FinalValidAOIETData %>% 
+  subset(Condition == "Control")
+
+ValidAOIVisualETData <- FinalValidAOIETData %>% 
+  subset(Condition == "Visual")
+
+ValidAOIAvatarETData <- FinalValidAOIETData %>% 
+  subset(Condition == "Avatar")
+
+ValidAOINDRTETData <- FinalValidAOIETData %>% 
+  subset(Condition == "NDRT")
+```
+
+```{r}
+
+binwidth <- 110  # Adjust the binwidth as needed
+
+# Define the limits for the color scale
+#color_limits <- c(0, 1000)  # Adjust these limits as needed
+
+# Define the color for values exceeding the limit
+#exceeding_limit_color <- "yellow"  # Adjust this color as needed
+
+ControlPlot <- ggplot(data=ValidAOIControlETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+   # xlim(-0.4, 0.4)+
+  #ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "a) Control")
+
+VisualPlot <- ggplot(data=ValidAOIVisualETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+  #   xlim(-0.4, 0.4)+
+  # ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "b) Visual")
+
+AvatarPlot <- ggplot(data=ValidAOIAvatarETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+  #   xlim(-0.4, 0.4)+
+  # ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "c) Avatar")
+
+NDRTPlot <- ggplot(data=ValidAOINDRTETData, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+  #   xlim(-0.4, 0.4)+
+  # ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "d) NDRT")
 
 
 
+FullFixationPlot <- plot_grid(ControlPlot, VisualPlot, AvatarPlot, NDRTPlot,ncol = 2)
+FullFixationPlot
 
 
+ggsave(
+    filename = "FullFixationPlot.png",
+    plot = FullFixationPlot,
+    width = 15, height = 10
+  )
+
+```
 
 
+```{r}
+#Read in Hazard Clip Data
+
+HazardClipList <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalStudy4HazardSheet.csv", header = T)
+
+HazardClipList$VideoClip <- gsub("[^0-9]", "", HazardClipList$VideoClip)# remove all non-numeric characters
+
+HazardClipList$Onset <- HazardClipList$Offset - 4000
+
+HazardClipList$Onset <- HazardClipList$Onset / 1000
+
+HazardClipList$Offset <- HazardClipList$Offset / 1000
+
+HazardClipList$VideoClip <- as.numeric(HazardClipList$VideoClip)
+
+HazardClipList <- HazardClipList[complete.cases(HazardClipList$VideoClip), ] 
 
 
+HazardClipList <- HazardClipList %>% 
+  select(-c(xLocationOnset, xLocationOffset, convertedxLocationOnset, convertedxLocationOffset, yLocationOnset, yLocationOffset, convertedyLocationOnset, convertedyLocationOffset))
+
+```
+
+```{r}
+ClipTimes <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ClipTimes.csv", header = T)
+
+HazardClipTimes <-  ClipTimes
+
+HazardClipTimes$VideoClip <- as.numeric(gsub("[^0-9]", "", HazardClipTimes$image_file))# remove all non-numeric characters
+
+HazardClipTimes <- HazardClipTimes[complete.cases(HazardClipTimes$ETClipStart), ] %>% 
+  select(- X)
+```
+
+#Hazard Clips Sheet
+```{r}
+HazardClips <- left_join(HazardClipTimes, HazardClipList, by = "VideoClip")
+
+HazardClips$HazardOnset <- HazardClips$ETClipStart + HazardClips$Onset
+
+HazardClips$HazardOffset <- HazardClips$ETClipStop 
+
+CorrectAOIs <- HazardClips %>% 
+  select(VideoClip, AOILocationOffset, AOILocationOffset2)
+
+CorrectAOIs <- CorrectAOIs[!duplicated((CorrectAOIs$VideoClip)),]
+
+CorrectAOIs$VideoClip <- as.double(CorrectAOIs$VideoClip)
+
+
+```
+
+```{r}
+HazardWindowAOIData <- FinalValidAOIETData
+
+
+HazardWindowAOIData$ValidHazardWindow <- 0
+HazardWindowAOIData$CorrAOI <- 0
+
+
+HazardWindowAOIData$HazardValid <- FALSE
+old_id_temp <- 0
+
+
+for (i in 1:nrow(HazardWindowAOIData)){
+  
+  id_tmp <- HazardWindowAOIData$PIDCond[i]
+  Hzd_subset <- HazardClips %>%
+    filter(Sort == id_tmp)
+  
+  time_tmp <-HazardWindowAOIData$TimeStamp[i]
+  
+  Hzd_subset_nrow <- nrow(Hzd_subset)
+  Hzd_subset$Valid_tmp <- FALSE
+
+  for (j in 1:Hzd_subset_nrow){
+    Hzd_subset$Valid_tmp[j] <- (Hzd_subset$HazardOnset[j] <= time_tmp && time_tmp <= Hzd_subset$HazardOffset[j])
+    
+  }
+  
+  HazardWindowAOIData$HazardValid[i] <- any(Hzd_subset$Valid_tmp)
+  
+  for (k in 1:Hzd_subset_nrow){
+      if (Hzd_subset$Valid_tmp[k] == TRUE) {
+        HazardWindowAOIData$VideoClip[i] <- Hzd_subset$VideoClip[k]
+        break  # Exit loop after finding the first True value
+      }
+  }
+  
+  if(id_tmp != old_id_temp){
+    print(Sys.time())
+    print(id_tmp)
+    old_id_temp <- id_tmp}
+
+}
+
+ValidHazardWindowAOIData <- HazardWindowAOIData %>% 
+  subset(HazardValid == TRUE)
+
+ValidHazardWindowAOIData$VideoClip <- as.double(ValidHazardWindowAOIData$VideoClip)
+
+FinalValidHazardAOIETData <- left_join(ValidHazardWindowAOIData, CorrectAOIs, by = "VideoClip")
+
+for (row in 1:nrow(FinalValidHazardAOIETData)){
+
+FinalValidHazardAOIETData$CorrAOI[row] <- if_else((FinalValidHazardAOIETData$gazePointAOI_name[row] == FinalValidHazardAOIETData$AOILocationOffset[row] || FinalValidHazardAOIETData$gazePointAOI_name[row] == FinalValidHazardAOIETData$AOILocationOffset2[row]), 1,0 )
+}
+
+
+write.csv(FinalValidHazardAOIETData, "FinalValidHazardAOIETData.csv")
+
+```
+
+```{r}
+FinalValidHazardAOIETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FinalValidHazardAOIETData.csv", header = T)
+
+```
+
+#ZScoring & Final Dataset
+```{r}
+
+beep()
+df <- data.frame(FinalValidAOIETData$eventDuration)
+z_scores <- as.data.frame(sapply(df, function(df) (abs(df-mean(df))/sd(df))))
+
+z_scores$ZScores <- z_scores$FinalValidAOIETData.eventDuration
+z_scores <- z_scores %>% 
+  select(-1)
+
+FinalValidAOIETData$ZScore <- z_scores$ZScores
+
+FinalValidAOIETDataRMOut <- FinalValidAOIETData %>% 
+  subset(z_scores <= 3)
+
+FinalValidAOIETDataRMOut <- FinalValidAOIETDataRMOut %>% 
+  select(-X)
+
+#FinalValidAOIETDataRMOut <- FinalValidAOIETDataRMOut[complete.cases(FinalValidAOIETDataRMOut),]
+
+# FinalValidAOIETDataRMOut$TimeSort <- paste(FinalValidAOIETDataRMOut$PIDCond, FinalValidAOIETDataRMOut$TimeStamp)
+# 
+# FinalValidAOIETDataRMOut <- FinalValidAOIETDataRMOut[!duplicated(FinalValidAOIETDataRMOut$TimeSort), ]
+
+
+write.csv(FinalValidAOIETDataRMOut, "FinalValidAOIETDataRMOut.csv")
+
+```
+
+```{r}
+Hazdf <- data.frame(FinalValidHazardAOIETData$eventDuration)
+Hazz_scores <- as.data.frame(sapply(Hazdf, function(Hazdf) (abs(Hazdf-mean(Hazdf))/sd(Hazdf))))
+
+Hazz_scores$HazZScores <- Hazz_scores$FinalValidHazardAOIETData.eventDuration
+
+
+FinalValidHazardAOIETData$ZScore <- Hazz_scores$HazZScores
+
+FinalValidHazardAOIETDataRMOut <- FinalValidHazardAOIETData %>% 
+  subset(ZScore <= 3)
+
+#FinalValidHazardAOIETDataRMOut <- FinalValidHazardAOIETDataRMOut[complete.cases(FinalValidHazardAOIETDataRMOut),]
+
+
+write.csv(FinalValidHazardAOIETDataRMOut, "FinalValidHazardAOIETDataRMOut.csv")
+
+```
+
+#Final dataset without outliers
+```{r}
+
+FinalValidAOIETDataRMOut <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FinalValidAOIETDataRMOut.csv", header = T)
+
+
+ValidControl <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Control")
+
+ValidVisual <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Visual")
+
+ValidAvatar <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Avatar")
+
+ValidNDRT <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "NDRT")
+
+
+```

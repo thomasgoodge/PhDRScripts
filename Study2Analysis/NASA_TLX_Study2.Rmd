@@ -16,12 +16,20 @@ library(car)
 library(emmeans)
 ```
 
+```{r}
+
+Block_Palette <- c("#FF4500" , "#00CED1")
+Condition_Palette <- c("#5A9BD6" , "#3CB371")
+
+Blend_Palette <- c("#C95E5F", "#27C69A")
+
+```
 
 ```{r}
-setwd("D://Study2Data/qualtrics_data/TLX")
+#setwd("D://Study2Data/qualtrics_data/TLX")
 
 #Read in the data
-TLXdataRaw <- read.csv("D:/Study2Data/qualtrics_data/TLX/TGExp2NasaTLX.csv") %>%
+TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 2/Study2Data/qualtrics_data/TLX/TGExp2NasaTLX.csv") %>%
 
 # Tidy the data - select scores,
   select(starts_with('Q'))
@@ -56,19 +64,24 @@ TLXdataOrg <- TLXdataOrg[,-1] %>%
 TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>% 
   trimws(which = c("both"))
 
-  TLXdataOrg[TLXdataOrg == "G"] <- "Wider"
-  TLXdataOrg[TLXdataOrg == "L"] <- "Focused" 
+  TLXdataOrg[TLXdataOrg == "G"] <- "Global"
+  TLXdataOrg[TLXdataOrg == "L"] <- "Central" 
 
-  TLXdataOrg[TLXdataOrg == "Control"] <- "Hazard Perception"
-  TLXdataOrg[TLXdataOrg == "Experiment"] <- "Hazard Perception-AR" 
+  TLXdataOrg[TLXdataOrg == "Control"] <- "HP"
+  TLXdataOrg[TLXdataOrg == "Experiment"] <- "HP-AR" 
   
+  
+  TLXdataOrg$Condition <- as.factor(TLXdataOrg$Condition)
+
+  TLXdataOrg$Block <- as.factor(TLXdataOrg$Block)
+  
+  TLXdataOrg$Block <- factor(TLXdataOrg$Block,levels = c("HP","HP-AR"))
   TLXdataOrg$Condition <- TLXdataOrg$ID
 
-  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 0] <- "Wider"
+  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 0] <- "Global"
 
-  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 1] <- "Focused"
+  TLXdataOrg$Condition[as.numeric(str_sub(TLXdataOrg$Condition, -1))%%2 == 1] <- "Central"
 ```
-
 
 ```{r}
 #Convert to wrangled dataset
@@ -78,7 +91,7 @@ TLXdata <- TLXdataOrg %>%
 
 TLXdata$Performance <- 100 - TLXdata$`Overall Performance` 
 
-TLXdata <- TLXdata %>%  select(-`Overall Performance`)
+#TLXdata <- TLXdata %>%  select(-`Overall Performance`)
 
 TLXdata$Total = rowSums(TLXdata[,c(4,9)], na.rm = T)
 
@@ -103,14 +116,15 @@ TLXdataSumm <- TLXdata %>%
   group_by(Block, Condition) %>% 
   summarise(
     n = n(),
+    Total_mean = mean(Total),
     Mental_mean = mean(`Mental Demand`),
     Mental_sd = sd(`Mental Demand`),
     Physical_mean = mean(`Physical Demand`),
     Physical_sd = sd(`Physical Demand`),
     Temporal_mean = mean(`Temporal Demand`),
     Temporal_sd = sd(`Temporal Demand`),
-    Performance_mean = mean(Performance),
-    Performance_sd = sd(Performance),
+    Performance_mean = mean(`Overall Performance`),
+    Performance_sd = sd(`Overall Performance`),
     Frustration_mean = mean(Frustration),
     Frustration_sd = sd(Frustration),
     Effort_mean = mean(Effort),
@@ -119,63 +133,171 @@ TLXdataSumm <- TLXdata %>%
   )
 
 
+TLXdataOverall <- TLXdata %>% 
+  group_by(Block) %>% 
+  summarise(
+    n = n(),
+    Condition = "Overall",
+    Total_mean = mean(Total),
+    Mental_mean = mean(`Mental Demand`),
+    Mental_sd = sd(`Mental Demand`),
+    Physical_mean = mean(`Physical Demand`),
+    Physical_sd = sd(`Physical Demand`),
+    Temporal_mean = mean(`Temporal Demand`),
+    Temporal_sd = sd(`Temporal Demand`),
+    Performance_mean = mean(`Overall Performance`),
+    Performance_sd = sd(`Overall Performance`),
+    Frustration_mean = mean(Frustration),
+    Frustration_sd = sd(Frustration),
+    Effort_mean = mean(Effort),
+    Effort_sd = sd(Effort)
+    
+  )
+
+
+TLXdataAllSum <- rbind(TLXdataSumm,TLXdataOverall)
+
+
 ```
 
 ```{r}
-ggplot(TLXdata, aes(Condition, Total, fill = Block ))+
-  geom_violin(alpha = 0.5)+
-  labs(title = "Total")
+library(RColorBrewer)
+Central_Palette <- c("#C95E5F", "#48B4C4")
+
+Global_Palette <- c("#E7433B", "#1CE2A4")
+
+Full_Palette <- c(Central_Palette, Global_Palette)
+
+TLXdata$Group <- paste(TLXdata$Condition, TLXdata$Block)
+
+
+S2TotalTLX <- ggplot(TLXdata, aes(Condition, Total, fill = Group)) +
+  geom_violin(alpha = 0.65) +
+  geom_boxplot(width = 0.25, position = position_dodge(0.9)) +
+  labs(title = "Average Total NASA TLX Ratings \n", tag = "") +
+  theme_classic() +
+  scale_fill_manual(values = Full_Palette)+
+    theme(legend.position="bottom")
+
+
+S2TotalTLX
+
+ggsave(S2TotalTLX, filename = "S2TotalTLX.png")
+
+
 ```
 
 
 ```{r}
-ggplot(TLXdata, aes(Condition, `Mental Demand`, fill = Block ))+
+S2MDTLX <- ggplot(TLXdata, aes(Block, `Mental Demand`, fill = Condition)) +
+  geom_violin(alpha = 0.5) +
+  geom_boxplot(width = 0.25, position = position_dodge(0.9)) +
+    ylim (0,100)+
+
+  labs(title = "Mental Demand") +
+  theme_classic()+
+   theme(legend.position="none")+
+  scale_fill_manual(values = Condition_Palette)
+
+ggsave(S2MDTLX, filename = "S2MDTLX.png")
+
+
+
+S2PDTLX <- ggplot(TLXdata, aes(Block, `Physical Demand`, fill = Condition)) +
+  geom_violin(alpha = 0.5) +
+  geom_boxplot(width = 0.1, position = position_dodge(0.9)) +
+    ylim (0,100)+
+
+  labs(title = "Physical Demand") +
+  theme_classic()+
+  theme(legend.position="none")+
+  scale_fill_manual(values = Condition_Palette)
+
+ggsave(S2PDTLX, filename = "S2PDTLX.png")
+
+S2TDTLX <- ggplot(TLXdata, aes(Block, `Temporal Demand`, fill = Condition ))+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
-  labs(title = "Mental Demand")
+    geom_boxplot(width = 0.2, position = position_dodge(0.9))+
 
-ggplot(TLXdata, aes(Condition, `Physical Demand`, fill = Block ))+
-  geom_violin(alpha = 0.5)+
-  ylim(0,100)+
-    labs(title = "Physical Demand")
+    labs(title = "Temporal Demand")+
+    theme_classic()+
+  theme(legend.position="none")+
+  scale_fill_manual(values = Condition_Palette)
+ggsave(S2TDTLX, filename = "S2TDTLX.png")
 
-ggplot(TLXdata, aes(Condition, `Temporal Demand`, fill = Block ))+
-  geom_violin(alpha = 0.5)+
-  ylim(0,100)+
-    labs(title = "Temporal Demand")
 
-ggplot(TLXdata, aes(Condition,Performance, fill = Block ))+
-  geom_violin(alpha = 0.5)+
-  ylim (100,0)+
-    labs(title = "Overall Performance (Inverted)")
-
-ggplot(TLXdata, aes(Condition, Effort, fill = Block ))+
+S2OPTLX <- ggplot(TLXdata, aes(Block,`Overall Performance`, fill = Condition ))+
   geom_violin(alpha = 0.5)+
   ylim (0,100)+
-    labs(title = "Effort")
+    geom_boxplot(width = 0.22, position = position_dodge(0.9))+
+
+    labs(title = "Overall Performance ")+
+    theme_classic()+
+  theme(legend.position="none")+
+  scale_fill_manual(values = Condition_Palette)
+ggsave(S2OPTLX, filename = "S2S2OPTLX.png")
+
+
+S2EfTLX <- ggplot(TLXdata, aes(Block, Effort, fill = Condition ))+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+
+    geom_boxplot(width = 0.25, position = position_dodge(0.9))+
+
+    labs(title = "Effort")+
+  theme_classic()+
+  theme(legend.position="none")+
+  scale_fill_manual(values = Condition_Palette)
+
+  ggsave(S2EfTLX, filename = "S2EfTLX.png")
+
+S2FrTLX <- ggplot(TLXdata, aes(Block, Frustration, fill = Condition ))+
+  geom_violin(alpha = 0.5)+
+  ylim (0,100)+  geom_boxplot(width = 0.15, position = position_dodge(0.9))+
+
   
-ggplot(TLXdata, aes(Condition, Frustration, fill = Block ))+
-  geom_violin(alpha = 0.5)+
-  ylim (0,100)+
-    labs(title = "Frustration")
+    labs(title = "Frustration")+
+    theme_classic()+
+  theme(legend.position="none")+
+  scale_fill_manual(values = Condition_Palette)
+
+ggsave(S2FrTLX, filename = "S2FrTLX.png")
 
 
 ```
 
+```{r}
+library(cowplot)
+TopPlots <- plot_grid(S2MDTLX, S2PDTLX, S2TDTLX, ncol = 3, scale = 1)
+TopPlots
+
+
+
+BotPlots <- plot_grid(S2OPTLX, S2EfTLX, scale = 0.66)
+BotPlots
+
+
+AllTLXPlots <- plot_grid(TopPlots, BotPlots, ncol = 1)
+AllTLXPlots
+
+```
+
+
+
 
 ```{r}
 
-interaction.plot(x.factor = TLXdata$Block,
-                 trace.factor = TLXdata$Condition,
-                 response = TLXdata$Total,
+interaction.plot(x.factor = TLXdataAllSum$Block,
+                 trace.factor = TLXdataAllSum$Condition,
+                 response = TLXdataAllSum$Total_mean,
                  fun = mean,
                  xlab = "Timepoint",
                  ylab = "Total TLX Score",
                  ylim = c(0,150),
                  type = "b",
-                 col = c("red", "blue"),
+                 col = c("red", "blue", "green"),
                  pch = c(19,17),
-                 trace.label = " ",
+                 trace.label = " Condition",
                  fixed = T,
                  xpd = T,
                  leg.bty="o"

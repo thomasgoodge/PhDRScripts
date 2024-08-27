@@ -1,4 +1,4 @@
----
+#---
 title: "NASATLX_Qualtrics"
 output: html_document
 date: '2022-03-23'
@@ -16,11 +16,22 @@ library(car)
 library(emmeans)
 ```
 
+```{r}
+
+Central_Palette <- c("#C95E5F", "#48B4C4")
+
+Global_Palette <- c("#E7433B", "#1CE2A4")
+
+
+Full_Palette <- c(Central_Palette, Global_Palette)
+
+
+```
 
 ```{r}
-setwd("D:/Qualtrics_Data/Study1/NASATLX")
+#setwd("D:/Qualtrics_Data/Study1/NASATLX")
 #Read in the data
-TLXdataRaw <- read.csv("TGExp1NasaTLX.csv") %>%
+TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 1/RTData/TGExp1NasaTLX.csv") %>%
 
 # Tidy the data - select scores,
   select(starts_with('Q'))
@@ -121,8 +132,10 @@ TLXdataSumm <- TLXdata %>%
 ```{r}
 ggplot(TLXdata, aes(Condition, Total, fill = Block ))+
   geom_violin(alpha = 0.5)+
-  ylim(0,100)+
-  labs(title = "Mental Demand")
+  #ylim(0,100)+
+  labs(title = "Total TLX Score")+
+    scale_fill_manual(values = Blended_Palette)
+
 ```
 
 

@@ -25,6 +25,7 @@ library(ggpubr)
 library(report)
 library(janitor)
 library(stringr)
+library(rstatix)
 ```
 
 ```{r}
@@ -41,10 +42,19 @@ Study6WHN$Study <-as.factor(Study6WHN$Study)
 
 Study6WHN$Block[Study6WHN$Block == "Control"] <- "Control - 2"
 
+Study6WHN$Block[Study6WHN$Block == "Social"] <- "Social Cue"
+
+Study6WHN$Block[Study6WHN$Block == "Visual"] <- "Visual Cue"
+
+Study6WHN$Block[Study6WHN$Block == "Avatar"] <- "Avatar Cue"
+
+
 
 FullWHN <- rbind(Study5WHN, Study6WHN)
 
 FullWHN$Block <- as.factor(FullWHN$Block)
+
+FullWHN$Block <- factor(FullWHN$Block, levels = c("Control","Control - 2", "Visual", "Visual Cue", "Avatar","Avatar Cue", "Social Cue", "NDRT"))
 
 
 FullWHNPptDataset <- FullWHN %>% 
@@ -57,24 +67,76 @@ FullWHNPptDataset <- FullWHN %>%
 ControlData <- FullWHN %>% 
   subset(Block == "Control" | Block == "Control - 2")
 
+PptControlData <- ControlData %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(n = n(),
+            score = sum(trialResp.corr),
+            RT = mean(trialResp.rt)
+            
+            )
+
 VisualData <- FullWHN %>% 
   subset(Block == "Visual" | Block == "Visual Cue")
 
+PptVisualData <- VisualData %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(n = n(),
+            score = sum(trialResp.corr),
+            RT = mean(trialResp.rt)
+            
+            )
 AvatarData <- FullWHN %>% 
-  subset(Block == "Social"| Block == "Avatar Cue")
+  subset(Block == "Avatar"| Block == "Avatar Cue")
+
+PptAvatarData <- AvatarData %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(n = n(),
+            score = sum(trialResp.corr),
+            RT = mean(trialResp.rt)
+            
+            )
 
 SocialData <- FullWHN %>% 
-  subset(Block == "Social"| Block == "Social Cue")
-
+  subset(Block == "Avatar"| Block == "Social Cue")
+PptSocialData <- SocialData %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(n = n(),
+            score = sum(trialResp.corr),
+            RT = mean(trialResp.rt)
+            )
 
 NDRTVisualData <- FullWHN %>% 
   subset(Block == "NDRT" | Block == "Visual Cue")
 
+PptNDRTVisualData <- NDRTVisualData %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(n = n(),
+            score = sum(trialResp.corr),
+            RT = mean(trialResp.rt)
+            
+            )
+
 NDRTAvatarData <- FullWHN %>% 
   subset(Block == "NDRT"| Block == "Avatar Cue")
 
+PptNDRTAvatarData <- NDRTAvatarData %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(n = n(),
+            score = sum(trialResp.corr),
+            RT = mean(trialResp.rt)
+            
+            )
+
 NDRTSocialData <- FullWHN %>% 
   subset(Block == "NDRT"| Block == "Social Cue")
+
+PptNDRTSocialData <- NDRTSocialData %>% 
+  group_by(participant, Study, Block) %>% 
+  summarise(n = n(),
+            score = sum(trialResp.corr),
+            RT = mean(trialResp.rt)
+            
+            )
 
 
 
@@ -171,6 +233,37 @@ SocialSummary <- SocialData %>%
             )
 ```
 
+#Define palettes
+```{r}
+library(RColorBrewer)
+
+base_palette <- brewer.pal(n = 12, name = "Paired")
+custom_palette <- c(
+  base_palette[3], base_palette[4],   # Group 2: 2 similar colors
+    base_palette[1], base_palette[2],   # Group 1: 2 similar colors
+
+  "#F45B5B", base_palette[6], "#A50F15",  # Group 3: 3 similar colors
+  base_palette[8]                     # Group 4: 1 color
+)
+
+
+S5_palette <- c(base_palette[3],base_palette[1],base_palette[8])
+S6_palette <- c(base_palette[4], base_palette[2],base_palette[6], "#A50F15")
+
+#  scale_fill_manual(values = custom_palette) +
+
+
+# Print the custom palette to verify
+print(custom_palette)
+
+```
+
+```{r}
+
+#"#A6CEE3" "#1F78B4" "#B2DF8A" "#33A02C" "#FB9A99" "#E31A1C" "#FDBF6F" "#FF7F00" "#F45B5B"
+
+```
+
 ```{r}
 PlotData <- FullWHN %>% 
   select(participant, trialResp.corr, trials_3.thisTrialN, Block, Study) %>%   group_by(participant, Block, Study) %>% 
@@ -178,30 +271,30 @@ PlotData <- FullWHN %>%
             score = sum(trialResp.corr),
             Block = Block)
 
+
 WHNPlot2 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
-  geom_violin(alpha = 0.8)+
-  geom_boxplot(alpha = 0, width = 0.1)+
-  scale_fill_brewer(palette = "Paired")+
-    theme_classic()+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.15)+
+  ylim(0,10)+
+  scale_fill_manual(values = custom_palette) +
+  theme_classic()+
 theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
-  theme(axis.text=element_text(size=15))+
+  theme(axis.text=element_text(size=12))+
   labs(title = "Hazard Prediction Score", x = "NDRT Presentation Condition", y = "Average correct responses")+
     theme(plot.title=element_text(vjust=7))+
 
   theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
-
-
 
 WHNPlot2
 ```
 
 ```{r}
 ConfPlot2 <- ggplot(data = FullWHN, aes(x = Block, y = conf_slider.response, fill = Block))+
-  geom_violin(alpha = 0.8) + geom_boxplot(alpha=0.2, width = 0.2)+
+  geom_violin(alpha = 0.5) + geom_boxplot(width = 0.2)+
   labs(title = "Average Confidence Score", y = "Mean Confidence Rating", x = "", key= FALSE)+
   ylim(0,1.0)+
-  scale_fill_brewer(palette = "Set2")+
+  scale_fill_manual(values = custom_palette) +
   theme_classic()+
   theme(legend.position="none")+
   theme(text=element_text(size = 15)) +
@@ -214,10 +307,11 @@ ConfPlot2 <- ggplot(data = FullWHN, aes(x = Block, y = conf_slider.response, fil
 ConfPlot2
 
 AttPlot2 <- ggplot(data = FullWHN, aes(x = Block, y = Attention_slider.response, fill = Block))+
-  geom_violin(alpha = 0.8)+geom_boxplot(alpha = 0.2, width = 0.2)+
+  geom_violin(alpha = 0.5)+geom_boxplot( width = 0.1)+
  
   labs(title = "Subjective Attention Rating", y = "Mean Attention Rating", x = "NDRT Presentation Condition")+
-  scale_fill_brewer(palette = "Set2")+
+  scale_fill_manual(values = custom_palette) +
+  ylim(0,1.0)+
     theme_classic()+
 theme(legend.position="none")+
   theme(text=element_text(size = 15))+
@@ -246,16 +340,30 @@ legend_b <- get_legend(
 
 FullPlot <- plot_grid(WHNPlot2, subPlot, labels = ('a)'))
 
+FullPlot2 <- plot_grid(WHNPlot2, ConfPlot2, labels = ('a)'))
+FullPlot2
+
 FinalPlot <- plot_grid(FullPlot, legend_b, ncol = 1, rel_heights = c(1, .1))
 
 FinalPlot
+
+FinalPlot2 <- plot_grid(FullPlot2, legend_b, ncol = 1, rel_heights = c(1, .1))
+FinalPlot2
 
 file1 <- tempfile("file1", fileext = ".png")
 
 width = 1920
 
-ggsave(filename = "Robo2FullPlot2.png",
+ggsave(filename = "WHNConfRoboFullPlot.png",
        plot = FinalPlot,
+       scale = 3,
+       device = png,
+       width = 3840,
+       units = "px",
+       dpi = 700)
+
+ggsave(filename = "WHNConfRoboFullPlot2.png",
+       plot = FinalPlot2,
        scale = 3,
        device = png,
        width = 3840,
@@ -281,32 +389,30 @@ TukeyHSD(FullWHNAOV)
 
 ```{r}
 print("Control")
-
 ControlANOVA <- aov(data = ControlData, formula = trialResp.corr ~ Study)
 summary(ControlANOVA)
 
 print("Visual")
-
 VisualANOVA <- aov(data = VisualData, formula = trialResp.corr ~ Study)
 summary(VisualANOVA)
-print("Avatar")
 
+print("Avatar")
 AvatarANOVA <- aov(data = AvatarData, formula = trialResp.corr ~ Study)
 summary(AvatarANOVA)
-print("Social")
 
+print("Social")
 SocialANOVA <- aov(data = SocialData, formula = trialResp.corr ~ Study)
 summary(SocialANOVA)
 
 print("NDRTVisual")
 NDRTVisualANOVA <- aov(data = NDRTVisualData, formula = trialResp.corr ~ Study)
 summary(NDRTVisualANOVA)
-print("NDRTAvatar")
 
+print("NDRTAvatar")
 NDRTAvatarANOVA <- aov(data = NDRTAvatarData, formula = trialResp.corr ~ Study)
 summary(NDRTAvatarANOVA)
-print("NDRTSocial")
 
+print("NDRTSocial")
 NDRTSocialANOVA <- aov(data = NDRTSocialData, formula = trialResp.corr ~ Study)
 summary(NDRTSocialANOVA)
 ```
@@ -349,14 +455,67 @@ tukey.plot.aov<-aov(data = FullWHN, trialResp.corr ~ Block * Study)
 tukey.plot.test<-TukeyHSD(tukey.plot.aov)
 plot(tukey.plot.test, las = 1)
 ```
+#z score WHN
+```{r}
 
+df <- data.frame(FullWHNPptDataset$sumWHN)
+z_scores <- as.data.frame(sapply(df, function(df) (abs(df-mean(df))/sd(df))))
+
+z_scores$ZScores <- z_scores$FullWHNPptDataset.sumWHN
+z_scores <- z_scores %>% 
+  select(-1)
+
+FullWHNPptDataset$WHNZScore <- z_scores$ZScores
+
+FullWHNPptDataset <- FullWHNPptDataset %>% 
+  subset(z_scores <= 3)
+
+
+```
+#power
+```{r}
+
+WHNClassData <- FullWHN %>% 
+  select(participant, trialResp.corr, image_file, Block) %>% 
+  pivot_wider(id_cols = "participant", names_from = "image_file" ,values_from = trialResp.corr )
+
+Group <- FullWHN %>% 
+  select(participant,Block) 
+
+Group <- Group[!duplicated(Group$participant), ]
+
+
+df <- left_join(WHNClassData, Group, by = "participant")
+```
+
+#WHN MIXED ANOVA
+```{r}
+library(afex)
+
+#Perform the ANOVA
+# model_FullWHN <- aov_car(score ~ (Block*Study) + Error(participant/Block), 
+#                     data = PlotData)
+# 
+# 
+# #Get the output
+# summary(model_anx)
+
+
+```
 
 ```{r}
 FullWHN$Block <- relevel(FullWHN$Block, ref = "NDRT")
 
-WHNModelBasic <- glmer(data = FullWHN, formula = trialResp.corr ~  Block + Study + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
-
+WHNModelBasic <- glmer(data = FullWHN, formula = trialResp.corr ~  Block * Study + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 summary(WHNModelBasic)
+
+fix.fit <- lm(WHNModelBasic, data.df, method = "qr", singular.ok = TRUE)
+p <- length(fix.fit$coef)
+coef <- fix.fit$coef
+no.NA <- sum(is.na(coef))
+rank <- fix.fit$rank
+
+
 # library(effects)
 # 
 # ef <- as.data.frame(effect("Block", WHNModelBasic))
@@ -367,6 +526,96 @@ WHNResults <- report(WHNModelBasic, CI = 95)
 
 summary(WHNResults)
 ```
+
+```{r}
+FullWHNPptDataset$Block <- relevel(FullWHNPptDataset$Block, ref = "Control")
+
+WHNModelPptBasic <- glmer(data = FullWHNPptDataset, formula = sumWHN ~  Block * Study + (1 |participant) , family = poisson, glmerControl( optimizer = "bobyqa"))
+
+summary(WHNModelPptBasic)
+# library(effects)
+# 
+# ef <- as.data.frame(effect("Block", WHNModelBasic))
+# head(ef)
+
+library(report)
+WHNResults <- report(WHNModelBasic, CI = 95)
+
+summary(WHNResults)
+```
+
+#Individual GLMs
+
+```{r} 
+
+
+print("***************Control - Control 2***************")
+ControlGLM <- glm(data = ControlData, trialResp.corr ~ Study, family = "binomial")
+summary(ControlGLM)
+
+print("***************Avatar - Avatar Cue***************")
+AvatarGLM <- glm(data = AvatarData, trialResp.corr ~ Study, family = "binomial")
+summary(AvatarGLM)
+
+print("***************Visual - Visual Cue***************")
+VisualGLM <- glm(data = VisualData, trialResp.corr ~ Study, family = "binomial")
+summary(VisualGLM)
+
+print("***************Avatar - Social Cue***************")
+SocialGLM <- glm(data = SocialData, trialResp.corr ~ Study, family = "binomial")
+summary(SocialGLM)
+
+
+print("***************NDRT - Visual Cue***************")
+NDRTVisualGLM <-  glm(data = NDRTVisualData, trialResp.corr ~ Study, family = "binomial")
+summary(NDRTVisualGLM)
+print("***************NDRT - Avatar Cue***************")
+NDRTAvatarGLM <-  glm(data = NDRTAvatarData, trialResp.corr ~ Study, family = "binomial")
+summary(NDRTAvatarGLM)
+print("***************NDRT - Social Cue***************")
+NDRTSocialGLM <-  glm(data = NDRTSocialData, trialResp.corr ~ Study, family = "binomial")
+summary(NDRTSocialGLM)
+
+```
+
+
+```{r}
+AvatarGLM <- glm(data = AvatarData, trialResp.corr ~ Study, family = "binomial")
+summary(AvatarGLM)
+
+
+predict(AvatarGLM, newdata = data.frame(Study = c("5","6")))
+1-pchisq(deviance(AvatarGLM), df.residual(AvatarGLM)) 
+
+AvatarGLM2 <- glm(data = AvatarData, trialResp.corr ~ Study * trials_3.thisTrialN, family = "binomial")
+summary(AvatarGLM2)
+
+AvatarGLM3 <- glm(data = AvatarData, trialResp.corr ~ Study * image_file, family = "binomial")
+summary(AvatarGLM3)
+
+AIC(AvatarGLM, AvatarGLM2,AvatarGLM3)
+
+```
+
+```{r}
+NDRTAvatarGLM <- glm(data = NDRTAvatarData, trialResp.corr ~ Study, family = "binomial")
+summary(NDRTAvatarGLM)
+
+table(NDRTAvatarData$trials_3.thisTrialN)
+
+
+predict(NDRTAvatarGLM, newdata = data.frame(Study = c("5","6")))
+1-pchisq(deviance(NDRTAvatarGLM), df.residual(NDRTAvatarGLM)) 
+
+NDRTAvatarGLM2 <- glm(data = AvatarData, trialResp.corr ~ Study * trials_3.thisTrialN, family = "binomial")
+summary(AvatarGLM2)
+
+AIC(NDRTAvatarGLM, NDRTAvatarGLM2)
+
+```
+
+
+
 
 #Confidence
 
@@ -418,6 +667,40 @@ print("NDRTSocial")
 NDRTSocialANOVAConf <- aov(data = NDRTSocialData, formula = conf_slider.response ~ Study)
 summary(NDRTSocialANOVAConf)
 ```
+#Conf GLMS
+```{r}
+
+
+print("***************Control - Control 2***************")
+ControlConfGLM <- lm(data = ControlData, conf_slider.response ~ Study, family = "poisson")
+summary(ControlConfGLM)
+
+print("***************Avatar - Avatar Cue***************")
+AvatarConfGLM <- lm(data = AvatarData, conf_slider.response ~ Study, family = "poisson")
+summary(AvatarConfGLM)
+
+print("***************Visual - Visual Cue***************")
+VisualConfGLM <- lm(data = VisualData, conf_slider.response ~ Study, family = "poisson")
+summary(VisualConfGLM)
+
+print("***************Avatar - Social Cue***************")
+SocialConfGLM <- lm(data = SocialData, conf_slider.response ~ Study, family = "poisson")
+summary(SocialConfGLM)
+
+
+print("***************NDRT - Visual Cue***************")
+NDRTVisualConfGLM <-  lm(data = NDRTVisualData, conf_slider.response ~ Study, family = "poisson")
+summary(NDRTVisualConfGLM)
+print("***************NDRT - Avatar Cue***************")
+NDRTAvatarConfGLM <-  lm(data = NDRTAvatarData, conf_slider.response ~ Study, family = "poisson")
+summary(NDRTAvatarConfGLM)
+print("***************NDRT - Social Cue***************")
+NDRTSocialConfGLM <-  lm(data = NDRTSocialData, conf_slider.response ~ Study, family = "poisson")
+summary(NDRTSocialConfGLM)
+```
+
+
+
 #Subjective Attention
 
 ```{r}
@@ -659,7 +942,7 @@ RosasFullSummary <- FullRoSAS %>%
 
 ```{r}
 
-RoSASANOVA <- aov(data = FullRoSAS, formula = Competence ~  Block)
+RoSASANOVA <- aov(data = FullRoSAS, formula = Capable ~  Block)
 summary(RoSASANOVA)
 TukeyHSD(RoSASANOVA)
 
@@ -691,11 +974,6 @@ ggplot(FullRoSAS, aes(Block, Discomfort, fill = Block ))+
 #    scale_fill_manual(values = friendly_pal("ito_seven"))
         theme_classic()
 
-
-```
-
-
-```{r}
 
 ```
 

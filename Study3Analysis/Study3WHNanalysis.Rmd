@@ -1089,6 +1089,13 @@ fixef(ConfModel1)
 
 print(Confresults)
 #anova(Model1)
+
+efconf <- as.data.frame(effect("Block", ConfModel1))
+
+head(efconf)
+
+
+
 ```
 
 ```{r}

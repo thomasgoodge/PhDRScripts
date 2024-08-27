@@ -16,7 +16,7 @@ knitr::opts_chunk$set(root.dir = 'D:/Qualtrics_Data/Study1/Demographics', echo =
 
 ```{r}
 #Set the working directory of the data ***HARD CODED ***
- setwd("D:/Study2Data/qualtrics_data/Demogs")
+ #setwd("D:/Study2Data/qualtrics_data/Demogs")
 
 ```
 

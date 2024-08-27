@@ -17,6 +17,8 @@ library(ggpubr)
 library(lme4)
 library(lmerTest)
 library(emmeans)
+library(report)
+library(dplyr)
 ```
 
 
@@ -24,10 +26,10 @@ library(emmeans)
 ### Read in the Data Files ###
 
 #set the working directory to the data folder
-setwd("D:/PsychoPyExperiments/Study 1 GoNoGo/")
+#setwd("D:/PsychoPyExperiments/Study 1 GoNoGo/")
 
 #Define the filepath for where the data is coming from
-dataFolder <- "D:/PsychoPyExperiments/Study 1 GoNoGo/RTData"
+dataFolder <- "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 1/RTData"
 
 #Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
 file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
@@ -78,8 +80,8 @@ dataset <- dataset[,-7] %>%
     select(-c(4,5))
   
   
-dataset[dataset== 'G'] <- 'Wider'
-dataset[dataset== 'L'] <- 'Focused'
+dataset[dataset== 'G'] <- 'Global'
+dataset[dataset== 'L'] <- 'Central'
 
 
 
@@ -129,10 +131,63 @@ datasetMeanRT <- datasetRT %>%
 ```{r}
 
 ggplot(datasetRT, aes(reorder(Block, ReactionTime), ReactionTime,) ) +
-  geom_violin(aes(x = Block,  y = ReactionTime, colour = Condition, fill = Condition))
+  geom_violin(aes(x = Block,  y = ReactionTime, colour = Condition, fill = Condition))+
+  geom_boxplot(aes(x = Block,  y = ReactionTime, fill = Condition))
  
 
+
+FullRTPlot <- ggplot(datasetRT, aes(x = Block, y = ReactionTime, fill = Condition))+
+  geom_violin(alpha = 0.6)+
+  geom_boxplot(position = position_dodge(0.9), width = 0.3)+
+  theme_classic()
+
+FullRTPlot
+
+ggsave(filename = "FullRTPlot.png",
+       plot = FullRTPlot)
+
 ```
+
+```{r}
+
+df <- data.frame(datasetRT$ReactionTime)
+z_scores <- as.data.frame(sapply(df, function(df) (abs(df-mean(df))/sd(df))))
+
+#z_scores$ZScores <- z_scores$datasetRT
+
+
+datasetRT$RTZScore <- z_scores$datasetRT.ReactionTime
+
+datasetRTZ <- datasetRT %>% 
+  subset(RTZScore <= 3)
+
+
+```
+
+
+```{r}
+FullRTZPlot <- ggplot(datasetRTZ, aes(x = Block, y = ReactionTime, fill = Condition))+
+  geom_violin(alpha = 0.6)+
+  geom_boxplot(position = position_dodge(0.9), width = 0.3)+
+  theme_classic()
+
+FullRTZPlot
+```
+
+```{r}
+datasetMeanRTZ <- datasetRTZ %>% 
+ group_by(Condition, Block) %>% 
+
+  summarise(
+    n = n(),
+    avg = mean(ReactionTime, na.rm = T),
+    sd_total = sd(ReactionTime, na.rm = T) 
+        ) 
+```
+
+
+
+
 ```{r}
 datasetMeanRT %>% 
   ggplot(aes(reorder(Block, avg), avg, ))+
@@ -146,6 +201,24 @@ datasetMeanRT %>%
       ylim(0,1)+
   theme_bw()
 
+
+
+datasetMeanRTZ %>% 
+  ggplot(aes(reorder(Block, avg), avg, ))+
+  geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_point (size = 4.5, aes(color = Condition, shape = Condition)) +
+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "",)+
+      
+
+      ylim(0,1)+
+  theme_bw()
+
+
+
+
+
 ggsave("Study1RT.png")
 
 ```
@@ -153,6 +226,21 @@ ggsave("Study1RT.png")
 interaction.plot(x.factor =  datasetMeanRT$Block,
                  trace.factor = datasetMeanRT$Condition,
                  response = datasetMeanRT$avg,
+                 fun = mean,
+                 ylim = (c(0.3,0.8)),
+                 xlab = "Block",
+                 ylab = "Reaction time (s)",
+                 type= "b",
+                 col=c("red","blue"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition",
+                 fixed=T,
+                 leg.bty ="o")
+
+
+interaction.plot(x.factor =  datasetMeanRTZ$Block,
+                 trace.factor = datasetMeanRTZ$Condition,
+                 response = datasetMeanRTZ$avg,
                  fun = mean,
                  ylim = (c(0.3,0.8)),
                  xlab = "Block",
@@ -287,6 +375,10 @@ plot(predictorEffect("Block", RTModel1),
 ```{r}
 datasetSD <- dataset %>% 
   rename("ReactionTime" = "Block_resp.rt")
+
+
+datasetSD <- datasetSD %>% 
+  rename("Cue" = "cue_file")
 ```
 
 
@@ -294,6 +386,13 @@ datasetSD <- dataset %>%
 datasetSD[datasetSD== 'images/StopIcon.png'] <- 'Go'
 datasetSD[datasetSD== 'images/OrangeIcon.png'] <- 'NoGo'
 datasetSD[datasetSD== 'images/YellowIcon.png'] <- 'NoGo'
+
+
+
+
+#datasetSD <- datasetSD %>% 
+ # mutate(SigDet = case_when(is.finite(ReactionTime) & Cue == "Go" ~ "Hit"))
+
 
 datasetSD <- datasetSD %>% 
   mutate(SigDet = ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$Cue == "Go", "Hit", 
@@ -304,6 +403,7 @@ datasetSD <- datasetSD %>%
  # mutate(SigDet = ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$Cue == "NoGo", "FA","")) 
  # mutate(SigDet = ifelse(is.na(datasetSD$ReactionTime)) & datasetSD$Cue == "Go", "Miss","")
   #dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "Cognitive Only", "")
+
 
 
 ```
@@ -339,25 +439,38 @@ datasetSDSumm <- cbind(datasetSDSumm, indices)
 datasetSDSummary <- datasetSDSumm %>% 
   group_by(Block, Condition) %>% 
   summarise(n = n(),
-            CR = sum(CR),
-            Hit = sum(Hit),
-            Miss= sum(Miss),
-            FA = sum(FA)
+            sumCR = sum(CR),
+            sumHit = sum(Hit),
+            sumMiss= sum(Miss),
+            sumFA = sum(FA),
+            
+            meanCR = mean(CR),
+            meanHit = mean(Hit),
+            meanMiss = mean(Miss),
+            meanFA = mean(FA),
             
             )
+
+
+
+SDPlotData <- pivot_longer(datasetSDSumm,cols = c(4:7), values_to = "Count")
+
+SDPlotSummary <- SDPlotData %>% 
+   group_by(Block, Condition, name) %>% 
+  summarise(n = n(),
+            mean = mean(Count))
+
+
 ```
 
 
 ```{r}
-ggplot(data = datasetSDSummary)+
-  geom_col(aes(Block, CR,)) +
-  geom_col(aes(Block, FA))
-   geom_point(aes(Block, Hit, colour = Condition)) +
-   geom_point(aes(Block, Miss, colour = Condition)) +
-   geom_point(aes(Block, FA, colour = Condition)) +
-  labs(x = "Block",
+ggplot(data = SDPlotSummary, aes(fill = Condition))+
+  geom_col(aes(Condition, sumCR,)) +
+  geom_col(aes(Condition, sumFA))+
+  labs(x = c("Block", "Condition"),
       y = "Mean Reaction Time (s)")+
-  theme_bw()
+  theme_classic()
 
 ```
 

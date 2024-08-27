@@ -24,6 +24,24 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
+```{r}
+Block_Palette <- c("#FF4500" , "#00CED1")
+Condition_Palette <- c("#5A9BD6" , "#3CB371")
+
+Blend_Palette <- c("#C95E5F", "#27C69A")
+
+
+Central_Palette <- c("#C95E5F", "#48B4C4")
+
+Global_Palette <- c("#E7433B", "#1CE2A4")
+
+
+Full_Palette <- c(Central_Palette, Global_Palette)
+
+
+```
+
+
 
 ```{r, include=FALSE}
 #Set the working directory of the data ***HARD CODED ***
@@ -138,6 +156,10 @@ CSQConversion <- CSQConversion %>%
                CSQConversion$DisorientationSum)*
                3.74)
   
+  
+#   
+# CSQConversion <- CSQConversion %>% 
+#   subset(ID != "P17")
  # write.csv(CSQConversion,"D:/Qualtrics_Data/Study1/CSQ/EXP1CSQSort.csv", row.names = FALSE)
   
 ```
@@ -187,9 +209,13 @@ CSQDisoriSummary <- CSQConversion %>%
 ```{r}
 CSQConversion$Condition <- CSQConversion$ID
 
-CSQConversion$Condition[as.numeric(str_sub(CSQConversion$Condition, -1))%%2 == 0] <- "Wider"
+CSQConversion$Condition[as.numeric(str_sub(CSQConversion$Condition, -1))%%2 == 0] <- "Global"
 
-CSQConversion$Condition[as.numeric(str_sub(CSQConversion$Condition, -1))%%2 == 1] <- "Focused"
+CSQConversion$Condition[as.numeric(str_sub(CSQConversion$Condition, -1))%%2 == 1] <- "Central"
+
+
+
+
 ```
 
 
@@ -233,7 +259,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  xlab = "Timepoint",
                  ylab = "Total SSQ Score",
                  type= "b",
-                 col=c("red","blue"),
+                 col=c("#5A9BD6" , "#3CB371"),
                  pch=c(19,17,15),
                  trace.label = "Total SSQ Score",
                  fixed=T,
@@ -246,7 +272,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  xlab = "Timepoint",
                  ylab = "Nausea subscale",
                  type= "b",
-                 col=c("red","blue"),
+                 col=c("#5A9BD6" , "#3CB371"),
                  pch=c(19,17,15),
                  trace.label = "Nausea",
                  fixed=T,
@@ -259,7 +285,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  xlab = "Timepoint",
                  ylab = "Oculomotor subscale",
                  type= "b",
-                 col=c("red","blue"),
+                 col=c("#5A9BD6" , "#3CB371"),
                  pch=c(19,17,15),
                  trace.label = "Oculomotor",
                  fixed=T,
@@ -272,7 +298,7 @@ interaction.plot(x.factor =  CSQConversion$Timepoint,
                  xlab = "Timepoint",
                  ylab = "Disorientation subscale",
                  type= "b",
-                 col=c("red","blue"),
+                 col=c("#5A9BD6" , "#3CB371"),
                  pch=c(19,17,15),
                  trace.label = "Disorientation",
                  fixed=T,
@@ -498,7 +524,7 @@ pairs(CSQERMMar, adjust="tukey")
 NauseaERMModel
 
 ```
-
+#KP CSQ Diff over time
 ```{r}
 ##################  CONVERT DATA TO LOOK AT DIFFERENCES OVER TIME ###########
 #############################################################################
@@ -600,8 +626,13 @@ CSQKPConversionTotalCSQSummary2 <- CSQKPConversionTotalCSQ %>%
   sd = sd(Value, na.rm = T)
   )   
 
-```
 
+
+
+CSQKPConversionTotalCSQ
+
+```
+#Plots
 ```{r}
 ggplot(CSQKPConversionTotalCSQ, aes(Condition, Value, fill = Timepoint ))+
   geom_violin(alpha = 0.5)+
@@ -611,28 +642,84 @@ interaction.plot(x.factor =  CSQKPConversionTotalCSQSummary$Timepoint,
                  trace.factor = CSQKPConversionTotalCSQSummary$Condition,
                  response = CSQKPConversionTotalCSQSummary$mean,
                  fun = mean,
-                 ylim = c(-4, 10),
+                 ylim = c(0, 10),
                  xlab = "Timepoint",
                  ylab = "Change in Total CSQ Score",
                  type= "b",
-                 col=c("red","blue"),
+                 col=c("#5A9BD6" , "#3CB371"),
                  pch=c(19,17,15),
                  trace.label = "Total CSQ Score",
                  fixed=F,
                  leg.bty ="o")
 ```
-```{r}
-ggplot(CSQKPConversionTotalCSQSummary2,  aes(x = Timepoint, y = mean, colour = Timepoint, group = 2))+
-  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
-  geom_line(colour = "black", alpha = 0.5) +
-  geom_point (size = 3.5, shape = 13) +
-  labs(x = "Block",
-      y = "Chnage in Total CSQ Score",
-      title = "Total CSQ Score",
-      tag = "")+  
-  ylim(0,10) +
 
-  theme_bw()
+```{r}
+
+CSQKPConversionTotalCSQ <- CSQKPConversionTotalCSQ %>% 
+  subset(ID != "P09")
+
+
+CSQKPConversionTotalCSQ <- CSQKPConversionTotalCSQ %>% 
+  subset(ID != "p09")
+
+
+CSQKPConversionTotalCSQ$ZScore <- abs(CSQKPConversionTotalCSQ$Value - mean(CSQKPConversionTotalCSQ$Value))/sd(CSQKPConversionTotalCSQ$Value, na.rm = T)
+
+CSQKPConversionTotalCSQRMOut <- CSQKPConversionTotalCSQ %>% 
+  subset(ZScore <=3)
+
+
+#'
+CSQKPConversionTotalCSQRMOutSummary <- CSQKPConversionTotalCSQRMOut %>% 
+  
+  group_by(Condition, Timepoint) %>% 
+  summarise(
+  n = n(),
+  mean = mean(Value, na.rm = T),
+  sd = sd(Value, na.rm = T)
+  )   
+
+```
+
+
+
+```{r}
+
+#CSQKPConversionTotalCSQSummary$Timepoint <- relevel(CSQKPConversionTotalCSQSummary$Timepoint, ref = "Baseline")
+
+CSQTimePlot <- ggplot(CSQKPConversionTotalCSQSummary,  aes(x = Timepoint, y = mean, colour = Condition, group = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_line() +
+  geom_point(size = 2.5,)+
+  geom_errorbar(aes(ymin = mean - (sd /2), ymax = mean + (sd /2)), width = 0.1, position = position_dodge(0.005))+
+  scale_color_manual(values = Condition_Palette) +
+  labs(x = "Block",
+      y = "Change in Total SSQ Score",
+      title = "Total Change in SSQ Score at each Timepoint \n
+      ",
+      tag = "")+  
+  theme_classic()
+
+CSQTimePlot
+
+
+ggsave(CSQTimePlot, filename = "S2CSQTimePlot.png")
+
+
+
+ggplot(CSQKPConversionTotalCSQRMOutSummary,  aes(x = Timepoint, y = mean, colour = Condition, group = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_line() +
+  geom_point(size = 2.5,)+
+  geom_errorbar(aes(ymin = mean - (sd /2), ymax = mean + (sd /2)), width = 0.1, position = position_dodge(0.005))+
+  labs(x = "Block",
+      y = "Change in Total SSQ Score",
+      title = "Total Change in SSQ Score at each Timepoint",
+      tag = "")+  
+  theme_classic()
+
+
+
 ```
 
 
@@ -675,10 +762,18 @@ pairs(KPCSQModelBet, adjust="tukey")
 
 
 ```{r}
+CSQKPConversionTotalCSQ$Timepoint <- factor(CSQKPConversionTotalCSQ$Timepoint)
+CSQKPConversionTotalCSQ$Timepoint <- relevel(CSQKPConversionTotalCSQ$Timepoint, ref = "Hazard Perception")
+
+NullCSQmodel <- lmer(data = CSQKPConversionTotalCSQ, Value ~1 + (1|ID))
+
 TotalCSQmodel <- lmer(data = CSQKPConversionTotalCSQ, Value ~Timepoint+Condition + (1|ID))
+
+ATotalCSQmodel <- lmer(data = CSQKPConversionTotalCSQRMOut, Value ~Timepoint+Condition + (1|ID))
+
 TotalCSQmodel2 <- lmer(data = CSQKPConversionTotalCSQ, Value ~Timepoint*Condition + (1|ID))
 
-anova(TotalCSQmodel, TotalCSQmodel2)
+anova(NullCSQmodel, TotalCSQmodel, TotalCSQmodel2)
 
 summary(TotalCSQmodel)
 
@@ -688,7 +783,6 @@ library(report)
 TotalCSQresults <- report(TotalCSQmodel, CI = 95)
 
 print(TotalCSQresults)
-
 
 ```
 
@@ -732,6 +826,40 @@ CSQKPConversionOculoSummary2 <- CSQKPConversionOculo %>%
 
 
 ```
+
+
+
+```{r}
+CSQKPConversionOculoSummary[CSQKPConversionOculoSummary == "Base"] <- "Baseline"
+
+CSQKPConversionOculoSummary[CSQKPConversionOculoSummary == "Con"] <- "Hazard Perception"
+CSQKPConversionOculoSummary[CSQKPConversionOculoSummary == "Exp"] <- "Hazard Perception - AR"
+
+```
+
+```{r}
+
+CSQKPConversionOculoSummary$Timepoint <- factor(CSQKPConversionOculoSummary$Timepoint)
+CSQKPConversionOculoSummary$Timepoint <- relevel(CSQKPConversionOculoSummary$Timepoint, ref = "Baseline")
+
+
+CSQOculoPlot <- ggplot(CSQKPConversionOculoSummary,  aes(x = Timepoint, y = mean, colour = Condition, group = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_line() +
+  geom_point(size = 2.5,)+
+  geom_errorbar(aes(ymin = mean - (sd /2), ymax = mean + (sd /2)), width = 0.1, position = position_dodge(0.005))+
+    scale_color_manual(values = Condition_Palette) +
+
+  labs(x = "Block",
+      y = "Change in Oculomotor subscale",
+      title = "Total Change in Oculomotor subscale at each Timepoint \n",
+      tag = "")+  
+  theme_classic()
+
+CSQOculoPlot
+ggsave(CSQOculoPlot, filename = "CSQOculoPlot.png")
+```
+
 
 ```{r}
 ggplot(CSQKPConversionOculo, aes(Condition, Value, fill = Timepoint ))+
@@ -788,6 +916,9 @@ Anova(KPCSQModelOculoWith,
 
 
 ```{r}
+CSQKPConversionOculo$Timepoint <- factor(CSQKPConversionOculo$Timepoint)
+CSQKPConversionOculo$Timepoint <- relevel(CSQKPConversionOculo$Timepoint, ref = "Exp")
+
 Oculomodel <- lmer(data = CSQKPConversionOculo, Value ~Timepoint+Condition + (1|ID))
 
 Oculomodel2 <- lmer(data = CSQKPConversionOculo, Value ~Timepoint*Condition + (1|ID))
@@ -875,6 +1006,29 @@ ggplot(CSQKPConversionNauseaSummary2,  aes(x = Timepoint, y = mean, colour = Tim
 
   theme_bw()
 ```
+```{r}
+
+
+CSQKPConversionNauseaSummary[CSQKPConversionNauseaSummary == "Base"] <- "Baseline"
+CSQKPConversionNauseaSummary[CSQKPConversionNauseaSummary == "Con"] <- "Hazard Perception Only"
+CSQKPConversionNauseaSummary[CSQKPConversionNauseaSummary == "Exp"] <- "Hazard Perception - AR"
+
+
+
+CSQNauseaPlot <- ggplot(CSQKPConversionNauseaSummary,  aes(x = Timepoint, y = mean, colour = Condition, group = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_line() +
+  geom_point(size = 2.5,)+
+  geom_errorbar(aes(ymin = mean - (sd /2), ymax = mean + (sd /2)), width = 0.1, position = position_dodge(0.005))+
+  labs(x = "Block",
+      y = "Change in Oculomotor subscale",
+      title = "Total Change in  Oculomotor subscale at each Timepoint \n",
+      tag = "")+  
+  theme_classic()
+
+CSQNauseaPlot
+ggsave(CSQNauseaPlot, filename = "CSQNauseaPlot.png")
+```
 
 
 ```{r}
@@ -896,7 +1050,10 @@ Anova(KPCSQModelNauseaWith,
       type = "II")
 ```
 ```{r}
-Nauseamodel <- lmer(data = CSQKPConversionNausea, Value ~Timepoint*Condition + (1|ID))
+CSQKPConversionNausea$Timepoint <- factor(CSQKPConversionNausea$Timepoint)
+CSQKPConversionNausea$Timepoint <- relevel(CSQKPConversionNausea$Timepoint, ref = "Exp")
+
+Nauseamodel <- lmer(data = CSQKPConversionNausea, Value ~Timepoint+Condition + (1|ID))
 
 summary(Nauseamodel)
 ```
@@ -983,6 +1140,54 @@ ggplot(CSQKPConversionDisoriSummary2,  aes(x = Timepoint, y = mean, colour = Tim
 ```
 
 ```{r}
+CSQKPConversionDisoriSummary$Timepoint[CSQKPConversionDisoriSummary$Timepoint == "Base"] <- "Baseline"
+CSQKPConversionDisoriSummary$Timepoint[CSQKPConversionDisoriSummary$Timepoint == "Con"] <- "Hazard Perception"
+CSQKPConversionDisoriSummary$Timepoint[CSQKPConversionDisoriSummary$Timepoint == "Exp"] <- "Hazard Perception - AR"
+CSQKPConversionDisoriSummary$Timepoint <- factor(CSQKPConversionDisoriSummary$Timepoint)
+#CSQKPConversionDisoriSummary$Timepoint <- relevel(CSQKPConversionDisoriSummary$Timepoint, ref = "Baseline")
+
+
+CSQDisoriPlot <- ggplot(CSQKPConversionDisoriSummary,  aes(x = Timepoint, y = mean, colour = Condition, group = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_line() +
+  geom_point(size = 2.5,)+
+  geom_errorbar(aes(ymin = mean - (sd /2), ymax = mean + (sd /2)), width = 0.1, position = position_dodge(0.005))+
+    scale_color_manual(values = Condition_Palette) +
+
+  labs(x = "Block",
+      y = "Change in Disorientation subscale",
+      title = "Total Change in Disorientation subscale at each Timepoint \n",
+      tag = "")+  
+  theme_classic()
+
+CSQDisoriPlot
+ggsave(CSQDisoriPlot, filename = "CSQDisoriPlot.png")
+```
+
+```{r}
+CSQKPConversionDisoriSummary$Timepoint[CSQKPConversionDisoriSummary$Timepoint == "Base"] <- "Baseline"
+CSQKPConversionDisoriSummary$Timepoint[CSQKPConversionDisoriSummary$Timepoint == "Con"] <- "Hazard Perception Only"
+CSQKPConversionDisoriSummary$Timepoint[CSQKPConversionDisoriSummary$Timepoint == "Exp"] <- "Hazard Perception - AR"
+
+CSQKPConversionDisoriSummary$Timepoint <- factor(CSQKPConversionDisoriSummary$Timepoint)
+
+CSQDisoriPlot <- ggplot(CSQKPConversionDisoriSummary,  aes(x = Timepoint, y = mean, colour = Condition, group = Condition))+
+  #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
+  geom_line() +
+  geom_point(size = 2.5,)+
+  geom_errorbar(aes(ymin = mean - (sd /2), ymax = mean + (sd /2)), width = 0.1, position = position_dodge(0.005))+
+      scale_color_manual(values = Condition_Palette) +
+
+  labs(x = "Block",
+      y = "Change in Disorientation subscale",
+      title = "Average Change in  Disorientation subscale at each Timepoint \n",
+      tag = "")+  
+  theme_classic()
+
+CSQDisoriPlot
+ggsave(CSQDisoriPlot, filename = "CSQDisoriPlot.png")
+```
+```{r}
 KPCSQModelDisoriBet = lm(Value ~ Timepoint + Condition + Timepoint:Condition,
               data = CSQKPConversionDisori)
 
@@ -1006,6 +1211,9 @@ Anova(KPCSQModelDisoriWith,
 ```
 
 ```{r}
+CSQKPConversionDisori$Timepoint <- factor(CSQKPConversionDisori$Timepoint)
+CSQKPConversionDisori$Timepoint <- relevel(CSQKPConversionDisori$Timepoint, ref = "Exp")
+
 Disorimodel <- lmer(data = CSQKPConversionDisori, Value ~Timepoint+Condition + (1|ID))
 
 Disorimodel2 <- lmer(data = CSQKPConversionDisori, Value ~Timepoint*Condition + (1|ID))

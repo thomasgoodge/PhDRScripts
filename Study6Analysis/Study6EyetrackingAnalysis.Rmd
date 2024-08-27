@@ -1,0 +1,1456 @@
+---
+title: "Study6EyetrackingAnalysis"
+author: "TGoodge"
+date: "2024-06-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Libraries
+```{r}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(tidyr)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(beepr)
+library(cowplot)
+library(ggplot2)
+library(ggthemes)
+library(colorspace)
+library(RColorBrewer)
+
+library(scatterplot3d)
+library(rgl)
+```
+
+#Define palettes
+```{r}
+
+base_palette <- brewer.pal(n = 12, name = "Paired")
+custom_palette <- c(
+  base_palette[3], base_palette[4],   # Group 2: 2 similar colors
+    base_palette[1], base_palette[2],   # Group 1: 2 similar colors
+
+  "#F45B5B", base_palette[6], "#A50F15",  # Group 3: 3 similar colors
+  base_palette[8]                     # Group 4: 1 color
+)
+
+
+S5_palette <- c(base_palette[3],base_palette[1],"#F45B5B", base_palette[8])
+S6_palette <- c(base_palette[4], base_palette[2],base_palette[6], "#A50F15")
+
+S5_palette_darker <- darken (S5_palette, amount = 0.2)
+S5_palette_lighter <- lighten (S5_palette, amount = 0.2)
+
+#darkened_palette <- darken(custom_palette, amount = 0.1)
+
+#scale_fill_manual(values = S5_palette) +
+
+
+# Print the custom palette to verify
+print(custom_palette)
+#"#A6CEE3" "#1F78B4" "#B2DF8A" "#33A02C" "#FB9A99" "#E31A1C" "#FDBF6F" "#FF7F00" "#F45B5B"
+```
+#Read in Data Files
+```{r}
+
+FinalValidHazardAOIETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study6Analysis/FinalValidHazardAOIETData.csv", header = T)
+
+FinalValidHazardAOIETData <- FinalValidHazardAOIETData[complete.cases(FinalValidHazardAOIETData),]
+
+
+FinalValidHazardAOIETDataRMOut <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study6Analysis/FinalValidHazardAOIETDataRMOut.csv", header = T)
+
+FinalValidHazardAOIETDataRMOut <- FinalValidHazardAOIETDataRMOut[complete.cases(FinalValidHazardAOIETDataRMOut),]
+
+FinalValidAOIETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study6Analysis/FinalValidAOIETData.csv", header = T)
+
+FinalValidAOIETData <- FinalValidAOIETData[complete.cases(FinalValidAOIETData),]
+
+FinalValidAOIETDataRMOut <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study6Analysis/FinalValidAOIETDataRMOut.csv", header = T)
+
+FinalValidAOIETDataRMOut <- FinalValidAOIETDataRMOut[complete.cases(FinalValidAOIETDataRMOut),]
+
+
+ValidControl <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Control")
+
+ValidVisual <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Visual")
+
+ValidAvatar <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Avatar")
+
+ValidSocial <- FinalValidAOIETDataRMOut %>% 
+  subset(Condition == "Social") 
+
+ValidSocial$PIDCond <- str_sub(ValidSocial$PIDCond, 2)
+
+
+
+```
+
+```{r}
+
+binwidth <- 120  # Adjust the binwidth as needed
+
+# Define the limits for the color scale
+color_limits <- c(0, 1000)  # Adjust these limits as needed
+
+# Define the color for values exceeding the limit
+exceeding_limit_color <- "yellow"  # Adjust this color as needed
+
+ValidControlPlot <- ggplot(data=ValidControl, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "a) Control")
+
+ValidVisualPlot <- ggplot(data=ValidVisual, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "b) Visual")
+
+ValidAvatarPlot <- ggplot(data=ValidAvatar, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "c) Avatar")
+
+ValidSocialPlot <- ggplot(data=ValidSocial, aes(x=fixation_x, y=fixation_y)) +
+  # geom_point()+
+  # geom_bin2d()+
+  stat_bin_2d(bins = binwidth)+
+    xlim(-0.4, 0.4)+
+  ylim(-0.25, 0.25)+
+    scale_fill_continuous(type = "viridis",limits = color_limits, na.value = exceeding_limit_color) +
+  labs(title= "d) Social")
+
+
+
+AOIFixationPlot <- plot_grid(ValidControlPlot, ValidVisualPlot, ValidAvatarPlot, ValidSocialPlot,ncol = 2)
+AOIFixationPlot
+
+
+ggsave(
+    filename = "AOIFixationPlot.png",
+    plot = AOIFixationPlot,
+    width = 15, height = 10
+  )
+
+```
+#3D Plots
+```{r}
+scatterplot3d(x = ValidControl$fixation_x, y = ValidControl$fixation_z, z = ValidControl$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidVisual$fixation_x, y = ValidVisual$fixation_z, z = ValidVisual$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidAvatar$fixation_x, y = ValidAvatar$fixation_z, z = ValidAvatar$fixation_y, highlight.3d = T)
+
+scatterplot3d(x = ValidSocial$fixation_x, y = ValidSocial$fixation_z, z = ValidSocial$fixation_y, highlight.3d = T)
+```
+
+#3D Plots Pop outs
+```{r}
+ValidControl$FixTarget <- if_else(ValidControl$gazePoint_target_name == "Wall", "red", "pink")
+
+ValidVisual$FixTarget <- if_else(ValidVisual$gazePoint_target_name == "Wall", "navy",
+                                 if_else(ValidVisual$gazePointAOI_name == "VisualTargetAOI","red", "cyan"))
+
+ValidAvatar$FixTarget <- if_else(ValidAvatar$gazePoint_target_name == "Wall", "darkgreen",if_else(ValidAvatar$gazePointAOI_name == "RobotHeadAOI","red", "lightgreen"))
+ValidSocial$FixTarget <- if_else(ValidSocial$gazePoint_target_name == "Wall", "orange",if_else(ValidSocial$gazePointAOI_name == "RobotHeadAOI","red", "yellow"))
+
+ValidControl$fixation_z_norm <- ValidControl$fixation_z
+ValidControl$fixation_z_norm <- if_else(ValidControl$gazePoint_target_name == "Wall", mean(ValidControl$fixation_z), ValidControl$fixation_z)
+
+ValidControl$diff <- ValidControl$fixation_z_norm - ValidControl$fixation_z
+ValidControl$fixation_z_adj <- ValidControl$fixation_z_norm + ValidControl$diff
+
+ValidAvatar$fixation_z_norm <- mean(ValidAvatar$fixation_z)
+ValidAvatar$fixation_z_norm <- if_else(ValidAvatar$gazePoint_target_name == "Wall", mean(ValidAvatar$fixation_z), ValidAvatar$fixation_z)
+ValidAvatar$diff <- ValidAvatar$fixation_z_norm - ValidAvatar$fixation_z
+ValidAvatar$fixation_z_adj <- ValidAvatar$fixation_z_norm + ValidAvatar$diff
+
+
+ValidVisual$fixation_z_norm <- mean(ValidVisual$fixation_z)
+ValidVisual$fixation_z_norm <- if_else(ValidVisual$gazePoint_target_name == "Wall", mean(ValidVisual$fixation_z), ValidVisual$fixation_z)
+ValidVisual$diff <- ValidVisual$fixation_z_norm - ValidVisual$fixation_z
+ValidVisual$fixation_z_adj <- ValidVisual$fixation_z_norm + ValidVisual$diff
+
+
+ValidSocial$fixation_z_norm <- mean(ValidSocial$fixation_z)
+ValidSocial$fixation_z_norm <- if_else(ValidSocial$gazePoint_target_name == "Wall", mean(ValidSocial$fixation_z), ValidSocial$fixation_z)
+ValidSocial$diff <- ValidSocial$fixation_z_norm - ValidSocial$fixation_z
+ValidSocial$fixation_z_adj <- if_else(ValidSocial$gazePoint_target_name == "Wall", ValidSocial$fixation_z_norm + ValidSocial$diff, ValidSocial$fixation_z_norm)
+
+```
+
+
+```{r}
+Control3D <- plot3d(x =ValidControl$fixation_x, y = ValidControl$fixation_z_norm, z = ValidControl$fixation_y, col =  ValidControl$FixTarget )
+Visual3D <- plot3d(x =ValidVisual$fixation_x, y = ValidVisual$fixation_z_norm, z = ValidVisual$fixation_y,  col = ValidVisual$FixTarget)
+
+Avatar3D<- plot3d(x =ValidAvatar$fixation_x, y = ValidAvatar$fixation_z_norm, z = ValidAvatar$fixation_y, col = ValidAvatar$FixTarget )
+
+Social3D <- plot3d(x =ValidSocial$fixation_x, y = ValidSocial$fixation_z_norm, z = ValidSocial$fixation_y, col = ValidSocial$FixTarget )
+```
+
+```{r}
+fixZSum <- ValidSocial %>% 
+  group_by(gazePoint_target_name, fixation_z) %>% 
+summarise(n = n())
+
+
+```
+
+```{r}
+# library(plot3D)
+# scatter3D(x =ValidVisual$fixation_x, y = ValidVisual$fixation_z, z = ValidVisual$fixation_y, pch = 2,colvar = ValidVisual$fixation_z,bty = "b2", theta = 15, phi = 20 )
+# 
+# scatter3D(x =ValidSocial$fixation_x, y = ValidSocial$fixation_z, z = ValidSocial$fixation_y, pch = 2,colvar = ValidSocial$fixation_z,bty = "b2", theta = 15, phi = 20 )
+
+```
+
+```{r}
+#Read in Hazard Clip Data
+
+HazardClipList <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study4Analysis/FinalStudy4HazardSheet.csv", header = T)
+
+HazardClipList$VideoClip <- gsub("[^0-9]", "", HazardClipList$VideoClip)# remove all non-numeric characters
+
+HazardClipList$Onset <- HazardClipList$Offset - 4000
+
+HazardClipList$Onset <- HazardClipList$Onset / 1000
+
+HazardClipList$Offset <- HazardClipList$Offset / 1000
+
+HazardClipList$VideoClip <- as.numeric(HazardClipList$VideoClip)
+
+HazardClipList <- HazardClipList[complete.cases(HazardClipList$VideoClip), ] 
+
+
+HazardClipList <- HazardClipList %>% 
+  select(-c(xLocationOnset, xLocationOffset, convertedxLocationOnset, convertedxLocationOffset, yLocationOnset, yLocationOffset, convertedyLocationOnset, convertedyLocationOffset))
+
+```
+
+```{r}
+ClipTimes <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study6Analysis/ClipTimes.csv", header = T)
+
+HazardClipTimes <-  ClipTimes
+
+HazardClipTimes$VideoClip <- as.numeric(gsub("[^0-9]", "", HazardClipTimes$image_file))# remove all non-numeric characters
+
+HazardClipTimes <- HazardClipTimes[complete.cases(HazardClipTimes$ETClipStart), ] %>% 
+  select(- X)
+```
+
+#Hazard Clips Sheet
+```{r}
+HazardClips <- left_join(HazardClipTimes, HazardClipList, by = "VideoClip")
+
+HazardClips$HazardOnset <- HazardClips$ETClipStart + HazardClips$Onset
+
+HazardClips$HazardOffset <- HazardClips$ETClipStop 
+
+HazardClips$Participant <- str_sub(HazardClips$Participant, 2)
+HazardClips$Sort <- str_sub(HazardClips$Sort, 2)
+
+
+CorrectAOIs <- HazardClips %>% 
+  select(VideoClip, AOILocationOffset, AOILocationOffset2)
+
+CorrectAOIs <- CorrectAOIs[!duplicated((CorrectAOIs$VideoClip)),]
+
+CorrectAOIs$VideoClip <- as.double(CorrectAOIs$VideoClip)
+
+
+```
+
+#CountData
+```{r}
+CountData <- FinalValidAOIETDataRMOut
+CountData$Sort <- paste(CountData$PIDCond,CountData$eventIndex)
+CountData <- CountData[!duplicated(CountData$Sort),]
+CountData <- CountData %>% 
+  select(-X)
+
+
+CorrHazardCountData <- FinalValidHazardAOIETDataRMOut
+CorrHazardCountData$Sort <-paste(FinalValidHazardAOIETDataRMOut$PIDCond, FinalValidHazardAOIETDataRMOut$eventIndex)
+CorrHazardCountData <- CorrHazardCountData[!duplicated(CorrHazardCountData$Sort),]
+
+#CorrHazardCountData <- CorrHazardCountData %>% 
+ # select(-c(X.3, X.2, X.1, X))
+
+#CorrHazardCountData$FirstFixationTime <- CorrHazardCountData$TimeStamp - CorrHazardCountData$HazardOnset
+
+```
+#TTFF
+```{r}
+
+FirstFixation <- CorrHazardCountData %>% 
+  subset(CorrAOI == 1)
+
+FirstFixation$VidSort <- paste(FirstFixation$PIDCond, FirstFixation$VideoClip)
+
+HazardClips$VidSort <- paste (HazardClips$Participant, HazardClips$Condition, HazardClips$VideoClip)
+
+FirstFixation <- FirstFixation[!duplicated((FirstFixation$DupSort)),]
+
+TTFF <- left_join(FirstFixation, HazardClips, by = (c("VideoClip" = "VideoClip", "VidSort" = "VidSort")))
+  
+TTFF$FirstFixationTime <- TTFF$TimeStamp - TTFF$HazardOnset
+
+#TTFF <- TTFF[complete.cases(TTFF$FirstFixationTime), ] 
+
+#TTFF$VidSort <- paste (TTFF$Participant, TTFF$Condition, TTFF$VideoClip)
+
+#TTFF <- TTFF[!duplicated(TTFF$PIDSort),]
+
+TTFFWall <- TTFF %>% 
+  subset(gazePoint_target_name == "Wall")
+
+
+TTFFSummary <- TTFF %>% 
+  group_by(Condition.x, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(FirstFixationTime))
+
+
+TTFFWallSummary <- TTFFWall %>% 
+  group_by(Condition.x, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(FirstFixationTime),
+            sd = sd(FirstFixationTime))
+
+```
+#Summaries
+
+```{r}
+
+DurationSummary <- CountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+ClipSummary <- CountData %>% 
+  group_by(Condition, VideoClip) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+ClipSummaryAOI <- CountData %>% 
+  group_by(Condition, VideoClip, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+CountSummaryAOI <- CountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n())
+
+AOITargetSummary <- CountData %>% 
+  group_by(ID, Condition, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T))
+
+AOIObjectSummary <- CountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T),
+            ARFixation = sum(gazePoint_target_name != "Wall", na.rm = T),
+            ScreenFixation = sum(gazePoint_target_name == "Wall" ,na.rm = T),
+            ARProp = (sum(gazePoint_target_name != "Wall", na.rm = T) / n() )* 100,
+            ScreenProp = (sum(gazePoint_target_name == "Wall", na.rm = T) / n() )* 100
+            )
+
+AOIARTargets <- AOITargetSummary 
+
+AOIARTargets<- AOIARTargets %>%  filter(gazePointAOI_name =="RobotHeadAOI"|gazePointAOI_name =="VisualTargetAOI")
+
+AOIARSummary<- AOIARTargets %>% 
+  group_by(Condition) %>% 
+  summarise(Count = sum(n),
+            meanDur = mean(meanDuration),
+            sdDur = sd(meanDuration))
+
+
+```
+
+```{r}
+
+PptSummaryAOI <- CountData %>% 
+  group_by(PIDCond) %>% 
+  summarise(NoF = sum(modified),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration))
+
+PptSummaryAOI[c('Ppt','Condition')] <- str_split_fixed(PptSummaryAOI$PIDCond," ",2)
+
+
+GroupSummary <- PptSummaryAOI %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            sumNoF = sum(NoF),
+            meanNoF = mean(NoF),
+            sdNoF = sd(NoF),
+            meanDur = mean(meanDuration),
+            sdDur = sd(meanDuration))
+```
+
+#Hazard Summaries
+```{r}
+HazardSummaryAOI <- CorrHazardCountData %>% 
+  group_by(Condition, CorrAOI) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+HazardClipSummaryAOI <- CorrHazardCountData %>% 
+  group_by(Condition, VideoClip) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            )
+
+HazardAOITargetSummary <- CorrHazardCountData %>%  
+  group_by(Condition, gazePointAOI_name) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T))
+
+HazardAOIObjectSummary <- CorrHazardCountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            fixationX = mean(fixation_x, na.rm = T),
+            fixation_y = mean(fixation_y, na.rm = T),
+            ARFixation = sum(gazePoint_target_name != "Wall", na.rm = T),
+            ScreenFixation = sum(gazePoint_target_name == "Wall" ,na.rm = T),
+            ARProp = (sum(gazePoint_target_name != "Wall", na.rm = T) / n() )* 100,
+            ScreenProp = (sum(gazePoint_target_name == "Wall", na.rm = T) / n() )* 100
+            )
+
+HazardCorrSummary <- CorrHazardCountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            sumCorr = sum(CorrAOI),
+            meanCorr = mean(CorrAOI),
+            meanDur = mean(eventDuration),
+            sdDur = sd(eventDuration))
+
+HazardAOIARTargets <- HazardAOITargetSummary 
+
+HazardAOIARTargets<- HazardAOIARTargets %>%  filter(gazePointAOI_name =="RobotHeadAOI"|gazePointAOI_name =="VisualTargetAOI")
+
+HazardAOIARSummary<- HazardAOIARTargets %>% 
+  group_by(Condition) %>% 
+  summarise(Count = sum(n),
+            meanDur = mean(meanDuration),
+            sdDur = sd(meanDuration))
+```
+
+```{r}
+
+CorrHazardFixCountPpt <- CorrHazardCountData %>% 
+  group_by(PIDCond, Condition) %>% 
+  summarise(NoF = sum(modified),
+            meanDuration = mean(eventDuration),
+            sdDuration = sd(eventDuration),
+            sumCorr = sum(CorrAOI),
+            propCorr = (sumCorr/NoF)*100)
+
+
+
+
+CorrHazCount <- CorrHazardFixCountPpt %>% 
+group_by(Condition) %>% 
+  summarise(n = n(),
+             avgcorrhazfix = mean(sumCorr),
+            sd = sd(sumCorr))
+
+CorrHazardFixCountPpt[c('Ppt','Condition')] <- str_split_fixed(CorrHazardFixCountPpt$PIDCond," ",2)
+
+
+CorrGroupSummary <- CorrHazardFixCountPpt %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            sumNoF = sum(NoF),
+            sumCorrNoF = sum(sumCorr),
+            meanNoF = mean(NoF),
+            sdNoF = sd(NoF),
+            meanCorrNoF = mean(sumCorr),
+            sdCorrNoF = sd(sumCorr),
+            meanDuration = mean(meanDuration))
+
+
+```
+
+#FixCount Summaries
+```{r}
+
+FixCountSummary <- CountData %>% 
+  group_by(Condition, Target = (gazePoint_target_name == "Wall")) %>% 
+  summarise(n = n())%>% 
+  drop_na(Target)
+
+PivotFixCountSummary <- FixCountSummary %>% 
+  pivot_wider(names_from =  "Target", values_from = n)
+
+# dataCHI <- matrix(c(6131,4590,527,3166), ncol = 1, byrow = T)
+# colnames(dataCHI) <- ("Screen")
+# rownames(dataCHI) <- c("Control", "Visual","Avatar", "Social")
+# 
+# dataCHI <- as.table(dataCHI)
+# 
+# dataCHI
+
+FixCountSummary$Target[FixCountSummary$Target == TRUE] <- "Video"
+FixCountSummary$Target[FixCountSummary$Target == FALSE] <- "AR"
+
+FixCountSummary$Condition <- factor(FixCountSummary$Condition, ordered = FALSE)
+
+FixCountSummaryScreen <- FixCountSummary %>% 
+  subset(Target == "Video")
+
+FixCountSummaryAR <- FixCountSummary %>% 
+  subset(Target == "AR")
+
+
+
+FixCountSummaryTotal <- CountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            AVG = n() / length(unique(CountData$ID)),
+            SD = sd(n() / length(unique(CountData$ID)))
+            )
+
+PptFixCountTotal <- CountData %>% 
+  group_by(ID, Condition) %>% 
+  summarise(FixCount = n())
+
+PptFixCountTotalSummary <- PptFixCountTotal %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            avg = mean(FixCount),
+            sd = sd(FixCount))
+
+```
+
+#STATS
+
+# Fixation Count - Stats
+```{r}
+library(lmerTest)
+# FixCountChi <- chisq.test(dataCHI)
+# FixCountChi$observed
+# 
+# FixCountChi
+
+
+FixCountAnova <- aov(data = PptSummaryAOI, NoF ~ Condition)
+summary(FixCountAnova)
+qqnorm(sqrt(PptSummaryAOI$NoF))
+TukeyHSD(FixCountAnova)
+
+PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
+
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
+
+
+FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition,  family = "poisson")
+summary(FixCountLM)
+
+
+FixCountLMER <- lmer(data =PptSummaryAOI, NoF ~ Condition + (1|Ppt) )
+summary(FixCountLMER)
+
+
+
+library(report)
+FixCountResults <- report(FixCountLMER, CI = 95)
+ #ef <- as.data.frame(effects("Condition", FixCountResults))
+#head(ef)
+summary(FixCountResults)
+
+```
+#***WRITEUP***  Total NoF Plot
+
+```{r}
+
+PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
+
+TotalNoFPlot <-ggplot(data = PptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
+  geom_violin(alpha=0.5)+
+  geom_boxplot(width = 0.25)+
+  labs(title = "Mean Number of Overall Fixations", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+ 
+  ylim(0,700)+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+    theme(legend.position="none")
+
+
+FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition,  family = "poisson")
+summary(FixCountLM)
+
+FixCountLMER <- lmer(data =PptSummaryAOI, NoF ~ Condition + (1|Ppt))
+summary(FixCountLMER)
+
+
+TotalNoFPlot
+
+ggsave(filename = "S6TotalNoFPlot.png",
+       plot = TotalNoFPlot)
+       
+       # ,
+       # scale = 3,
+       # device = png,
+       # width = 3840,
+       # units = "px",
+       # dpi = 700)
+```
+
+#Hazard Fixation Count
+
+```{r}
+
+HazFixCountSummary <- CorrHazardCountData %>% 
+  group_by(Condition, Target = (gazePoint_target_name == "Wall")) %>% 
+  summarise(n = n(),
+            NumCorr = sum(CorrAOI, na.rm = T),
+            prop = (NumCorr) / n() * 100) %>% 
+  drop_na(Target)
+
+HazFixCountSummary$Target[HazFixCountSummary$Target == TRUE] <- "Video"
+HazFixCountSummary$Target[HazFixCountSummary$Target == FALSE] <- "AR"
+
+HazFixCountSummary$Condition <- factor(HazFixCountSummary$Condition, ordered = FALSE)
+
+
+HazFixCountSummaryScreen <- HazFixCountSummary %>% 
+  subset(Target == "Video")
+
+HazFixCountSummaryAR <- HazFixCountSummary %>% 
+  subset(Target == "AR")
+
+TTFFSummary <- CorrHazardCountData %>% 
+  group_by(Condition, PIDCond, CorrAOI) %>% 
+  summarise(n = n(),
+          TTFF = min(TimeStamp)) %>% 
+  group_by(Condition, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(TTFF))
+
+HazFixCountSummaryTotal <- CorrHazardCountData %>% 
+  group_by(Condition) %>% 
+  summarise(n = n())
+
+
+PptHazFixCountTotal <- CorrHazardCountData %>% 
+  group_by(ID, Condition) %>% 
+  summarise(HazFixCount = n())
+
+PptHazFixCountTotalSummary <- PptHazFixCountTotal %>% 
+  group_by(Condition) %>% 
+  summarise(n = n(),
+            avgHaz = mean(HazFixCount),
+            sd = sd(HazFixCount))
+
+
+
+```
+#haz Fix Count Stats
+
+```{r}
+HazFixCountChi <- chisq.test(HazardSummaryAOI$n)
+HazFixCountChi
+
+NumHazFix <- aov(data = CorrHazardFixCountPpt, NoF ~ Condition )
+
+summary(NumHazFix)
+
+TukeyHSD(NumHazFix)
+
+CorrHazardFixCountPpt$Condition <- as.factor(CorrHazardFixCountPpt$Condition)
+
+
+CorrHazardFixCountPpt$Ppt <- as.factor(CorrHazardFixCountPpt$Ppt)
+
+CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Control")
+
+
+HazFixCountLM <- lm(data =CorrHazardFixCountPpt, NoF ~ Condition, family = "poisson")
+summary(HazFixCountLM)
+
+
+HazFixCountLMER <- lmer(data =CorrHazardFixCountPpt, NoF ~ Condition + (1|Ppt))
+summary(HazFixCountLMER)
+
+HazFixCountResults <- report(HazFixCountLM, CI = 95)
+
+summary(HazFixCountResults)
+
+
+```
+
+
+```{r}
+CorrHazFix <- aov(data = CorrHazardFixCountPpt, sumCorr ~ Condition )
+
+summary(CorrHazFix)
+
+TukeyHSD(CorrHazFix)
+
+PptSummaryAOI$Condition <- as.factor(PptSummaryAOI$Condition)
+
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
+
+
+# FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition, family = "poisson")
+# summary(FixCountLM)
+
+```
+
+
+```{r}
+NumHazFixLM <- lm( NoF ~ Condition, data = CorrHazardFixCountPpt)
+summary(NumHazFixLM)
+
+
+```
+
+```{r}
+# CorrHazFixCountChi <- chisq.test(HazardCorrSummary$sumCorr)
+# 
+# CorrHazFixCountChi
+
+```
+
+#***WRITEUP***  Hazard NoF Plot
+```{r}
+
+CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Avatar")
+CorrHazardFixCountPpt$Condition <- factor(CorrHazardFixCountPpt$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
+
+
+TotalHazardNoFPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = NoF, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+  labs(title = "Mean Number of Fixations \n during the Hazard Window", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+
+  scale_fill_manual(values = S6_palette) +
+  ylim(0,100)+
+  theme_classic()+
+  theme(legend.position="none",
+  axis.title.y = element_text(size = 9))
+
+HazFixCountLMER <- lmer(data =CorrHazardFixCountPpt, NoF ~ Condition + (1|Ppt))
+summary(HazFixCountLMER)
+
+
+TotalHazardNoFPlot
+
+ggsave(filename = "S6TotalHazardNoFPlot.png",
+       plot = TotalHazardNoFPlot)
+       
+       # ,
+       # scale = 3,
+       # device = png,
+       # width = 3840,
+       # units = "px",
+       # dpi = 700)
+```
+
+
+```{r}
+
+CorrHazardFixCountPpt$Condition <- factor(CorrHazardFixCountPpt$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
+
+
+       # dpi = 700)
+```
+
+#Hazard FixationCount Corr AOI Plot
+```{r}
+FixCountCorrScreen <- chisq.test(HazFixCountSummaryScreen$NumCorr, y = NULL)
+FixCountCorrScreen
+
+CorrHazFixLM <- lm( sumCorr ~ Condition, data = CorrHazardFixCountPpt)
+summary(CorrHazFixLM)
+
+CorrHazFixLMER <- lmer(sumCorr ~ Condition + (1|Ppt), data = CorrHazardFixCountPpt)
+summary(CorrHazFixLMER)
+
+
+```
+
+```{r}
+CorrHazardCountData$Condition <- factor(CorrHazardCountData$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
+
+
+CorrHazFixPropGLM <- glm(CorrAOI ~ Condition, data = CorrHazardCountData)
+summary(CorrHazFixPropGLM)
+
+CorrHazFixPropGLMER <- glmer(CorrAOI ~ Condition + (1|ID) + (1|VideoClip), data = CorrHazardCountData, family = "binomial")
+summary(CorrHazFixPropGLMER)
+```
+#***WRITEUP***  Correct Hazard Fixations plot
+```{r}
+# ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = sumCorr, fill = Condition))+
+#   geom_col()+ 
+#   ylab("Number of 'Correct' Fixations")+
+#   scale_fill_brewer(palette = "BrBG")+
+#   theme_classic()
+# 
+# plot(HazFixCountSummaryScreen$NumCorr)
+
+CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Control")
+
+NumCorrHazFixLMER <- lmer(sumCorr ~ Condition + (1|Ppt), data = CorrHazardFixCountPpt )
+summary(NumCorrHazFixLMER)
+
+TotalCorrHazardNoFPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = sumCorr, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+  ylim(0,50)+
+  labs(title = "Mean Number Correct Fixations \n during Hazard Window", y = "Mean Correct Fixations", x = "NDRT Presentation Condition")+
+
+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+    theme(legend.position="none")+
+    theme(text=element_text(size = 10))+
+    theme(axis.text=element_text(size=10))
+
+TotalCorrHazardNoFPlot
+
+ggsave(filename = "S6TotalCorrHazardNoFPlot.png",
+       plot = TotalCorrHazardNoFPlot)
+       #scale = 3)
+
+```
+
+
+#***WRITEUP*** Prop  Correct Hazard Fixations plot
+```{r}
+# ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = sumCorr, fill = Condition))+
+#   geom_col()+ 
+#   ylab("Number of 'Correct' Fixations")+
+#   scale_fill_brewer(palette = "BrBG")+
+#   theme_classic()
+# 
+# plot(HazFixCountSummaryScreen$NumCorr)
+
+#CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Control")
+
+CorrHazardFixCountPpt$Condition <- factor(CorrHazardFixCountPpt$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
+
+PropCorrHazFixLMER <- lmer(propCorr ~ Condition + (1|Ppt), data = CorrHazardFixCountPpt)
+summary(PropCorrHazFixLMER)
+
+PropCorrHazardNoFPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = propCorr, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+  ylim(0,90)+
+  labs(title = "Mean Proportion of Correct Fixations \n during the Hazard Window", y = "Proportion of Correct Fixations", x = "NDRT Presentation Condition")+
+
+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+    theme(legend.position="none")+
+    theme(text=element_text(size = 10))+
+    theme(axis.text=element_text(size=10))
+
+PropCorrHazardNoFPlot
+
+ggsave(filename = "S6PropCorrHazardNoFPlot.png",
+       plot = PropCorrHazardNoFPlot)
+       #scale = 3)
+
+```
+#ARFIxCount
+```{r}
+
+#AOIARTargets$Condition <- factor(AOIARTargets$Condition, levels = c("Visual", "Avatar", "Social"))
+#AOIARTargets$Condition <- relevel(AOIARTargets$Condition, ref = "Avatar")
+
+ARFixLMER <- lmer(n ~ Condition + (1|ID), data = AOIARTargets)
+summary(ARFixLMER)
+
+ARNoFPlot <- ggplot(data = AOIARTargets, aes(x = Condition, y = n, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+ # ylim(0,90)+
+  labs(title = "Mean Number of Fixations on the AR elements", y = "Number of Fixations", x = "NDRT Presentation Condition")+
+
+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+    theme(legend.position="none")+
+    theme(text=element_text(size = 10))+
+    theme(axis.text=element_text(size=10))
+
+ARNoFPlot
+
+ggsave(filename = "S6ARNoFPlot.png",
+       plot = ARNoFPlot)
+       #scale = 3)
+```
+
+#ARFixDur
+```{r}
+
+#AOIARTargets$Condition <- factor(AOIARTargets$Condition, levels = c("Visual", "Avatar", "Social"))
+#AOIARTargets$Condition <- relevel(AOIARTargets$Condition, ref = "Visual")
+
+ARFixDurLMER <- lmer(meanDuration ~ Condition + (1|ID), data = AOIARTargets)
+summary(ARFixDurLMER)
+
+ARFixDurPlot <- ggplot(data = AOIARTargets, aes(x = Condition, y = meanDuration, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+ # ylim(0,90)+
+  labs(title = "Mean Number of Fixations on the AR elements", y = "Number of Fixations", x = "NDRT Presentation Condition")+
+
+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+    theme(legend.position="none")+
+    theme(text=element_text(size = 10))+
+    theme(axis.text=element_text(size=10))
+
+ARFixDurPlot
+
+ggsave(filename = "S6ARFixDurPlot.png",
+       plot = ARFixDurPlot)
+       #scale = 3)
+```
+#Hazard ARFIxCount
+```{r}
+
+HazardAOIARTargets$Condition <- factor(HazardAOIARTargets$Condition, levels = c("Visual", "Avatar", "Social"))
+HazardAOIARTargets$Condition <- relevel(HazardAOIARTargets$Condition, ref = "Avatar")
+
+HazardARFixLMER <- lmer(n ~ Condition + (1|gaze), data = HazardAOIARTargets)
+summary(HazardARFixLMER)
+
+HazardARNoFPlot <- ggplot(data = HazardAOIARTargets, aes(x = Condition, y = n, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+ # ylim(0,90)+
+  labs(title = "Mean Number of Fixations on the AR elements", y = "Number of Fixations", x = "NDRT Presentation Condition")+
+
+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+    theme(legend.position="none")+
+    theme(text=element_text(size = 10))+
+    theme(axis.text=element_text(size=10))
+
+HazardARNoFPlot
+
+ggsave(filename = "S6HazardARNoFPlot.png",
+       plot = HazardARNoFPlot)
+       #scale = 3)
+```
+
+#ARFixDur
+```{r}
+
+#AOIARTargets$Condition <- factor(AOIARTargets$Condition, levels = c("Visual", "Avatar", "Social"))
+#AOIARTargets$Condition <- relevel(AOIARTargets$Condition, ref = "Visual")
+
+ARFixDurLMER <- lmer(meanDuration ~ Condition + (1|ID), data = AOIARTargets)
+summary(ARFixDurLMER)
+
+ARFixDurPlot <- ggplot(data = AOIARTargets, aes(x = Condition, y = meanDuration, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+ # ylim(0,90)+
+  labs(title = "Mean Number of Fixations on the AR elements", y = "Number of Fixations", x = "NDRT Presentation Condition")+
+
+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+    theme(legend.position="none")+
+    theme(text=element_text(size = 10))+
+    theme(axis.text=element_text(size=10))
+
+ARFixDurPlot
+
+ggsave(filename = "S6ARFixDurPlot.png",
+       plot = ARFixDurPlot)
+       #scale = 3)
+```
+
+#CowPlot
+```{r}
+library(cowplot)
+
+legend_b <- get_legend(
+  TotalNoFPlot + 
+    guides(color = guide_legend(nrow = 1)) +
+   theme(legend.position = "bottom")
+)
+
+AllTotalNoF <- plot_grid(TotalNoFPlot, TotalHazardNoFPlot,labels = c('a)','b)'),ncol = 2)
+AllTotalNoFLeg <- plot_grid(AllTotalNoF, legend_b,ncol = 1, rel_heights = c(1, .1))
+AllTotalNoFLeg
+
+ggsave(filename = "AllTotalNoFLeg.jpg",
+       plot = AllTotalNoFLeg,
+       width = 3840,
+       units = "px")
+```
+
+
+```{r}
+
+CorrHazardFixCountPpt$Condition <- as.factor(CorrHazardFixCountPpt$Condition)
+
+#CorrHazardFixCountPpt$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
+
+
+CorrHazFixCountLM <- lm(data =CorrHazardFixCountPpt, sumCorr ~ Condition, family = "poisson")
+summary(CorrHazFixCountLM)
+
+CorrHazardFixCountPpt$PIDCond <- as.factor(CorrHazardFixCountPpt$PIDCond)
+
+CorrHazFixLMER <- lmer(sumCorr ~ Condition + (1|Ppt), data = CorrHazardFixCountPpt)
+summary(CorrHazFixLMER)
+
+CorrHazFixCountResults <- report(CorrHazFixLMER, CI = 95)
+
+summary(CorrHazFixCountResults)
+
+```
+
+
+```{r}
+hist(CountData$eventDuration)
+
+shapiro.test(CountData$eventDuration[0:5000])
+#ad.hoc.test(FinalValidAOIETDataRMOut$eventDuration)
+
+qqnorm(sqrt(CountData$eventDuration))
+ggplot(CountData, aes(x = eventDuration, fill = Condition)) + geom_density(alpha = .3)
+
+```
+
+```{r}
+library(ggpubr)
+
+bxp <- ggboxplot(CountData, x = "Condition", y = "eventDuration")
+bxp
+```
+
+```{r}
+summary(lm(eventDuration ~ Condition, data = CountData))
+
+BasicDwellAOV <- summary(aov(eventDuration ~ Condition, data = CountData))
+
+#BasicDwellAOVPW <- pairwise.t.test()
+
+#DwellModel <- glmer(eventDuration ~ Condition + (1|ID), data = FinalValidAOIETDataRMOut, family = poisson)
+
+```
+
+
+
+```{r}
+bxpRMOut <- ggboxplot(CountData, x = "Condition", y = "eventDuration")
+bxpRMOut
+
+ggplot(CountData, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration (ms)")+
+  theme_classic()+
+    scale_fill_brewer(palette = "BrBG")
+
+```
+
+
+
+```{r}
+a1 <- aov(eventDuration ~ Condition, data = CountData)
+summary(a1)
+
+Tukeya1 <- TukeyHSD(a1)
+Tukeya1
+
+a2 <- aov(meanDuration ~ Condition, data = PptSummaryAOI)
+summary(a2)
+
+Tukeya2 <- TukeyHSD(a2)
+Tukeya2
+
+```
+
+```{r}
+ggplot(FinalValidAOIETDataRMOut, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration (ms)")+
+  theme_classic()+
+    scale_fill_brewer(palette = "BrBG")
+
+ggplot(CountData, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration (ms)")+
+  theme_classic()+
+    scale_fill_brewer(palette = "BrBG")
+
+ggplot(PptSummaryAOI, aes(x = Condition, y = meanDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration (ms)")+
+  theme_classic()+
+    scale_fill_brewer(palette = "BrBG")
+
+```
+
+```{r}
+FinalValidAOIETDataRMOut$Condition <- as.factor(FinalValidAOIETDataRMOut$Condition)
+
+DurModelNull <- lmer(eventDuration ~ (1|ID), data = FinalValidAOIETDataRMOut)
+
+DurModelBasic <- lmer(data = FinalValidAOIETDataRMOut, formula = eventDuration ~ Condition + (1|ID))
+
+summary(DurModelBasic)
+# 
+# DurModel1 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+# summary(DurModel1)
+# 
+# DurModel2 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+# summary(DurModel2)
+# 
+# DurModel3 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
+# summary(DurModel3)
+# 
+# FinalValidAOIETDataRMOut$Condition <- relevel(FinalValidAOIETDataRMOut$Condition, ref = "Control")
+# 
+# anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3)
+
+```
+#CowPlot CorrHaz
+```{r}
+library(cowplot)
+
+legend_b <- get_legend(
+  TotalHazardNoFPlot + 
+    guides(color = guide_legend(nrow = 1)) +
+   theme(legend.position = "bottom")
+)
+
+AllCorrHaz<- plot_grid(TotalCorrHazardNoFPlot, PropCorrHazardNoFPlot, labels = c('a)','b)'),ncol = 2)
+AllCorrHazLeg <- plot_grid(AllCorrHaz, legend_b,ncol = 1, rel_heights = c(1.5, .1))
+AllCorrHazLeg
+
+ggsave(filename = "AllCorrHazLeg.jpg",
+       plot = AllCorrHazLeg,
+     
+       units = "px")
+```
+#Fix Dur Count Data
+```{r}
+CountData$Condition <- as.factor(CountData$Condition)
+
+DurModelNull <- lmer(eventDuration ~ (1|ID), data = CountData)
+
+DurModelBasic <- lmer(data = CountData, formula = eventDuration ~ Condition + (1|ID))
+
+summary(DurModelBasic)
+
+# DurModel1 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+# summary(DurModel1)
+# 
+# DurModel2 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+# summary(DurModel2)
+# 
+# DurModel3 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
+# summary(DurModel3)
+# 
+# DurModel4 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name) + (1|TimeStamp))
+# summary(DurModel4)
+# 
+# CountData$Condition <- relevel(CountData$Condition, ref = "Control")
+# 
+# anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3, DurModel4)
+
+```
+
+#FixDur Ppt Mean data
+```{r}
+PptSummaryAOI$Condition <- as.factor(PptSummaryAOI$Condition)
+
+DurModelNull <- lmer(meanDuration ~ (1|Ppt), data = PptSummaryAOI)
+
+DurModelBasic <- lm(data = PptSummaryAOI, formula = meanDuration ~ Condition, family = "poisson")
+
+
+
+
+#DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+
+summary(DurModelBasic)
+qqnorm(sqrt(PptSummaryAOI$meanDuration))
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
+
+#anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3, DurModel4)
+
+DurModelBasicLMER <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+
+DurModelResults <- report(DurModelBasicLMER, CI = 95)
+
+summary(DurModelResults)
+
+
+```
+
+
+#***WRITEUP***  Total Fixation Duration Plot
+```{r}
+
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
+
+
+DurModelBasicLMER <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+summary(DurModelBasicLMER)
+
+
+TotalFixDurPlot <- ggplot(data = PptSummaryAOI, aes(x = Condition, y = meanDuration, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.2)+
+  labs(title = "Mean Overall Fixation Duration", y = "Mean Fixation Duration", x = "NDRT Presentation Condition")+
+scale_fill_manual(values = S6_palette) +
+  ylim(0,2500)+
+  theme_classic()+
+   theme(legend.position="none")
+
+TotalFixDurPlot
+
+ggsave(filename = "S6TotalFixDurPlot.jpg",
+       plot = TotalFixDurPlot)
+       
+       # ,
+       # scale = 3,
+       # device = png,
+       # width = 3840,
+       # units = "px",
+       # dpi = 700)
+```
+
+
+```{r}
+ggplot(FinalValidHazardAOIETDataRMOut, aes(x = Condition, y = eventDuration, fill = Condition))+
+  geom_violin()+ 
+  geom_boxplot(alpha = 0, width = 0.18)+
+  ylab("Fixation Duration in Hazard Window")+
+  theme_classic()
+
+```
+#TTFF Model
+
+```{r}
+
+TTFF$Condition <- TTFF$Condition.x
+
+TTFF$Condition <- as.factor(TTFF$Condition)
+
+TTFFWall$Condition <- TTFFWall$Condition.x
+
+TTFFWall$Condition <- as.factor(TTFFWall$Condition)
+
+TTFF$Condition <- relevel(TTFF$Condition, ref = "Control")
+
+#TTFFWall$Condition <- relevel(TTFFWall$Condition, ref = "Visual")
+
+
+#TTFFANOVA <- aov(FirstFixationTime ~ Condition, data = TTFF)
+
+#summary(TTFFANOVA)
+
+# TTFFModelNull <- lmer(FirstFixationTime ~ (1|Participant), data = TTFF)
+# 
+# TTFFModelBasic <- lmer(data = TTFF, formula = FirstFixationTime ~ Condition + (1|Participant))
+# summary(TTFFModelBasic)
+# 
+# TTFFModel1 <- lmer(data = TTFF,  formula = FirstFixationTime ~ Condition + (1|Participant) + (1|VideoClip))
+# summary(TTFFModel1)
+# 
+# TTFFModel2 <- lmer(data = TTFF,  formula = FirstFixationTime ~ Condition + (1|Participant) + (1|VideoClip) + (1|gazePointAOI_name))
+# summary(TTFFModel2)
+# 
+# TTFFModel3 <- lmer(data = TTFF,  formula = FirstFixationTime ~ Condition + (1|Participant) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
+# summary(TTFFModel3)
+# 
+# anova(TTFFModelNull,TTFFModelBasic,TTFFModel1,TTFFModel2,TTFFModel3)
+
+```
+
+```{r}
+TTFFModelBasic <- lm(data = TTFF, formula = eventDuration ~ Condition)
+
+summary(TTFFModelBasic)
+
+
+TTFFWallModelBasic <- lm(data = TTFFWall, formula = eventDuration ~ Condition.x)
+
+#DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+
+summary(TTFFWallModelBasic)
+
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
+```
+
+
+#***WRITEUP***  Time to First Fixation
+```{r}
+
+TTFF$Condition <- relevel(TTFF$Condition, ref = "Control")
+
+
+TTFFModelBasic <- lm(data = TTFF, formula = FirstFixationTime ~ Condition)
+
+summary(TTFFModelBasic)
+
+TTFFPlot <- ggplot(TTFF, aes(x = Condition, y = FirstFixationTime, fill = Condition))+
+  geom_violin(alpha = 0.5)+ 
+  geom_boxplot(width = 0.25)+
+  ylim(0,6)+
+    labs(title = "Mean Time to First Fixation", y = "Mean Time to First Fixation", x = "NDRT Presentation Condition")+
+
+scale_fill_manual(values = S6_palette) +
+
+  theme_classic()
+
+
+TTFFPlot
+ggsave(filename = "S6TTFFPlot.png",
+       plot = TTFFPlot)
+       
+```
+
+HazardFixation Duration
+```{r}
+CorrHazardCountData$Condition <- as.factor(CorrHazardCountData$Condition)
+CorrHazardCountData$Condition <- relevel(CorrHazardCountData$Condition, ref = "Control")
+
+HazDurModelNull <- lmer(eventDuration ~ (1|ID), data = CorrHazardCountData)
+
+HazDurModelBasic <- lmer(data = CorrHazardCountData, formula = eventDuration ~ Condition + (1|ID))
+
+summary(HazDurModelBasic)
+
+# HazDurModel1 <- lmer(data = CorrHazardCountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+# summary(HazDurModel1)
+# 
+# HazDurModel2 <- lmer(data = CorrHazardCountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+# summary(HazDurModel2)
+# 
+# HazDurModel3 <- lmer(data = CorrHazardCountData,  formula = eventDuration ~ Condition + (1|ID)  + (1|gazePointAOI_name))
+# summary(HazDurModel3)
+
+#anova(HazDurModelNull, HazDurModelBasic, HazDurModel1, HazDurModel2, HazDurModel3)
+
+```
+
+#CountHazardFixationDuration - Ppt summary
+```{r}
+CorrHazardFixCountPpt$Condition <- as.factor(CorrHazardFixCountPpt$Condition)
+CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Control")
+
+#CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Cue")
+
+
+FixDurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+summary(FixDurModelBasic)
+
+
+HazDurModelBasic <- lmer(data = CorrHazardFixCountPpt, formula = meanDuration ~ Condition + (1|Ppt))
+summary(HazDurModelBasic)
+
+HazFixDurResults <- report(HazDurModelBasic, CI = 95)
+
+summary(HazFixDurResults)
+
+```
+
+#***WRITEUP*** Haz Fix Dura  Plot
+```{r}
+CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Control")
+
+HazDurModelBasic <- lmer(data = CorrHazardFixCountPpt, formula = meanDuration ~ Condition + (1|Ppt))
+summary(HazDurModelBasic)
+
+TotalHazFixDurPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = meanDuration, fill = Condition))+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.15)+
+  labs(title = "Mean overall Fixation Duration \n during the Hazard Window", y = "Mean Hazard Window Fixation Duration", x = "NDRT Presentation Condition")+
+  ylim(0,4500)+
+scale_fill_manual(values = S6_palette) +
+  theme_classic()+
+   theme(legend.position="none")
+
+TotalHazFixDurPlot
+
+ggsave(filename = "S6TotalHazFixDurPlot.jpg",
+       plot = TotalHazFixDurPlot)
+       
+```
+
+#cowplot2
+```{r}
+
+legend_c <- get_legend(
+  TotalFixDurPlot + 
+    guides(color = guide_legend(nrow = 1)) +
+   theme(legend.position = "bottom")
+)
+
+AllFixDur <- plot_grid(TotalFixDurPlot, TotalHazFixDurPlot,labels = c('a)','b)'),ncol = 2)
+AllFixDurLeg <- plot_grid(AllFixDur, legend_b,ncol = 1, rel_heights = c(1, .1))
+AllFixDurLeg
+
+ggsave(filename = "AllFixDurLeg.jpg",
+       plot = AllFixDurLeg,
+       width = 3840,
+       units = "px")
+```
+
+```{r}
+beep()
+print(Sys.time())
+```
+

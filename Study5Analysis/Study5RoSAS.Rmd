@@ -137,7 +137,7 @@ ggplot(RoSASFull, aes(Block, Discomfort, fill = Block ))+
         theme_classic()
 
 ```
-
+#Warmth Overall
 ```{r}
 RosasWarmth.aov <- anova_test(data = RoSASFull, dv = Warmth, wid = participant, within = Block)
 
@@ -161,6 +161,7 @@ Warmthbxp +
   )
 
 ```
+#Competence OVerall
 ```{r}
 RosasCompetence.aov <- anova_test(data = RoSASFull, dv = Competence, wid = participant, within = Block)
 
@@ -184,7 +185,7 @@ Competencebxp +
   )
 
 ```
-
+#Discomfort Overall
 ```{r}
 RosasDiscomfort.aov <- anova_test(data = RoSASFull, dv = Discomfort, wid = participant, within = Block)
 
@@ -208,7 +209,7 @@ Discomfortbxp +
   )
 
 ```
-
+#Happy
 ```{r}
 RosasHappy.aov <- anova_test(data = RoSASFull, dv = Happy, wid = participant, within = Block)
 
@@ -231,6 +232,7 @@ Happybxp +
   )
 
 ```
+#Feeling
 ```{r}
 # Feeling
 RosasFeeling.aov <- anova_test(data = RoSASFull, dv = Feeling, wid = participant, within = Block)
@@ -253,11 +255,14 @@ Feelingbxp +
     caption = get_pwc_label(Feelingpwc)
   )
 ```
-
+#Social
 
 ```{r}
 # Social
-RosasSoc.aov <- anova_test(data = RoSASFull, dv = Social, wid = participant, within = Block)
+RoSASFull$Soc <- RoSASFull$Social
+
+
+RosasSoc.aov <- anova_test(data = RoSASFull, dv = Soc, wid = participant, within = Block)
 
 get_anova_table(RosasSoc.aov)
 
@@ -278,7 +283,7 @@ Socialbxp +
     caption = get_pwc_label(Socialpwc)
   )
 ```
-
+#Organic
 ```{r}
 RosasOrganic.aov <- anova_test(data = RoSASFull, dv = Organic, wid = participant, within = Block)
 
@@ -300,7 +305,7 @@ Organicbxp +
     caption = get_pwc_label(Organicpwc)
   )
 ```
-
+#Compassionnate
 
 ```{r}
 # Compassionate
@@ -325,7 +330,7 @@ Compassionatebxp +
   )
 
 ```
-
+#Emotional
 ```{r}
 # Emotional
 RosasEmotional.aov <- anova_test(data = RoSASFull, dv = Emotional, wid = participant, within = Block)
@@ -348,7 +353,7 @@ Emotionalbxp +
     caption = get_pwc_label(Emotionalpwc)
   )
 ```
-
+#Capable
 
 ```{r}
 # Capable
@@ -373,7 +378,7 @@ Capablebxp +
   )
 ```
 
-
+#Responsive
 ```{r}
 # Responsive
 RosasResponsive.aov <- anova_test(data = RoSASFull, dv = Responsive, wid = participant, within = Block)
@@ -397,7 +402,7 @@ Responsivebxp +
   )
 
 ```
-
+#Interactive
 ```{r}
 # Interactive
 RosasInteractive.aov <- anova_test(data = RoSASFull, dv = Interactive, wid = participant, within = Block)
@@ -421,7 +426,7 @@ Interactivebxp +
   )
 ```
 
-
+#Reliable
 ```{r}
 # Reliable
 RosasReliable.aov <- anova_test(data = RoSASFull, dv = Reliable, wid = participant, within = Block)
@@ -444,7 +449,7 @@ Reliablebxp +
     caption = get_pwc_label(Reliablepwc)
   )
 ```
-
+#Competent
 
 ```{r}
 # Competent
@@ -469,7 +474,7 @@ Competentbxp +
   )
 
 ```
-
+#Knowledgeable
 
 ```{r}
 # Knowledgeable
@@ -494,7 +499,7 @@ Knowledgeablebxp +
   )
 ```
 
-
+#Scary
 ```{r}
 # Scary
 RosasScary.aov <- anova_test(data = RoSASFull, dv = Scary, wid = participant, within = Block)
@@ -518,7 +523,7 @@ Scarybxp +
   )
 ```
 
-
+#Strange
 ```{r}
 # Strange
 RosasStrange.aov <- anova_test(data = RoSASFull, dv = Strange, wid = participant, within = Block)
@@ -542,7 +547,7 @@ Strangebxp +
   )
 
 ```
-
+#Awkward
 
 ```{r}
 # Awkward
@@ -567,7 +572,7 @@ Awkwardbxp +
   )
 ```
 
-
+#Dangerous
 ```{r}
 # Dangerous
 RosasDangerous.aov <- anova_test(data = RoSASFull, dv = Dangerous, wid = participant, within = Block)
@@ -590,7 +595,7 @@ Dangerousbxp +
     caption = get_pwc_label(Dangerouspwc)
   )
 ```
-
+#Awful
 
 ```{r}
 # Awful
@@ -615,6 +620,7 @@ Awfulbxp +
   )
 
 ```
+#Aggressive
 ```{r}
 # Aggressive
 RosasAggressive.aov <- anova_test(data = RoSASFull, dv = Aggressive, wid = participant, within = Block)

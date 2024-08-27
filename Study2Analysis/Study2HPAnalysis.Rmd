@@ -16,13 +16,24 @@ library(splitstackshape)
 library(stringr)
 library(data.table)
 library(dplyr)
-library(tidyr)
+#library(tidyr)
 library(gridExtra)
 library(lme4)
 library(lmerTest)
 
 ```
 ####DATA WRANGLING#####
+
+```{r}
+
+Block_Palette <- c("#FF4500" , "#00CED1")
+Condition_Palette <- c("#5A9BD6" , "#3CB371")
+
+Blend_Palette <- c("#C95E5F", "#27C69A")
+
+```
+
+
 
 ```{r}
 #Set the folder where the data is stored
@@ -88,6 +99,16 @@ HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip6"] <- "PilotClip06"
 HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip7"] <- "PilotClip07"
 HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip8"] <- "PilotClip08"
 HazardData$ClipNumber[HazardData$ClipNumber == "PilotClip9"] <- "PilotClip09"
+
+HazardData$Length <- HazardData$Offset - HazardData$OldOnset
+
+HazardData$WindowLength <- HazardData$Length/5
+
+HazardData$Window1 <- HazardData$Onset + HazardData$WindowLength
+HazardData$Window2 <- HazardData$Onset + (HazardData$WindowLength * 2)
+HazardData$Window3 <- HazardData$Onset + (HazardData$WindowLength * 3)
+HazardData$Window4 <- HazardData$Onset + (HazardData$WindowLength * 4)
+HazardData$Window5 <- HazardData$Onset + (HazardData$WindowLength * 5)
   
 ```
 
@@ -114,9 +135,9 @@ FullHPDataset$button_resp.rt <-stringr::str_remove_all(FullHPDataset$button_resp
 
 FullHPDataset$Condition <- FullHPDataset$participant
 
-FullHPDataset$Condition[as.numeric(str_sub(FullHPDataset$Condition, -1))%%2 == 0] <- "Wider"
+FullHPDataset$Condition[as.numeric(str_sub(FullHPDataset$Condition, -1))%%2 == 0] <- "Global"
 
-FullHPDataset$Condition[as.numeric(str_sub(FullHPDataset$Condition, -1))%%2 == 1] <- "Focused"
+FullHPDataset$Condition[as.numeric(str_sub(FullHPDataset$Condition, -1))%%2 == 1] <- "Central"
 
 
 ```
@@ -131,7 +152,6 @@ RTData <- RTData %>%
   separate_rows(button_resp.rt, sep = ",")
 
 RTData$button_resp.rt <- as.numeric(RTData$button_resp.rt)
-
 
 ```
 ###Plot number of responses
@@ -214,11 +234,14 @@ RTHazardData$Group <- paste(RTHazardData$Block, RTHazardData$Condition, sep=" ")
 
 RTHazardData <- na.omit(RTHazardData) 
 RTHazardData$RTStandard <- RTHazardData$button_resp.rt - RTHazardData$Onset
+RTHazardData$RTStandardOld <- RTHazardData$button_resp.rt - RTHazardData$OldOnset
+
 
 RTHazardData<- RTHazardData[RTHazardData$button_resp.rt <= RTHazardData$Offset ,]
 
 RTHazardData$PreWindow <- 0
 RTHazardData$PreWindow <- if_else(RTHazardData$RTStandard > 0, FALSE, TRUE)
+
 
 RTPreWindowSumm <- RTHazardData %>%
   group_by(ClipNumber) %>%
@@ -321,10 +344,29 @@ RTHazardDataClip <- RTHazardData %>%
             onset = Onset,
             RT = resp - onset)
 
+
+
 RTHazardDataClip <- RTHazardDataClip[!duplicated(RTHazardDataClip),]
 RTHazardDataClip$Group <- paste(RTHazardDataClip$Block, RTHazardDataClip$Condition, sep=" ")
 
+ScoreHazardData <- RTHazardData
 ```
+
+
+```{r}
+
+ScoreHazardData$HazardWindowScore <- if_else(ScoreHazardData$button_resp.rt <= ScoreHazardData$Window1, 5,
+                                             if_else(ScoreHazardData$button_resp.rt <= ScoreHazardData$Window2,4,
+                                                     if_else(ScoreHazardData$button_resp.rt <= ScoreHazardData$Window3,3,
+                                                             if_else(ScoreHazardData$button_resp.rt <= ScoreHazardData$Window4,2,
+                                                                     if_else(ScoreHazardData$button_resp.rt <= ScoreHazardData$Window5,1,0)))))
+
+
+```
+
+
+
+
 ```{r}
 # RTHazardDataClipStrict <- RTHazardDataStrict %>% 
 #   group_by(ClipNumber, Block, Condition) %>% 
@@ -359,7 +401,7 @@ ggplot(RTHazardData, aes(x = ClipNumber, y = button_resp.rt, colour = Block))+
 
 ```{r}
 ggplotHazRT <- function(lm.input) {
-  x <- ggplot(lm.input, aes(RTStandard, fill = Condition, na.rm = T))+
+  x <- ggplot(lm.input, aes(RTStandardOld, fill = Condition, na.rm = T))+
     labs(x = lm.input$ClipNumber, )+
     geom_histogram(binwidth = 0.1, colour = 'black', na.rm = T, position = "stack", show.legend = F)+
     xlim(-2.0, 2.0)+
@@ -385,20 +427,19 @@ for (p in RTHazardPlots){
 
 ```
 
-
 ```{r}
 RTHazardSummary <- RTHazardData %>% 
 group_by(Condition, Block, ClipNumber) %>% 
   summarise(
-    mean = mean(RTStandard)
+    mean = mean(RTStandardOld)
   ) 
 
 
 RTOverallSummary <- RTHazardData %>% 
 group_by(Block) %>% 
   summarise(
-    mean = mean(RTStandard),
-    sd = sd(RTStandard)
+    mean = mean(RTStandardOld),
+    sd = sd(RTStandardOld)
   ) %>% 
   mutate(Condition = "Overall")
 
@@ -406,8 +447,8 @@ group_by(Block) %>%
 RTGroupSummary <- RTHazardData %>% 
 group_by(Condition, Block, ) %>% 
   summarise(
-    mean = mean(RTStandard),
-    sd = sd(RTStandard)
+    mean = mean(RTStandardOld),
+    sd = sd(RTStandardOld)
   )
 
 RTGroupSummary <- rbind(RTGroupSummary, RTOverallSummary)
@@ -425,7 +466,7 @@ PivotRTHazardSummary<- RTHazardSummary %>%
 
 #Function for interaction plots
 ggplotIntRT <- function(lm.input) {
-  x <-  ggplot(lm.input,  aes(x = Block, y = RTStandard, colour = Condition))+
+  x <-  ggplot(lm.input,  aes(x = Block, y = RTStandardOld, colour = Condition))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
   #geom_line() +
   geom_boxplot()+
@@ -463,7 +504,7 @@ ggplot(RTOverallSummary,  aes(x = Block, y = mean))+
       y = "Mean Reaction Time for hazard windows",
       title = "Overall",
       tag = "")+  
-  ylim(-1.0,1.0) +
+  #ylim(-1.0,1.0) +
   #geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
   geom_hline(yintercept = -1.0,  linetype = "solid", colour = "black", size = 1.0)+
 #geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
@@ -487,9 +528,9 @@ ggplot(RTGroupSummary,  aes(x = Block, y = mean, group = Condition))+
       y = "Mean Reaction Time for hazard windows",
       title = "Overall",
       tag = "")+  
-  ylim(-1.0,1.0) +
-  geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
-  geom_hline(yintercept = -1.0,  linetype = "solid", colour = "black", size = 1.0)+
+  ylim(0,2.0) +
+  #geom_hline(yintercept = 0,  linetype = "dotted", colour = "black", size = 1.0)+
+  #geom_hline(yintercept = -1.0,  linetype = "solid", colour = "black", size = 1.0)+
 #geom_hline(yintercept = -1.0,  linetype = "dotted", colour = "red", size = 1.0)+
   scale_shape(solid = F) +
 
@@ -506,21 +547,120 @@ interaction.plot(x.factor =  RTGroupSummary$Block,
                  trace.factor = RTGroupSummary$Condition,
                  response = RTGroupSummary$mean,
                  fun = mean,
-                 ylim = (c(-1.0,1.0)),
+                 ylim = (c(0,2.5)),
                  xlab = "Block",
                  ylab = "Hazard Perception Reaction time (s)",
                  type= "b",
-                 col=c("red","blue", "green"),
+                 col=c("#5A9BD6","#3CB371", "red"),
                  pch=c(19,17,15),
                  trace.label = "Condition",
                  fixed=T,
                  leg.bty ="o")
   
+
+
+
+
+ c("#5A9BD6" , "#3CB371")
+```
+
+```{r}
+RTHazardData$Group <- paste(RTHazardData$Condition, RTHazardData$Block)
+
+RTHazardData$ZScore <- abs(RTHazardData$RTStandardOld - mean(RTHazardData$RTStandardOld))/sd(RTHazardData$RTStandardOld)
+
+RTHazardDataOutRM <- RTHazardData %>% 
+  subset(ZScore <=3)
+
+
+```
+
+
+```{r}
+S2BlockPlot <- ggplot(data = RTHazardDataOutRM, aes(x=Block, y = RTStandardOld, fill = Block))+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_violin (alpha = 0.6) +
+  geom_boxplot(width = 0.3, position = position_dodge(0.9))+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "")+
+
+ # ylim(0,1)+
+  scale_fill_manual(values = Block_Palette)+
+  
+  theme_classic()+
+  theme(legend.position="bottom")
+
+
+
+S2BlockPlot
+
+ggsave(filename = "S2BlockPlot.png", S2BlockPlot)
+```
+```{r}
+S2CondPlot <- ggplot(data = RTHazardDataOutRM, aes(x=Condition, y = RTStandardOld, fill = Condition))+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_violin (alpha = 0.6) +
+  geom_boxplot(width = 0.3, position = position_dodge(0.9))+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "")+
+
+ # ylim(0,1)+
+  scale_fill_manual(values = Condition_Palette)+
+  
+  theme_classic()+
+  theme(legend.position="bottom")
+
+
+
+S2CondPlot
+
+
+
+ggsave(filename = "S2CondPlot.png", S2CondPlot)
 ```
 
 
 ```{r}
 
+#THazardDataOutRM[RTHazardDataOutRM == "Central Baseline HP"] <- "Central HP Only"
+#RTHazardDataOutRM[RTHazardDataOutRM == "Global Baseline HP"] <- "Global HP Only"
+
+
+
+S2GroupPlot <- ggplot(data = RTHazardDataOutRM, aes(x=Condition, y = RTStandardOld, fill = Group))+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_violin (alpha = 0.6) +
+  geom_boxplot(width = 0.3, position = position_dodge(0.9))+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "")+
+
+ # ylim(0,1)+
+  scale_fill_manual(values =Full_Palette)+
+  
+  theme_classic()+
+  theme(legend.position="bottom")
+
+
+
+S2GroupPlot
+
+
+
+ggsave(filename = "S2GroupPlot.png", S2GroupPlot)
+```
+
+
+
+```{r}
+
+ggplot(RTHazardData, aes(x = Block, y = RTStandard, fill = Condition))+
+  geom_violin(alpha = 0.6)+
+  geom_boxplot(width = 0.3, position = position_dodge(0.9))
+
+
+ggplot(RTHazardData, aes(x = Block, y = RTStandardOld, fill = Condition))+
+  geom_violin(alpha = 0.6)+
+  geom_boxplot(width = 0.3, position = position_dodge(0.9))
 
 ggplot(RTHazardData,  aes(x = Block, y = RTStandard, colour = Condition))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
@@ -533,11 +673,14 @@ ggplot(RTHazardData,  aes(x = Block, y = RTStandard, colour = Condition))+
 
   ylab("Reaction Time difference from Hazard Onset")+
   xlab("Block")+
-  theme_bw()
+  theme_bw()+
+  scale_fill_manual(values = c("Central" = "#1b9e77", "Global" = "#00509e" ))
+
+
 ```
 
 ```{r}
-ANOVA <- aov(RTStandard ~ Condition * Block, data = RTHazardData)
+ANOVA <- aov(RTStandardOld ~ Condition * Block, data = RTHazardDataOutRM)
 summary(ANOVA)
 
 TukeyPH <- TukeyHSD((ANOVA))
@@ -552,11 +695,11 @@ RTHazardData <- RTHazardData %>%
     Block = as.factor(Block)
   ) %>%
   mutate(
-    Condition = relevel(Condition, ref = "Wider"),
+    Condition = relevel(Condition, ref = "Global"),
     Block = relevel(Block, ref = "Baseline HP")
   )
 
-model1 <- lm(RTStandard ~ Condition * Block, data = RTHazardData)
+model1 <- lm(RTStandardOld ~ Condition * Block, data = RTHazardData)
 summary(model1)
 ```
 
@@ -567,11 +710,11 @@ RTHazardData <- RTHazardData %>%
     Block = as.factor(Block)
   ) %>%
   mutate(
-    Condition = relevel(Condition, ref = "Focused"),
+    Condition = relevel(Condition, ref = "Central"),
     Block = relevel(Block, ref = "HP-AR")
   )
 
-model2 <- lm(RTStandard ~ Condition*Block, data = RTHazardData)
+model2 <- lm(RTStandardOld ~ Condition*Block, data = RTHazardData)
 summary(model2)
 ```
 
@@ -606,7 +749,7 @@ plot(hatvalues(model1), type = 'h')
 
 ```{r}
 ClipAnova <-function(lm.input){
-  a <- aov(RTStandard ~ Condition * Block, data = lm.input)
+  a <- aov(RTHazardDataOutRM ~ Condition * Block, data = lm.input)
   summary(a)
   TukeyHSD(a)
   
@@ -616,42 +759,41 @@ ClipAnova <-function(lm.input){
 ```
 
 ```{r}
-NullModel <- lmer(data = RTHazardData, formula = button_resp.rt ~  (1|participant))
+NullModel <- lmer(data = RTHazardDataOutRM, formula = RTStandardOld ~  (1|participant))
 
 summary(NullModel)
 
 ```
 
 ```{r}
-Model1 = lmer(data = RTHazardData, formula = button_resp.rt ~ Block + Condition + Block * Condition + (1|participant))
-
-summary(Model1)
-```
-
-
-```{r}
-anova(NullModel, Model1)
+anova(NullModel, RTIntModel)
 
 
 #anova(Model1)
 ```
 
 ```{r}
-RTIntModel = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + Block*Condition + (1|participant) + (1|ClipNumber))
+RTIntModel = lmer(data = RTHazardDataOutRM, formula = RTStandardOld ~ Block*Condition + (1|participant) + (1|ClipNumber), REML = F)
 
-RTMainModel = lmer(data = RTHazardData, formula = RTStandard ~ Block + Condition + (1|participant) + (1|ClipNumber))
+RTPptModel = lmer(data = RTHazardDataOutRM, formula = RTStandardOld ~ Block*Condition + (1|participant),REML = F)
+
+RTCondModel = lmer(data = RTHazardDataOutRM, formula = RTStandardOld ~ Block*Condition + (1|ClipNumber),REML = F)
 ```
 
 
 ```{r}
-anova(RTMainModel, NullModel)
+anova(NullModel, RTPptModel, RTCondModel, RTIntModel, test = "LRT")
 ```
-
+#RT LMER
 
 ```{r}
-summary(RTMainModel)
 
 summary(RTIntModel)
+
+HPresults <- report(RTIntModel)
+
+summary(HPresults)
+
 ```
 
 
@@ -659,7 +801,7 @@ summary(RTIntModel)
 anova(RTIntModel, RTMainModel)
 
 
-mixed(data = RTHazardData, formula = RTStandard ~ Block + Condition + Block*Condition + (1|participant) + (1|ClipNumber), method = 'LRT')
+mixed(data = RTHazardData, formula = RTStandardOld ~ Block + Condition + Block*Condition + (1|participant) + (1|ClipNumber), method = 'LRT')
 
 ```
 
@@ -672,7 +814,7 @@ plot(predictorEffect("Block", RTIntModel))
 
 ```{r}
 library(report)
-results <- report(RTMainModel, CI = 95)
+results <- report(RTIntModel, CI = 95)
 
 print(results)
 ```
@@ -690,7 +832,7 @@ RespCountDataset$RespCount <- TotalResponse - rowSums(is.na(RespCountDataset[,9:
   
 RespCountDataset <- RespCountDataset %>% 
     mutate(Condition = if_else(Block != "Control", Condition, Block )) %>% 
-  select(c(1:8, ncol(RespCountDataset))) %>% 
+ # select(c(1:8, ncol(RespCountDataset))) %>% 
   subset(participant !="P21")
 #remove P21 for pressing too many times
 

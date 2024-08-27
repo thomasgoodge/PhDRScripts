@@ -19,7 +19,30 @@ library(lme4)
 library(lmerTest)
 library(dplyr)
 ```
+#Define palettes
+```{r}
+library(RColorBrewer)
 
+base_palette <- brewer.pal(n = 12, name = "Paired")
+custom_palette <- c(
+  base_palette[3], base_palette[4],   # Group 2: 2 similar colors
+    base_palette[1], base_palette[2],   # Group 1: 2 similar colors
+
+  "#F45B5B", base_palette[6], "#A50F15",  # Group 3: 3 similar colors
+  base_palette[8]                     # Group 4: 1 color
+)
+
+
+S5_palette <- c(base_palette[3],base_palette[1],"#F45B5B", base_palette[8])
+S6_palette <- c(base_palette[4], base_palette[2],base_palette[6], "#A50F15")
+
+#scale_fill_manual(values = S5_palette) +
+
+
+# Print the custom palette to verify
+print(custom_palette)
+#"#A6CEE3" "#1F78B4" "#B2DF8A" "#33A02C" "#FB9A99" "#E31A1C" "#FDBF6F" "#FF7F00" "#F45B5B"
+```
 ```{r}
 TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 6/Study6Data/Qualtrics/PostQs/Study6TLX.csv") %>% 
   
@@ -134,20 +157,22 @@ TLXdataSumm <- TLXdata %>%
 
 ```{r}
 #library(ggpubfigs)
-S5TLX <- ggplot(TLXdata, aes(Block, Total, fill = Block ))+
+S6TLX <- ggplot(TLXdata, aes(Block, Total, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   labs(title = "Total NASA TLX scores")+
+  scale_fill_manual(values = S6_palette) +
+
 
   theme_classic()+
         theme(plot.title=element_text(vjust=7))+
   theme(text=element_text(size = 25))+
 
     theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
-S5TLX
+S6TLX
 
 ggsave(filename = "S6TLX.png",
-       plot = S5TLX,
+       plot = S6TLX,
        scale = 3,
        device = png,
        width = 3840,

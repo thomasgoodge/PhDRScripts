@@ -25,6 +25,16 @@ library(rgl)
 ```
 #ARETT Functions
 
+#custom paletter
+```{r}
+
+
+
+C5_pal <- c("#0072B2","#D55E00","#009E73","#CC79A7","#56B4E9")
+
+```
+
+
 ```{r}
 #set the working directory to the ARETT package
 #setwd("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R/ARETT-R-Package-master/R")
@@ -463,14 +473,16 @@ CorrHazardPptSummaryAOI <- CorrHazardCountData %>%
   summarise(NoF = sum(modified),
             meanDuration = mean(eventDuration),
             sdDuration = sd(eventDuration),
-            sumCorr = sum(CorrAOI),)
+            sumCorr = sum(CorrAOI),
+            propCorr = (sumCorr / NoF)*100)
 
 
 CorrHazCount <- CorrHazardPptSummaryAOI %>% 
 group_by(Condition) %>% 
   summarise(n = n(),
              avgcorrhazfix = mean(sumCorr),
-            sd = sd(sumCorr))
+            sd = sd(sumCorr),
+            meanProp = mean(propCorr))
 
 CorrHazardPptSummaryAOI[c('Ppt','Condition')] <- str_split_fixed(CorrHazardPptSummaryAOI$PIDCond," ",2)
 
@@ -486,7 +498,6 @@ CorrGroupSummary <- CorrHazardPptSummaryAOI %>%
 
 
 ```
-
 
 
 #FixCount Summaries
@@ -556,9 +567,9 @@ summary(FixCountAnova)
 qqnorm(sqrt(PptSummaryAOI$NoF))
 TukeyHSD(FixCountAnova)
 
-PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
+PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control",  "HUD", "Cue","HDD"))
 
-PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "HUD")
+PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 
 
 FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition,  family = "poisson")
@@ -580,18 +591,21 @@ summary(FixCountResults)
 
 #Total NoF Plot
 ```{r}
+
 TotalNoFPlot <-ggplot(data = PptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_violin(width = 1.8)+
-  geom_boxplot(width = 0.12)+
+  geom_violin(alpha = 0.65, width = 1.5)+
+  geom_boxplot(width = 0.085)+
   ylab("Mean Number of Fixations")+
-  scale_fill_brewer(palette = "RdYlBu")+
+  #scale_fill_brewer(palette = "RdYlBu")+
+  scale_fill_manual(values = C5_pal)+
+
   theme_classic()+
     theme(legend.position="none")
 
 
 TotalNoFPlot
 
-ggsave(filename = "TotalNoFPlot.png",
+ggsave(filename = "ThesisTotalNoFPlot.png",
        plot = TotalNoFPlot)
        
        # ,
@@ -722,33 +736,34 @@ CorrHazFixCountChi
 ```
 #Hazard NoF Plot
 ```{r}
-ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_col()+ 
-  ylab("Number of Fixations in Hazard Window")+
-  scale_fill_brewer(palette = "BrBG")+
-  theme_classic()
+# ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
+#   geom_col()+ 
+#   ylab("Number of Fixations in Hazard Window")+
+#   scale_fill_brewer(palette = "BrBG")+
+#   theme_classic()
 
 ```
 
-
 ```{r}
 
-CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
+CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control",  "HUD","Cue", "HDD"))
 
 
 
 TotalHazardNoFPlot <- ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_violin(width = 1.8)+
+  geom_violin(width = 1.8, alpha = 0.65)+
   geom_boxplot(width = 0.07)+
   ylab("Mean Number of Fixations during Hazard Window")+
-  scale_fill_brewer(palette = "RdYlBu")+
+  #scale_fill_brewer(palette = "RdYlBu")+
+  scale_fill_manual(values = C5_pal)+
+
   theme_classic()+
   theme(legend.position="none",
         axis.title.y = element_text(size = 9))
 
 TotalHazardNoFPlot
 
-ggsave(filename = "TotalHazardNoFPlot.png",
+ggsave(filename = "ThesisTotalHazardNoFPlot.png",
        plot = TotalHazardNoFPlot)
        
        # ,
@@ -774,6 +789,20 @@ summary(CorrHazFixLMER)
 ```
 
 ```{r}
+
+# CorrHazardCountData$Condition <- factor(CorrHazardCountData$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
+
+
+CorrHazFixPropGLM <- glm(CorrAOI ~ Condition, data = CorrHazardCountData)
+summary(CorrHazFixPropGLM)
+
+CorrHazFixPropGLMER <- glmer(CorrAOI ~ Condition + (1|ID) + (1|VideoClip), data = CorrHazardCountData, family = "binomial")
+summary(CorrHazFixPropGLMER)
+
+```
+
+
+```{r}
 ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = sumCorr, fill = Condition))+
   geom_col()+ 
   ylab("Number of 'Correct' Fixations")+
@@ -790,22 +819,24 @@ ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = sumCorr, fill = Co
   theme_classic()
 
 ```
+
+#Correct NumFix Plot
+
 ```{r}
 
-CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
+CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control",  "HUD","Cue", "HDD"))
 
 TotalCorrHazardNoFPlot <- ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = sumCorr, fill = Condition))+
-  geom_violin()+
+  geom_violin(alpha = 0.65)+
   geom_boxplot(width = 0.07)+
   ylab("Mean Number of Correct Fixations during Hazard Window" )+
-  scale_fill_brewer(palette = "RdYlBu")+
+  scale_fill_manual(values = C5_pal)+
   theme_classic()
 
 TotalCorrHazardNoFPlot
 
-ggsave(filename = "TotalCorrHazardNoFPlot.png",
-       plot = TotalCorrHazardNoFPlot,
-       scale = 3)
+ggsave(filename = "ThesisTotalCorrHazardNoFPlot.png",
+       plot = TotalCorrHazardNoFPlot)
 ```
 #CowPlot
 ```{r}
@@ -978,21 +1009,21 @@ DurModelBasic <- lmer(data = CountData, formula = eventDuration ~ Condition + (1
 
 summary(DurModelBasic)
 
-DurModel1 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
-summary(DurModel1)
-
-DurModel2 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
-summary(DurModel2)
-
-DurModel3 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
-summary(DurModel3)
-
-DurModel4 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name) + (1|TimeStamp))
-summary(DurModel4)
-
-CountData$Condition <- relevel(CountData$Condition, ref = "Control")
-
-anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3, DurModel4)
+# DurModel1 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+# summary(DurModel1)
+# 
+# DurModel2 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+# summary(DurModel2)
+# 
+# DurModel3 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name))
+# summary(DurModel3)
+# 
+# DurModel4 <- lmer(data = CountData,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePoint_target_name) + (1|gazePointAOI_name) + (1|TimeStamp))
+# summary(DurModel4)
+# 
+# CountData$Condition <- relevel(CountData$Condition, ref = "Control")
+# 
+# anova(DurModelNull, DurModelBasic, DurModel1, DurModel2,DurModel3, DurModel4)
 
 ```
 
@@ -1009,7 +1040,7 @@ DurModelBasic <- lm(data = PptSummaryAOI, formula = meanDuration ~ Condition, fa
 
 #DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
 
-summary(DurModelBasicLMER)
+summary(DurModelBasic)
 qqnorm(sqrt(PptSummaryAOI$meanDuration))
 PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "HUD")
 
@@ -1024,22 +1055,25 @@ summary(DurModelResults)
 
 ```
 
+
 #Total Fix Dur Plot
 ```{r}
 
-PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
+PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control", "HUD","Cue",  "HDD"))
 
 TotalFixDurPlot <- ggplot(data = PptSummaryAOI, aes(x = Condition, y = meanDuration, fill = Condition))+
-  geom_violin()+
-  geom_boxplot(width = 0.2)+
+  geom_violin(alpha = 0.65)+
+  geom_boxplot(width = 0.15)+
   ylab("Mean Fixation Duration")+
-  scale_fill_brewer(palette = "RdYlBu")+
+ # scale_fill_brewer(palette = "RdYlBu")+
+  scale_fill_manual(values = C5_pal)+
+
   theme_classic()+
    theme(legend.position="none")
 
 TotalFixDurPlot
 
-ggsave(filename = "TotalFixDurPlot.jpg",
+ggsave(filename = "ThesisTotalFixDurPlot.jpg",
        plot = TotalFixDurPlot)
        
        # ,
@@ -1170,19 +1204,21 @@ summary(HazFixDurResults)
 ```
 #Haz Fix Dura  Plot
 ```{r}
-CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control", "Cue", "HUD", "HDD"))
+CorrHazardPptSummaryAOI$Condition <- factor(CorrHazardPptSummaryAOI$Condition, levels = c("Control", "HUD", "Cue", "HDD"))
 
 TotalHazFixDurPlot <- ggplot(data = CorrHazardPptSummaryAOI, aes(x = Condition, y = meanDuration, fill = Condition))+
-  geom_violin()+
+  geom_violin(alpha = 0.65)+
   geom_boxplot(width = 0.2)+
   ylab("Mean Fixation Duration during Hazard Window")+
-  scale_fill_brewer(palette = "RdYlBu")+
+  #scale_fill_brewer(palette = "RdYlBu")+
+  scale_fill_manual(values = C5_pal)+
+
   theme_classic()+
    theme(legend.position="none")
 
 TotalHazFixDurPlot
 
-ggsave(filename = "TotalHazFixDurPlot.jpg",
+ggsave(filename = "ThesisTotalHazFixDurPlot.jpg",
        plot = TotalHazFixDurPlot)
        
 ```

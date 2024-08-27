@@ -29,7 +29,20 @@ library(stringr)
 ```
 #power
 ```{r}
-pwr.t.test(n = 30, sig.level = 0.05, d = 0.814646, type = "two.sample")
+
+
+pwr.t.test(n = 48,
+           sig.level = 0.05,
+         #  d = 0.814646, 
+           power = 0.8,
+           type = "two.sample")
+
+
+# pwr.t.test(n = 24,
+#            sig.level = 0.05,
+#            d = 0.814646, 
+#            power = 0.8,
+#            type = "one.sample")
 
 
 # Plot sample size curves for detecting correlations of
@@ -79,7 +92,30 @@ legend("topright", title="Power",
 as.character(p),
    fill=colors)
 ```
+#Define palettes
+```{r}
+library(RColorBrewer)
 
+base_palette <- brewer.pal(n = 12, name = "Paired")
+custom_palette <- c(
+  base_palette[3], base_palette[4],   # Group 2: 2 similar colors
+    base_palette[1], base_palette[2],   # Group 1: 2 similar colors
+
+  "#F45B5B", base_palette[6], "#A50F15",  # Group 3: 3 similar colors
+  base_palette[8]                     # Group 4: 1 color
+)
+
+
+S5_palette <- c(base_palette[3],base_palette[1],"#F45B5B", base_palette[8])
+S6_palette <- c(base_palette[4], base_palette[2],base_palette[6], "#A50F15")
+
+#scale_fill_manual(values = S5_palette) +
+
+
+# Print the custom palette to verify
+print(custom_palette)
+#"#A6CEE3" "#1F78B4" "#B2DF8A" "#33A02C" "#FB9A99" "#E31A1C" "#FDBF6F" "#FF7F00" "#F45B5B"
+```
 ```{r}
 dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 5/Study5Data/WHN/"
 
@@ -153,6 +189,8 @@ OrderWHNDataset <- OrderWHNDataset %>%
 
 ```{r}
 WHNDataset <- OrderWHNDataset
+WHNDataset$Block <- factor(WHNDataset$Block, levels = c("Control", "Visual", "Avatar", "NDRT"))
+
 
 ```
 
@@ -392,6 +430,28 @@ CorrConfSummary <- WHNDataset %>%
                         WHNPercent = sum((trialResp.corr / NoPpts) /10) * 100,
 )
 
+WHNPptData <- WHNDataset %>% 
+  group_by(participant, Block) %>% 
+  summarise(n = n(),
+            sumWHN = sum(trialResp.corr),
+            meanRT = mean(trialResp.rt),
+            sdRT = sd(trialResp.rt),
+            meanConf = mean(conf_slider.response),
+            sdConf = sd(conf_slider.response),
+            meanAtt = mean(Attention_slider.response, na.rm = T),
+            sdAtt = sd(Attention_slider.response, na.rm = T),
+            ViolationGroup = ViolationGroup,
+            LapseGroup = LapseGroup,
+            ErrorGroup = ErrorGroup,
+            Sort =  paste(participant, Block)
+            ) 
+
+WHNPptData <- WHNPptData[!duplicated(WHNPptData$Sort), ]
+
+  
+
+
+
 ```
 
 ```{r}
@@ -475,10 +535,11 @@ PlotData <- WHNDataset %>%
             Block = Block)
 
 WHNPlot2 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
-  geom_violin(alpha = 0.8)+
+  geom_violin(alpha = 0.5)+geom_boxplot( width = 0.2)+
   geom_boxplot(alpha = 0, width = 0.2)+
-  scale_fill_brewer(palette = "Set1")+
-    theme_classic()+
+  ylim(0,10)+
+scale_fill_manual(values = S5_palette) +
+  theme_classic()+
 theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
   theme(axis.text=element_text(size=15))+
@@ -489,21 +550,31 @@ theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
 
 
+ggplot(data = WHNDataset, aes(x = Block, y = trialResp.corr, fill = Block))+
+  stat_summary()
+
 WHNPlot2
 ```
 
-
 ```{r}
-ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
-  geom_violin(alpha = 0.8)+
+WHNPlot3 <- ggplot(data = WHNPptData, aes(x = Block, y = sumWHN, fill = Block))+
+  geom_violin(alpha = 0.5)+geom_boxplot( width = 0.2)+
   geom_boxplot(alpha = 0, width = 0.2)+
-    theme_classic()+
-  ylab("Average Study 4 WHN Score")+
-  xlab("AR Presentation Condition")
+  ylim(0,10)+
+scale_fill_manual(values = S5_palette) +
+  theme_classic()+
+theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
+  theme(axis.text=element_text(size=15))+
+  labs(title = "Hazard Prediction Score", x = "NDRT Presentation Condition", y = "Average correct responses")+
+    theme(plot.title=element_text(vjust=7))+
 
+  theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
 
+ggplot(data = WHNPptData, aes(x = Block, y = sumWHN, fill = Block))+
+  stat_summary()
 
+WHNPlot3
 ```
 
 ```{r}
@@ -529,10 +600,11 @@ ggplot(data = WHNSummary, aes(x = Block, y = meanConf, fill = Block))+
 
 
 ConfPlot2 <- ggplot(data = WHNDataset, aes(x = Block, y = conf_slider.response, fill = Block))+
-  geom_violin(alpha = 0.8) + geom_boxplot(alpha=0.2, width = 0.2)+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.2)+
   labs(title = "Average Confidence Score", y = "Mean Confidence Rating", x = "", key= FALSE)+
   ylim(0,1.0)+
-  scale_fill_brewer(palette = "Set1")+
+scale_fill_manual(values = S5_palette) +
   theme_classic()+
   theme(legend.position="none")+
   theme(text=element_text(size = 15)) +
@@ -564,11 +636,13 @@ ggplot(data = AttSum, aes(x = Block, y = mean, fill = Block))+
 AttBaseline <- as.double(AttSum[1,3])
 
 AttPlot2 <- ggplot(data = WHNDataset, aes(x = Block, y = Attention_slider.response, fill = Block))+
-  geom_violin(alpha = 0.8)+geom_boxplot(alpha = 0.2, width = 0.2)+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot( width = 0.2)+
  
   labs(title = "Subjective Attention Rating", y = "Mean Attention Rating", x = "NDRT Presentation Condition")+
-  scale_fill_brewer(palette = "Set1")+
-    theme_classic()+
+scale_fill_manual(values = S5_palette) +
+  theme_classic()+
+  ylim(0,1)+
 theme(legend.position="none")+
   theme(text=element_text(size = 15))+
  theme(plot.title=element_text(vjust=10))+
@@ -623,15 +697,14 @@ ggsave(filename = "RoboFullPlot2.png",
 
 ```{r}
 
-
 WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control")
 
 # WHNNullModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~ 1 + (1|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
 # WHNModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block  + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
-# WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
-# 
+WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+summary(WHNModelBasic)# 
 # WHNModel1 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant)  , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
  WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1|image_file) , family = binomial, glmerControl(optimizer = "bobyqa"))
@@ -645,10 +718,10 @@ WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control")
 # anova(WHNModelBasic, WHNModel)
 
 
-summary(WHNModelBasic)
+#summary(WHNModelBasic)
 library(effects)
 
-ef <- as.data.frame(effect("Block", WHNModel2))
+ef <- as.data.frame(effect("Block", WHNModelBasic))
 head(ef)
 
 library(report)
@@ -658,10 +731,21 @@ summary(WHNResults)
 
 
 ```
+
+```{r}
+ WHNPptModel <- glmer(data = WHNPptData, formula = sumWHN ~  Block + (1|participant), family = poisson, glmerControl(optimizer = "bobyqa"))
+summary(WHNPptModel)
+
+
+```
+
+
+
+
 #Confidence Stats
 ```{r}
 
-WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Social")
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control")
 
 ConfNullModel <- glmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant) + (1|image_file), family = binomial)
 
@@ -680,11 +764,6 @@ summary(ConfModel)
 
 ```
 
-
-
-
-
-
 ```{r Conf GLMER Summary}
 
 Confresults <- report(ConfModel, CI = 95)
@@ -695,7 +774,41 @@ fixef(ConfModel)
 
 print(Confresults)
 
+
+efconf <- as.data.frame(effect("Block", ConfModel))
+head(efconf)
+
 ```
+#Confidence expand Corr
+```{r}
+WHNCorr <- WHNDataset %>% 
+  subset(trialResp.corr == 1)
+
+WHNCorr$Block <- relevel(WHNCorr$Block, ref = "NDRT")
+
+
+CorrConfModel = glmer(data = WHNCorr, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+summary(CorrConfModel)
+
+
+```
+
+#Confidence expand Incorrect
+```{r}
+WHNIncorr <- WHNDataset %>% 
+  subset(trialResp.corr == 0)
+
+WHNIncorr$Block <- relevel(WHNIncorr$Block, ref = "Control")
+
+
+IncorConfModel = glmer(data = WHNIncorr, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+summary(IncorConfModel)
+
+```
+
+
+
+
 #Attention stats
 ```{r}
 AttentionDataset <- WHNDataset %>% 

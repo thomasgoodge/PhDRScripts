@@ -27,6 +27,18 @@ library(report)
 library(janitor)
 
 ```
+
+#custom paletter
+```{r}
+
+
+
+C5_pal <- c("#0072B2","#D55E00","#009E73","#CC79A7","#56B4E9")
+
+```
+
+
+
 #read in data files
 ```{r}
 dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/data/WHN/"
@@ -462,6 +474,9 @@ ggplot(data = WHNDataset, aes(x = Block, y = trialResp.corr, fill = Block))+
 ```
 #WHN Boxplots
 ```{r}
+
+
+
 PlotData <- WHNDataset %>% 
   select(participant, trialResp.corr, trials_3.thisTrialN, Block) %>%   group_by(participant, Block) %>% 
   summarise(participant = participant,
@@ -475,8 +490,7 @@ WHNPlot2 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
   scale_fill_brewer(palette = "RdYlBu")+
     labs( x = "NDRT Presentation Condition", y = "Average number of correct responses")+
 
-    theme_classic()
-+
+    theme_classic()+
 theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
   theme(axis.text=element_text(size=15))+
@@ -484,7 +498,15 @@ theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
   theme(plot.margin =unit(c(2,0,0,0),"cm"))
 
+"#0072B2"
+"#D55E00"
+"#009E73"
+"#CC79A7"
+"#56B4E9" 
+"#E69F00" 
+"#F0E442""
 
+#7D3C98
 
 WHNPlot2
 
@@ -815,15 +837,15 @@ summary(ConfNullModel)
 
 ```{r}
 
-ConfModel = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+ConfModel = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file), ontrol(optimizer = "bobyqa"))
 summary(ConfModel)
 
-ConfModel1 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+ConfModel1 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
 summary(ConfModel1)
 
-ConfModel2 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + Block|image_file), family = binomial, glmerControl(optimizer = "bobyqa"))
+ConfModel2 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + Block|image_file), family = binomial, glmerControl(optimizer = "bobyqa"))
 
-ConfModel3 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1 + Block|participant) + (1 + Block|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
+ConfModel3 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1 + Block|participant) + (1 + Block|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
 
 summary(ConfModel1)
 
@@ -842,6 +864,10 @@ fixef(ConfModel1)
 
 print(Confresults)
 #anova(Model1)
+
+efconf <- as.data.frame(effect("Block", ConfModel1))
+head(efconf)
+
 ```
 
 ```{r}
@@ -887,6 +913,40 @@ print(ConfHDDresults)
 #anova(Model1)
 
 ```
+
+
+#Confidence expand Corr
+```{r}
+WHNCorr <- WHNDataset %>% 
+  subset(trialResp.corr == 1)
+
+WHNCorr$Block <- relevel(WHNCorr$Block, ref = "Control")
+
+
+CorrConfModel = glmer(data = WHNCorr, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+summary(CorrConfModel)
+
+
+```
+
+#Confidence expand Incorrect
+```{r}
+WHNIncorr <- WHNDataset %>% 
+  subset(trialResp.corr == 0)
+
+WHNIncorr$Block <- relevel(WHNIncorr$Block, ref = "Control")
+
+
+IncorConfModel = glmer(data = WHNIncorr, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+summary(IncorConfModel)
+
+```
+
+
+
+
+
+
 
 ```{r}
 

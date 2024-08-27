@@ -1,0 +1,759 @@
+---
+title: "ReactionTimeAnalysisScript"
+output: html_document
+date: '2022-03-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Libraries
+```{r}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(car)
+library(ggpubr)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+```
+
+# Read in the Data Files ###
+```{r}
+
+
+#set the working directory to the data folder
+#setwd("K:/PsychoPyExperiments/Study 1 GoNoGo/")
+
+#Define the filepath for where the data is coming from
+dataFolder <- "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 1/RTData"
+
+#Create a list of all the datafiles in the folder, and then convert to a list object - needs full names for the file path
+file_list <- list.files(path = dataFolder, pattern = ".csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE)
+
+```
+
+```{r}
+#Loop through the files and create one large dataset
+datasetRaw <- data.frame()
+
+for (i in 1:length(file_list)){
+  temp_data <- assign(paste(substr(file_list[i],26,29)),  
+              read.csv(paste0(file_list[i])))
+  temp_data <- temp_data[-c(1:12,103),]
+  
+  datasetRaw <- rbind(datasetRaw, temp_data)
+
+}
+
+#Change a data naming error
+datasetRaw[datasetRaw == 'P04'] <- 'P04L'
+colnames(datasetRaw)[colnames(datasetRaw) == "ï..cue_file"]<- "Cue"
+
+```
+
+
+```{r}
+#Tidy up the large datasat with the block, ID and Condition
+dataset <- datasetRaw %>% select(1,15,19,30,31,34,39)
+dataset<- dataset %>%
+  mutate(ID = substr(participant,
+                     start = 1,
+                     stop = 3)) %>%
+  mutate(Condition = substr(participant,
+                            start = 4,
+                           stop  = 5))
+# Remove and reorganise columns
+dataset <- dataset[,-7] %>%
+  select(c(ID, Condition, 1:6))
+
+#Convert the two colums with block number into one label
+  dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "SingleTask", "")
+  dataset$Block2.thisRepN <- ifelse(grepl("[0-9]", dataset$Block2.thisRepN), "DualTask", "")
+  
+  
+  
+
+  
+  dataset <-dataset %>% 
+    mutate( Block =  paste(dataset$Block1.thisRepN, 
+                                    dataset$Block2.thisRepN)) %>% 
+    select(-c(4,5))
+  
+dataset$Block<- factor(dataset$Block, levels = c("SingleTask ", " DualTask"))
+
+dataset[dataset== 'G'] <- 'Global'
+dataset[dataset== 'L'] <- 'Central'
+
+datasetSD <- dataset
+dataset <- na.omit(dataset)
+
+dataset$Condition <- as.factor(dataset$Condition)
+dataset$Block <- as.factor(dataset$Block)
+
+
+levels(dataset$Block)
+
+
+
+
+
+
+```
+
+#RT Dataset
+```{r}
+#Create a dataset with only the RT data for the target stimulus
+  datasetRT <- dataset %>% 
+  rename("ReactionTime" = "Block_resp.rt") %>% 
+# #   #Remove all NA values
+  drop_na(ReactionTime)
+# Delete all rows where the stimulus isn't red ( Participants were not correct)
+#datasetRT <- datasetRT[!(datasetRT$Block_resp.corr == 0),]
+
+datasetRT <- datasetRT %>% 
+  mutate(
+    Condition = as.factor(Condition),
+    Block = as.factor(Block),
+  ) 
+
+
+datasetCorrRT <- datasetRT[!(datasetRT$Block_resp.corr == 0),]
+
+datasetCorrRT$ZScore <- abs(datasetCorrRT$ReactionTime - mean(datasetCorrRT$ReactionTime))/sd(datasetCorrRT$ReactionTime)
+
+datasetCorrRTOutRM <- datasetCorrRT %>% 
+  subset(ZScore <=3)
+
+datasetIncorrRT <- datasetRT[!(datasetRT$Block_resp.corr == 1),]
+
+
+
+levels(datasetRT$Block)
+
+
+
+```
+
+#Custom Palettes
+```{r}
+
+Block_Palette <- c("#FF4500" , "#00CED1")
+Condition_Palette <- c("#5A9BD6" , "#3CB371")
+
+Blend_Palette <- c("#C95E5F", "#27C69A")
+
+
+
+
+```
+
+#Summaries
+```{r}
+#Summarise the RT data by Condition and Group
+datasetMeanRT <- datasetRT %>% 
+ group_by(Condition, Block) %>% 
+  summarise(
+    n = n(),
+    avg = mean(ReactionTime, na.rm = T),
+    sd_total = sd(ReactionTime, na.rm = T) 
+        ) 
+
+datasetCorrMeanRT <- datasetCorrRT %>% 
+ group_by(Condition, Block) %>% 
+  summarise(
+    n = n(),
+    avg = mean(ReactionTime, na.rm = T),
+    sd_total = sd(ReactionTime, na.rm = T) 
+        ) 
+
+datasetCorrOutRMMeanRT <- datasetCorrRTOutRM %>% 
+ group_by(Condition, Block) %>% 
+  summarise(
+    n = n(),
+    avg = mean(ReactionTime, na.rm = T),
+    sd_total = sd(ReactionTime, na.rm = T) 
+        ) 
+
+datasetIncorrMeanRT <- datasetIncorrRT %>% 
+ group_by(Condition, Block) %>% 
+  summarise(
+    n = n(),
+    avg = mean(ReactionTime, na.rm = T),
+    sd_total = sd(ReactionTime, na.rm = T) 
+        ) 
+
+datasetMeanRTOverall<- datasetCorrRT %>% 
+ group_by(Block) %>% 
+  summarise(
+    n = n(),
+    avg = mean(ReactionTime, na.rm = T),
+    sd_total = sd(ReactionTime, na.rm = T) 
+        ) 
+
+
+
+```
+#Basic Plots
+```{r}
+
+ggplot(datasetRT, aes(reorder(Block, ReactionTime), x = Block, y = ReactionTime, fill = Condition) ) +
+  geom_violin()+
+  geom_boxplot()
+
+ggplot(datasetCorrRT, aes(reorder(Block, ReactionTime), x = Block, y = ReactionTime, fill = Condition) ) +
+  geom_violin()+
+  geom_boxplot()
+
+
+ggplot(datasetCorrRTOutRM, aes(reorder(Block, ReactionTime), x = Block, y = ReactionTime, fill = Condition) ) +
+  geom_violin()+
+  geom_boxplot()
+
+
+ggplot(datasetIncorrRT, aes(reorder(Block, ReactionTime), x = Block, y = ReactionTime, fill = Condition) ) +
+  geom_violin()+
+  geom_boxplot()
+
+
+
+ggplot(datasetCorrRTOutRM, aes(x = Block, y = ReactionTime, fill = Condition) ) +
+  
+  stat_summary(
+    geom = "point",
+    fun = "mean",
+    size = 3,
+    shape = 24,
+    trace = "Block"
+  )+
+  ylim(0,1.0)+
+  geom_smooth(method='lm')
+
+
+```
+#RT Plots
+```{r}
+datasetMeanRT %>% 
+  ggplot(aes(reorder(Block, avg), avg, ))+
+  geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_point (size = 4.5, aes(color = Condition), shape = 2) +
+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "",)+
+      ylim(0,1.0)+
+  theme_bw()
+
+
+ggplot(data = datasetCorrRTOutRM, aes(x =Condition, y = ReactionTime, fill = Condition))+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_violin (alpha = 0.5) +
+  geom_boxplot(width = 0.25)+
+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "",)+
+  ylim(0,1)+
+  
+  theme_bw()
+```
+
+#Block Plot
+```{r}
+
+
+S1BlockPlot <- ggplot(data = datasetCorrRTOutRM, aes(reorder(Block, ReactionTime),x =Block, y = ReactionTime, fill = Block))+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_violin (alpha = 0.8) +
+  geom_boxplot(width = 0.3)+
+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "",
+            title = "Task Block")+
+
+  ylim(0,1)+
+  scale_fill_manual(values = Block_Palette)+
+  
+  theme_classic()+
+  theme(legend.position="bottom")
+
+
+S1BlockPlot
+
+ggsave(filename = "S1BlockPlot.png",
+       plot = S1BlockPlot)
+
+```
+#Condition Plot
+```{r}
+S1ConditionPlot <- ggplot(data = datasetCorrRTOutRM, aes(x =Condition, y = ReactionTime, fill = Condition))+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_violin (alpha = 0.8) +
+  geom_boxplot(width = 0.25)+
+  labs(x = "Condition",
+      y = "Mean Reaction Time (s)",
+      tag = "",
+      title = "Presentation Condition")+
+  ylim(0,1)+
+  scale_fill_manual(values = Condition_Palette)+
+  
+  theme_classic()+
+theme(legend.position="bottom")
+
+S1ConditionPlot
+
+ggsave(filename = "S1ConditionPlot.png",
+       plot = S1ConditionPlot)
+
+```
+```{r}
+
+datasetCorrRTOutRM$Group <- paste (datasetCorrRTOutRM$Block, datasetCorrRTOutRM$Condition)
+
+datasetCorrRTOutRM$Group <- factor(datasetCorrRTOutRM$Group, levels=c('SingleTask  Central', ' DualTask Central', 'SingleTask  Global',' DualTask Global'))
+
+S1GroupPlot <- ggplot(data = datasetCorrRTOutRM, aes(reorder(Group, ReactionTime),x=Condition, y = ReactionTime, fill = Group))+
+  #geom_line(size = 0.3, aes(group = Condition, color = Condition)) +
+  geom_violin (alpha = 0.6) +
+  geom_boxplot(width = 0.3, position = position_dodge(0.9))+  labs(x = "Block",
+      y = "Mean Reaction Time (s)",
+      tag = "")+
+
+ # ylim(0,1)+
+  scale_fill_manual(values =Full_Palette)+
+  
+  theme_classic()+
+  theme(legend.position="bottom")
+
+
+S1GroupPlot
+
+
+ggsave(filename = "S1GroupPlot.png", S1GroupPlot)
+```
+
+```{r}
+
+S1Plots <- plot_grid(S1BlockPlot, S1ConditionPlot)
+
+S1Plots
+
+ggsave(filename = "S1Plots.png",
+       plot = S1Plots,
+       width = 15,
+       units = "cm")
+
+```
+
+
+
+
+#Interaction plot
+```{r}
+
+Block_Palette <- c("#FF4500" , "#00CED1")
+Condition_Palette <- c("#5A9BD6" , "#3CB371")
+
+png(filename = "S1IntPlot.png")
+S1IntPlot <- interaction.plot(x.factor =  datasetMeanRT$Block,
+                 trace.factor = datasetMeanRT$Condition,
+                 response = datasetMeanRT$avg,
+                 fun = mean,
+                 ylim = (c(0,1.0)),
+                 xlab = "Block",
+                 ylab = "Reaction time (s)",
+                 type= "b",
+                 col=c("#5A9BD6","#3CB371"),
+                 pch=c(19,17,15),
+                 trace.label = "Condition",
+                 fixed=T,
+                 leg.bty ="o")
+
+dev.off()
+
+S1IntPlot
+interaction.plot(x.factor =  datasetMeanRT$Condition,
+                 trace.factor = datasetMeanRT$Block,
+                 response = datasetMeanRT$avg,
+                 fun = mean,
+                 ylim = (c(0,1.0)),
+                 xlab = "Condition",
+                 ylab = "Reaction time (s)",
+                 type= "b",
+                 col=c("#FF4500","#00CED1"),
+                 pch=c(19,17,15),
+                 trace.label = "Block",
+                 fixed=T,
+                 leg.bty ="o")
+
+
+
+
+```
+
+#RT ANOVA
+```{r}
+
+RTAovInt = aov(ReactionTime ~ Condition * Block, data = datasetRT) 
+
+RTAovIntLM = lm(ReactionTime ~ Condition * Block, data = datasetRT) 
+summary(RTAovIntLM)
+
+summary(RTAovInt)
+```
+```{r}
+
+TukeyPH <- TukeyHSD((RTAovInt))
+
+TukeyPH
+```
+#RT LM
+```{r}
+RTLM = lm(ReactionTime ~ Condition + Block + Condition:Block, data = datasetRT) 
+
+Anova(RTLM,
+      type = "II")
+
+RTmarginal = emmeans(RTLM, ~Condition:Block)
+pairs(RTmarginal, adjust="tukey")
+```
+#Correct dataset
+```{r}
+
+datasetCorr <- dataset %>% 
+ group_by(ID, Block) %>% 
+  mutate(PercentCorrect = (sum(Block_resp.corr) / n() )* 100
+    ) 
+
+  datasetCorr <- datasetCorr %>% 
+  group_by(ID, Block, Condition, PercentCorrect) %>% 
+    summarise()
+  
+  datasetCorrSumm <- dataset %>% 
+ group_by(Condition, Block) %>% 
+  summarise(
+    n =n(),
+    Correct = (sum(Block_resp.corr) / n() )* 100,
+    Incorrect = 100 -(sum(Block_resp.corr) / n() )* 100
+    )
+
+
+
+```
+
+
+```{r}
+
+CorrAovInt = aov(PercentCorrect ~ Condition * Block, data = datasetCorr) 
+summary(CorrAovInt)
+
+```
+```{r}
+NullModel <- lmer(ReactionTime ~ 1 + (1|ID) , data = datasetRT)
+
+
+
+Model1 = lmer(data = datasetRT, formula = ReactionTime ~ Condition*Block + (1|ID))
+
+Model2 = lmer(data = datasetRT, formula = ReactionTime ~ Condition*Block*cue_file + (1|ID))
+
+Model3 = lmer(data = datasetRT, formula = ReactionTime ~ Condition*Block + (1|ID) + (1|cue_file))
+
+
+anova(NullModel, Model1)
+
+summary(Model2)
+
+summary(report(Model2))
+
+
+```
+#CorrRT LMER
+```{r}
+RTModelNull = lmer(data = datasetCorrRTOutRM, formula =  ReactionTime ~ (1|ID))
+summary(RTModelNull)
+
+
+RTModel1 = lmer(data = datasetCorrRTOutRM, formula = ReactionTime ~ Condition*Block + (1|ID))
+summary(RTModel1)
+
+anova(RTModelNull, RTModel1)
+
+
+```
+
+```{r}
+summary(RTModel1)
+library(report)
+RTresults <- report(RTModel1)
+summary(RTresults)
+
+```
+
+```{r}
+CorrRTModel1 = lmer(data = datasetCorrRT, formula = ReactionTime ~ Condition*Block + (1|ID))
+summary(CorrRTModel1)
+```
+
+
+```{r}
+library(effects)
+plot(predictorEffect("Block", RTModel1))
+```
+
+
+
+```{r}
+
+results <- report(RTModel1, CI = 95)
+
+print(results)
+```
+
+
+
+```{r}
+
+plot(predictorEffect("Block", RTModel1), 
+     title = "",
+     ylab = "Reaction time",
+ 
+) 
+
+```
+
+```{r}
+IncorrRTModel1 = lmer(data = datasetIncorrRT, formula = ReactionTime ~ Condition*Block + (1|ID))
+summary(IncorrRTModel1)
+```
+
+
+
+
+
+
+#Signal Detection
+```{r}
+###################   SIGNAL DETECTION ANALYSIS   ###############################
+```
+
+
+```{r}
+datasetSD <- datasetSD %>% 
+  rename("ReactionTime" = "Block_resp.rt")
+```
+
+
+```{r}
+datasetSD[datasetSD== 'images/StopIcon.png'] <- 'Go'
+datasetSD[datasetSD== 'images/OrangeIcon.png'] <- 'NoGo'
+datasetSD[datasetSD== 'images/YellowIcon.png'] <- 'NoGo'
+
+datasetSD <- datasetSD %>% 
+  mutate(SigDet = ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$cue_file == "Go", "Hit", 
+                    ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$cue_file == "NoGo", "FA",
+                      ifelse(is.na(datasetSD$ReactionTime) & datasetSD$cue_file == "Go", "Miss",
+                        ifelse(is.na(datasetSD$ReactionTime) & datasetSD$cue_file == "NoGo", "CR", ""
+                         ))))) #%>% 
+ # mutate(SigDet = ifelse(grepl("[0-9]", datasetSD$ReactionTime) & datasetSD$Cue == "NoGo", "FA","")) 
+ # mutate(SigDet = ifelse(is.na(datasetSD$ReactionTime)) & datasetSD$Cue == "Go", "Miss","")
+  #dataset$Block1.thisRepN <- ifelse(grepl("[0-9]", dataset$Block1.thisRepN), "Cognitive Only", "")
+
+
+```
+
+```{r}
+
+library(psycho)
+
+datasetSDSumm <- datasetSD %>% 
+  group_by(ID, SigDet, Block, Condition) %>% 
+  
+  summarise(
+  Count = n(),
+  ) 
+
+datasetSDSumm <- datasetSDSumm %>% 
+  pivot_wider(names_from = SigDet, values_from = Count)
+
+datasetSDSumm[is.na(datasetSDSumm)] <- 0
+
+indices <- psycho::dprime(datasetSDSumm$Hit, datasetSDSumm$FA,datasetSDSumm$Miss, datasetSDSumm$CR)
+
+datasetSDSumm <- cbind(datasetSDSumm, indices) 
+
+
+
+
+```
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Example data frame
+datasetSDSummary <- datasetSDSumm %>% 
+  group_by(Block, Condition) %>% 
+  summarise(n = n(),
+            CR = mean(CR),
+            Hit = mean(Hit),
+            Miss = mean(Miss),
+            FA = mean(FA),
+            .groups = 'drop')
+
+# Reshape data for CR and FA plot
+df_CR_FA <- datasetSDSummary %>%
+  pivot_longer(cols = c(CR, FA), names_to = "Measure", values_to = "Value") %>%
+  mutate(Measure = factor(Measure, levels = c("FA", "CR")))
+
+# Plot CR and FA as stacked columns with reversed order
+CRFAPlot <- ggplot(df_CR_FA, aes(x = Block, y = Value, fill = Measure)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~ Condition) +
+  labs(title = "Correct Rejection / False Alarm Ratios",
+       x = "Block",
+       y = "Count") +
+  scale_fill_manual(values = c("CR" = "blue", "FA" = "red")) +
+  theme_minimal()
+
+CRFAPlot
+
+# Reshape data for Hit and Miss plot
+df_Hit_Miss <- datasetSDSummary %>%
+  pivot_longer(cols = c(Hit, Miss), names_to = "Measure", values_to = "Value") %>%
+  mutate(Measure = factor(Measure, levels = c("Miss", "Hit")))
+
+# Plot Hit and Miss as stacked columns with reversed order
+HitMissPlot <- ggplot(df_Hit_Miss, aes(x = Block, y = Value, fill = Measure)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~ Condition) +
+  labs(title = "Hit / Miss Ratios",
+       x = "Block",
+       y = "Count") +
+  scale_fill_manual(values = c("Hit" = "green", "Miss" = "red")) +
+  theme_minimal()
+
+HitMissPlot
+
+library(cowplot)
+
+SigDetPlot <- plot_grid(CRFAPlot, HitMissPlot)
+
+SigDetPlot
+
+ggsave(filename = "SigDetPlot.png",
+       plot = SigDetPlot,
+       width = 3840,
+       unit = "px")
+
+```
+
+#SigDetPlots
+```{r}
+
+
+datasetSDSummary$Grouped <- paste(datasetSDSummary$Block, datasetSDSummary$Condition)
+
+datasetSDSummary$Grouped<- factor(datasetSDSummary$Grouped, levels = c("SingleTask  Central","SingleTask  Global", " DualTask Central"," DualTask Global"))
+
+ggplot(data = datasetSDSummary)+
+  geom_col(aes(Grouped, CR,fill = Block)) +
+  
+  labs(x = "Block",
+      y = "Mean Number of Correct Rejections",
+  title = "Correct Rejections")+
+  scale_fill_manual(values = Block_Palette)+
+  theme_classic()
+
+
+
+ggplot(data = datasetSDSummary)+
+  geom_col(aes(Grouped, FA,fill = Block)) +
+  labs(x = "Block",
+      y = "Mean Number of False Alarms",
+      title = "False Alarms")+
+  scale_fill_manual(values = Block_Palette)+
+
+  theme_classic()
+
+
+ggplot(data = datasetSDSummary)+
+  geom_col(aes(Grouped, Hit,fill = Block)) +
+  scale_fill_manual(values = Block_Palette)+
+
+  labs(x = "Block",
+      y = "Mean Number of Hits",
+      title = "Hits")+
+  theme_classic()
+
+
+ggplot(data = datasetSDSummary)+
+  geom_col(aes(Grouped, Miss,fill = Block)) +
+  labs(x = "Block",
+      y = "Mean Number of Misses",
+      title = "Misses")+
+  scale_fill_manual(values = Block_Palette)+
+
+  theme_classic()
+
+```
+
+```{r}
+SDCRModel <- lmer(data = datasetSDSumm, formula = CR ~ Block+Condition + (1|ID))
+SDCRModel2 <- lmer(data = datasetSDSumm, formula = CR ~ Block * Condition + (1|ID))
+anova(SDCRModel, SDCRModel2)
+summary(SDCRModel2)
+
+summary(SDCRModel)
+```
+```{r}
+SDCRresults <- report(SDCRModel2, CI = 95)
+
+print(SDCRresults)
+```
+```{r}
+plot(predictorEffect("Block", SDCRModel2), 
+     title = "",
+     ylab = "Reaction time",
+ 
+) 
+```
+
+
+```{r}
+SDHitModel <- lmer(data = datasetSDSumm, formula = Hit ~ Condition +Block + (1|ID))
+
+SDHitModel2 <- lmer(data = datasetSDSumm, formula = Hit ~ Condition *Block + (1|ID))
+
+anova(SDHitModel, SDHitModel2)
+
+summary(SDHitModel2)
+```
+
+```{r}
+SDMissModel <- lmer(data = datasetSDSumm, formula = Miss ~ Condition +Block + (1|ID))
+summary(SDMissModel)
+```
+
+
+```{r}
+SDFAModel <- lmer(data = datasetSDSumm, formula = FA ~ Block + Condition + (1|ID))
+SDFAModel2 <- lmer(data = datasetSDSumm, formula = FA ~ Block * Condition + (1|ID))
+anova(SDFAModel2, SDFAModel)
+summary(SDFAModel)
+summary(SDFAModel2)
+```
+
+
+
+```{r}
+SDFAresults <- report(SDFAModel2, CI = 95)
+
+print(SDFAresults)
+```
+
+
+
+
+

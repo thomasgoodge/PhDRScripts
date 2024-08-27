@@ -33,7 +33,7 @@ library(pwr)
 ```
 #Read in Exp data
 ```{r}
-dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/WHNValidation/WHNdata/Exp"
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/BRMHazPredAnalysis/WHNValidation/WHNdata/Exp"
 
 file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
@@ -78,7 +78,7 @@ ExpIDs <- SortedWHNDataExp[!duplicated(SortedWHNDataExp$ProlificID), ]
 
 #Read in Novice data
 ```{r}
-dataFolderNov = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/WHNValidation/WHNdata/Novice"
+dataFolderNov = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/BRMHazPredAnalysis/WHNValidation/WHNdata/Novice"
 
 file_listNov <- list.files(path = dataFolderNov, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
@@ -265,7 +265,7 @@ ggplot(data = SummaryPptWHN, aes(x = Group, y = sumWHN, fill = Group))+
 #DEMOGS
 
 ```{r}
-DemogsRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/WHNValidation/Qualtrics/QualtricsWHNValid.csv")%>%  
+DemogsRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/BRMHazPredAnalysis/WHNValidation/Qualtrics/QualtricsWHNValid.csv")%>%  
     select(starts_with('Q'), GroupCheck) 
 DemogDataOrg <- row_to_names(DemogsRaw, row_number = 1) %>%  
   rename(Age = `What is your age?`) %>% 
