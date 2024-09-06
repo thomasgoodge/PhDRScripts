@@ -335,8 +335,8 @@ beep()
 print("End Write")
 print(Sys.time())
 
-# rm(rawETdata)
-# rm(ordETdata)
+rm(rawETdata)
+rm(ordETdata)
 ```
 #READ IN FULL ET DATA
 
@@ -354,14 +354,25 @@ beep()
 ControlETdata <- ETdata %>% 
   subset(Condition == "Control")
 
+#write.csv(ControlETdata, "ControlETdata.csv")
+
 VisualETdata <- ETdata %>% 
   subset(Condition == "Visual")
+
+#write.csv(VisualETdata, "VisualETdata.csv")
+
 
 AvatarETdata <- ETdata %>% 
   subset(Condition == "Avatar")
 
+write.csv(AvatarETdata, "AvatarETdata.csv")
+
+
 NDRTETdata <- ETdata %>% 
   subset(Condition == "NDRT")
+
+#write.csv(NDRTETdata, "NDRTETdata.csv")
+
 
 rm(ETdata)
 
@@ -369,10 +380,21 @@ rm(ETdata)
 
 
 ```{r}
+test <- ControlETdata
+ startTime = test$eyeDataRelativeTimestamp[1]
+  test$TimeStamp <- (test$eyeDataRelativeTimestamp - startTime) / 1000
+
+rm(test)
+```
+
+
+
+```{r}
 #ControlETdatashort <- head(ControlETdata, 20000)
 
 
-  
+print(Sys.time())
+
 listControldata <- split(ControlETdata, f = ControlETdata$PIDCond)
 
 dataset <- listControldata[1]
@@ -391,7 +413,7 @@ for(dataset in listControldata) {
   print(data$PIDCond[1])
   print(Sys.time())
   startTime = data$eyeDataRelativeTimestamp[1]
-  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 100
+  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 1000
 
   #convert the HasValue column to boolean for gap_fill function to work
   data$gazeHasValue <- as.logical(data$gazeHasValue)
@@ -413,9 +435,10 @@ for(dataset in listControldata) {
 
  
 }
-write.csv(AOIControlETData, "AOIControlETData.csv")
+#write.csv(AOIControlETData, "AOIControlETData.csv")
 rm(data_aoi_merge)
 beep()
+  print(Sys.time())
 
 ```
 #Wrangle Control Data
@@ -528,6 +551,7 @@ ValidAOIControlETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasg
 
 ```
 
+
 #Wrangle Visual data
 ```{r Visual Data}
 
@@ -548,7 +572,7 @@ for(dataset in listVisualdata) {
   print(data$PIDCond[1])
   print(Sys.time())
   startTime = data$eyeDataRelativeTimestamp[1]
-  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 100
+  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 1000
 
   #convert the HasValue column to boolean for gap_fill function to work
   data$gazeHasValue <- as.logical(data$gazeHasValue)
@@ -587,22 +611,32 @@ AOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Doc
 ShortAOIVisualETData <- AOIVisualETData %>% 
   select(PIDCond, TimeStamp, image_file, modified, eventIndex, eventType, eventDuration, fixation_x, fixation_y, fixation_z, gazePointAOI_name, gazePoint_target_name)
 
+
+
 #ShortAOIVisualETData <- ShortAOIVisualETData[!duplicated(ShortAOIVisualETData[ , c("eventIndex")]),]
 
 write.csv(ShortAOIVisualETData, "ShortAOIVisualETData.csv")
 
 #ShortAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ShortAOIVisualETData.csv", header = T)
 
-
 FixShortAOIVisualETData <- ShortAOIVisualETData %>% 
   subset(eventType == "fixation")
+
+#FixShortAOIControlETData <- FixShortAOIControlETData[!duplicated(FixShortAOIControlETData$eventIndex),]
+FixShortAOIVisualETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOIVisualETData$PIDCond)
+
+
+write.csv(FixShortAOIVisualETData, "FixShortAOIVisualETData.csv")
+
+#FixShortAOIVisualETData <- ShortAOIVisualETData %>% 
+  #subset(eventType == "fixation")
 
 #FixShortAOIVisualETData <- FixShortAOIVisualETData %>% 
  # subset(PIDCond != "P07 Visual")
 
-FixShortAOIVisualETData$TimeStamp <- FixShortAOIVisualETData$TimeStamp/100
+#FixShortAOIVisualETData$TimeStamp <- FixShortAOIVisualETData$TimeStamp/100
 
-write.csv(FixShortAOIVisualETData, "FixShortAOIVisualETData.csv")
+#write.csv(FixShortAOIVisualETData, "FixShortAOIVisualETData.csv")
 
 
 #FixShortAOIVisualETData <- FixShortAOIVisualETData[!duplicated(FixShortAOIVisualETData$eventIndex), ]
@@ -613,9 +647,8 @@ beep()
 
 ```{r}
 
-FixShortAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FixShortAOIVisualETData.csv", header = T)
+#FixShortAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FixShortAOIVisualETData.csv", header = T)
 
-FixShortAOIVisualETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOIVisualETData$PIDCond)
 
 #FixShortAOIVisualETData$Valid <- FALSE
 
@@ -661,14 +694,14 @@ ValidAOIVisualETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgo
 ```
 
 
-
 #Wrangle Avatar data
 ```{r Avatar Data}
 
+
+
 #AOIAvatarETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/AOIAvatarETData.csv", header = T)
 
-# listAvatardata <- split(AvatarETdata, f = AvatarETdata$PIDCond)
-# listAvatardataFull <- listAvatardata
+listAvatardata <- split(AvatarETdata, f = AvatarETdata$PIDCond)
 #find where last participant that was run was and cute dataset before them to continure
 
 #listAvatardata<- listAvatardata[-c(1:16)]
@@ -690,7 +723,7 @@ for(dataset in listAvatardata) {
   print(data$PIDCond[1])
   print(Sys.time())
   startTime = data$eyeDataRelativeTimestamp[1]
-  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 100
+  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 1000
 
   #convert the HasValue column to boolean for gap_fill function to work
   data$gazeHasValue <- as.logical(data$gazeHasValue)
@@ -711,13 +744,13 @@ for(dataset in listAvatardata) {
   
   AOIAvatarETData <- rbind(AOIAvatarETData, data_aoi_merge)
 
- 
+ rm(data_aoi_merge)
 }
-
+beep()
 
 # AOIAvatarETDataDone <- AOIAvatarETDataDone %>% 
 #   select(-X)
-AOIAvatarETData$TimeStamp <- AOIAvatarETData$TimeStamp/100
+#AOIAvatarETData$TimeStamp <- AOIAvatarETData$TimeStamp*10
 write.csv(AOIAvatarETData, "AOIAvatarETData.csv")
 
 # AOIAvatarETDataComplete <- rbind(AOIAvatarETDataDone, AOIAvatarETData)
@@ -780,7 +813,10 @@ FixShortAOIAvatarETData$Valid <- FALSE
 # 
 # 
 # AOIAvatarETData <- AOIAvatarETData[!duplicated(AOIAvatarETData[ , c("eventIndex")]),]
-#                                                     
+#             
+
+FixShortAOIAvatarETData$TimeStamp <- FixShortAOIAvatarETData$TimeStamp*10
+
 beep()
 ```
 #Validate Avatar
@@ -805,6 +841,9 @@ write.csv(ValidAOIAvatarETData, "ValidAOIAvatarETData.csv")
 
 ValidAOIAvatarETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/ValidAOIAvatarETData.csv", header = T)
 
+
+```
+```{r}
 
 ```
 
@@ -836,7 +875,7 @@ for(dataset in listNDRTdata) {
   print(data$PIDCond[1])
   print(Sys.time())
   startTime = data$eyeDataRelativeTimestamp[1]
-  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 100
+  data$TimeStamp <- (data$eyeDataRelativeTimestamp - startTime) / 1000
 
   #convert the HasValue column to boolean for gap_fill function to work
   data$gazeHasValue <- as.logical(data$gazeHasValue)
@@ -908,6 +947,9 @@ write.csv(FixShortAOINDRTETData, "FixShortAOINDRTETData.csv")
 
 FixShortAOINDRTETData$PIDCond <- gsub(pattern = "_", replacement = " ", x = FixShortAOINDRTETData$PIDCond)
 
+FixShortAOINDRTETData <- FixShortAOINDRTETData %>% 
+  subset(eventType == "fixation")
+
 #FixShortAOINDRTETData$Valid <- FALSE
 
 
@@ -949,7 +991,12 @@ ValidAOINDRTETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/
 
 ```{r}
 
+
+#ValidAOIVisualETData <- subset( ValidAOIVisualETData, select = -X )
+
 FinalValidAOIETData <- rbind(ValidAOIControlETData, ValidAOIVisualETData, ValidAOIAvatarETData, ValidAOINDRTETData)
+
+
 
 #ValidAOIETData <- ValidAOIETData %>% 
  # separate(PIDCond,)
@@ -971,6 +1018,7 @@ print(Sys.time())
 ```{r}
 
 FinalValidAOIETData <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FinalValidAOIETData.csv", header = T)
+NewAvatar <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/Study5Analysis/FixValidAOIAvatarETData.csv", header = T)
 
 
 ValidAOIControlETData <- FinalValidAOIETData %>% 
@@ -1231,6 +1279,6 @@ ValidAvatar <- FinalValidAOIETDataRMOut %>%
 
 ValidNDRT <- FinalValidAOIETDataRMOut %>% 
   subset(Condition == "NDRT")
-
+beep()
 
 ```

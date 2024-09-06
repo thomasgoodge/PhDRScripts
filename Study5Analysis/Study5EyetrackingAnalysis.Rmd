@@ -94,7 +94,7 @@ ValidNDRT <- FinalValidAOIETDataRMOut %>%
 binwidth <- 120  # Adjust the binwidth as needed
 
 # Define the limits for the color scale
-color_limits <- c(0, 1000)  # Adjust these limits as needed
+color_limits <- c(0, 2000)  # Adjust these limits as needed
 
 # Define the color for values exceeding the limit
 exceeding_limit_color <- "yellow"  # Adjust this color as needed
@@ -275,12 +275,62 @@ CountData$Sort <- paste(CountData$PIDCond,CountData$eventIndex)
   
 CountData <- CountData[!duplicated(CountData$Sort),]
 
+CountData <- CountData %>% 
+  subset(ZScore <= 3)
 
 CorrHazardCountData <- FinalValidHazardAOIETDataRMOut
 
 CorrHazardCountData$Sort <-paste(FinalValidHazardAOIETDataRMOut$PIDCond, FinalValidHazardAOIETDataRMOut$eventIndex)
 CorrHazardCountData <- CorrHazardCountData[!duplicated(CorrHazardCountData$Sort),]
+```
+#TTFF
+```{r}
 
+FirstFixation <- CorrHazardCountData %>% 
+  subset(CorrAOI == 1)
+
+FirstFixation$VidSort <- paste(FirstFixation$PIDCond, FirstFixation$VideoClip)
+
+HazardClips$VidSort <- paste (HazardClips$Participant, HazardClips$Condition, HazardClips$VideoClip)
+
+FirstFixation <- FirstFixation[!duplicated((FirstFixation$DupSort)),]
+
+TTFF <- left_join(FirstFixation, HazardClips, by = (c("VideoClip" = "VideoClip", "VidSort" = "VidSort")))
+  
+TTFF$FirstFixationTime <- TTFF$TimeStamp - TTFF$HazardOnset
+
+#TTFF <- TTFF[complete.cases(TTFF$FirstFixationTime), ] 
+
+#TTFF$VidSort <- paste (TTFF$Participant, TTFF$Condition, TTFF$VideoClip)
+
+
+
+TTFFWallSingle <- TTFFWall
+
+TTFFWallSingle$TTFFSort <- paste(TTFFWallSingle$PIDCond, TTFFWallSingle$VideoClip)
+
+
+TTFFWallSingle <- TTFFWallSingle[!duplicated((TTFFWallSingle$TTFFSort)),]
+
+TTFFWallSingle <- TTFFWallSingle %>% 
+  filter(FirstFixationTime < 4)
+#TTFF <- TTFF[!duplicated(TTFF$PIDSort),]
+
+TTFFWall <- TTFF %>% 
+  subset(gazePoint_target_name == "Wall")
+
+
+TTFFSummary <- TTFF %>% 
+  group_by(Condition.x, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(FirstFixationTime))
+
+
+TTFFWallSummary <- TTFFWallSingle %>% 
+  group_by(Condition.x, CorrAOI) %>% 
+  summarise(n = n(),
+            TTFF = mean(FirstFixationTime),
+            sd = sd(FirstFixationTime))
 ```
 
 #Summaries
@@ -339,7 +389,7 @@ AOIObjectSummary <- CountData %>%
 
 PptSummaryAOI <- CountData %>% 
   group_by(PIDCond) %>% 
-  summarise(NoF = sum(modified),
+  summarise(NoF = n(),
             meanDuration = mean(eventDuration),
             sdDuration = sd(eventDuration))
 
@@ -403,8 +453,8 @@ HazardAOIObjectSummary <- CorrHazardCountData %>%
 HazardCorrSummary <- CorrHazardCountData %>% 
   group_by(Condition) %>% 
   summarise(n = n(),
-            sumCorr = sum(CorrAOI),
-            meanCorr = mean(CorrAOI))
+            sumCorr = sum(CorrAOI, na.rm = T),
+            meanCorr = mean(CorrAOI, na.rm = T))
 
 
 ```
@@ -415,10 +465,10 @@ CorrHazardCountData$FixNum <- 1
 
 CorrHazardFixCountPpt <- CorrHazardCountData %>% 
   group_by(PIDCond, Condition)%>% 
-  summarise(NoF = sum(FixNum),
-            meanDuration = mean(eventDuration),
-            sdDuration = sd(eventDuration),
-            sumCorr = sum(CorrAOI),
+  summarise(NoF = sum(modified, na.rm = T),
+            meanDuration = mean(eventDuration,na.rm = T),
+            sdDuration = sd(eventDuration,na.rm = T),
+            sumCorr = sum(CorrAOI,na.rm = T),
                         propCorr = (sumCorr/NoF)*100
 )
 
@@ -778,13 +828,15 @@ summary(FixCountLM)
 PptSummaryAOI$Condition <- factor(PptSummaryAOI$Condition, levels = c("Control", "Visual", "Avatar", "NDRT"))
 
 TotalNoFPlot <-ggplot(data = PptSummaryAOI, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_violin(width = 1)+
+  geom_violin(alpha = 0.5)+
   geom_boxplot(width = 0.12)+
  # ylim(0,100)+
-  labs(title = "Mean Number of Overall Fixations", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+ # ylim(0,100)+
+  labs(title = "Mean Number of Overall Fixations \n \n", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+ # ylim(0,100)+
 scale_fill_manual(values = S5_palette) +
   theme_classic()+
-    theme(legend.position="none")
+    theme(legend.position="none")+
+  theme(plot.title = element_text(size = 15,vjust = 1)
+  )
 
 
 FixCountLM <- lm(data =PptSummaryAOI, NoF ~ Condition,  family = "poisson")
@@ -809,10 +861,10 @@ ggsave(filename = "S5TotalNoFPlot.png",
 
 ```{r}
 TotalNoFPlotRMOut <-ggplot(data = PptSummaryAOIRMOut, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_violin(width = 1)+
+  geom_violin(alpha = 0.5)+
   geom_boxplot(width = 0.12)+
-  ylim(0,180)+
-  labs(title = "Mean Number of Overall Fixations", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+ # ylim(0,100)+
+  #ylim(0,180)+
+  labs(title = "Mean Number of Overall Fixations \n \n", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+ # ylim(0,100)+
 scale_fill_manual(values = S5_palette) +
   theme_classic()+
     theme(legend.position="none")
@@ -941,13 +993,15 @@ CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref 
 
 
 TotalHazardNoFPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = NoF, fill = Condition))+
-  geom_violin(alpha = 0.85)+
+  geom_violin(alpha = 0.5)+
   geom_boxplot(width = 0.07)+
-  labs(title = "Mean Number of Fixations \n during the Hazard Window", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+scale_fill_manual(values = S5_palette) +
-  ylim(0,20)+
+  labs(title = "Mean Number of Fixations during the Hazard Window \n \n", y = "Mean Fixation Count", x = "NDRT Presentation Condition")+scale_fill_manual(values = S5_palette) +
   theme_classic()+
   theme(legend.position="none",
-        axis.title.y = element_text(size = 9))
+        axis.title.y = element_text(size = 9))+
+    theme(plot.title = element_text(size = 15,vjust = 1)
+    )
+
 
 HazFixCountLMER <- lmer(data =CorrHazardFixCountPpt, NoF ~ Condition + (1|Ppt))
 summary(HazFixCountLMER)
@@ -989,16 +1043,15 @@ summary(CorrHazFixLMER)
 # 
 # plot(HazFixCountSummaryScreen$NumCorr)
 
-CorrHazardFixCountPpt$Condition <- relevel(CorrHazardFixCountPpt$Condition, ref = "Control")
+CorrHazardFixCountPpt$Condition <- factor(CorrHazardFixCountPpt$Condition, levels = c("Control", "Visual", "Avatar", "NDRT"))
 
 NumCorrHazFixLMER <- lmer(sumCorr ~ Condition + (1|Ppt), data = CorrHazardFixCountPpt )
 summary(NumCorrHazFixLMER)
 
 TotalCorrHazardNoFPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = sumCorr, fill = Condition))+
-  geom_violin(alpha = 0.85)+
-  geom_boxplot(width = 0.07)+
-  ylim(0,12)+
-  labs(title = "Mean Number Correct Fixations \n during Hazard Window", y = "Mean Correct Fixations", x = "NDRT Presentation Condition")+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.25)+
+  labs(title = "Mean Number Correct Fixations \n during Hazard Window ", y = "Mean Correct Fixations", x = "NDRT Presentation Condition")+
 
 
 scale_fill_manual(values = S5_palette) +
@@ -1033,8 +1086,8 @@ PropCorrHazFixLMER <- lmer(propCorr ~ Condition + (1|Ppt), data = CorrHazardFixC
 summary(PropCorrHazFixLMER)
 
 PropCorrHazardNoFPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = propCorr, fill = Condition))+
-  geom_violin(alppha = 0.85)+
-  geom_boxplot(width = 0.07)+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.2)+
   ylim(0,100)+
   labs(title = "Mean Proportion of Correct Fixations \n during the Hazard Window", y = "Proportion of Correct Fixations", x = "NDRT Presentation Condition")+
 
@@ -1043,7 +1096,9 @@ scale_fill_manual(values = S5_palette) +
   theme_classic()+
     theme(legend.position="none")+
     theme(text=element_text(size = 10))+
-    theme(axis.text=element_text(size=10))
+    theme(axis.text=element_text(size=10))+
+      theme(plot.title = element_text(size = 12,vjust = 1)
+    )
 
 PropCorrHazardNoFPlot
 
@@ -1067,7 +1122,7 @@ AllTotalNoF <- plot_grid(TotalNoFPlotRMOut, TotalHazardNoFPlot,labels = c('a)','
 AllTotalNoFLeg <- plot_grid(AllTotalNoF, legend_b,ncol = 1, rel_heights = c(1, .1))
 AllTotalNoFLeg
 
-ggsave(filename = "AllTotalNoFLeg.jpg",
+ggsave(filename = "AllTotalNoFLeg.png",
        plot = AllTotalNoFLeg,
        width = 3840,
        units = "px")
@@ -1085,10 +1140,10 @@ legend_b <- get_legend(
 )
 
 AllCorrHaz<- plot_grid(TotalCorrHazardNoFPlot, PropCorrHazardNoFPlot, labels = c('a)','b)'),ncol = 2, label_x = 0.05)
-AllCorrHazLeg <- plot_grid(AllCorrHaz, legend_b,ncol = 1, rel_heights = c(1.5, .1))
+AllCorrHazLeg <- plot_grid(AllCorrHaz, legend_b,ncol = 1, rel_heights = c(1, .1))
 AllCorrHazLeg
 
-ggsave(filename = "AllCorrHazLeg.jpg",
+ggsave(filename = "AllCorrHazLeg.png",
        plot = AllCorrHazLeg,
      
        units = "px")
@@ -1203,14 +1258,14 @@ ggplot(PptSummaryAOI, aes(x = Condition, y = meanDuration, fill = Condition))+
 ```{r}
 FinalValidAOIETDataRMOut$Condition <- as.factor(FinalValidAOIETDataRMOut$Condition)
 
-DurModelNull <- lmer(eventDuration ~ (1|ID), data = FinalValidAOIETDataRMOut)
-
-DurModelBasic <- lmer(data = FinalValidAOIETDataRMOut, formula = eventDuration ~ Condition + (1|ID))
-
-summary(DurModelBasic)
-
-DurModel1 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
-summary(DurModel1)
+#DurModelNull <- lmer(eventDuration ~ (1|ID), data = FinalValidAOIETDataRMOut)
+# 
+# DurModelBasic <- lmer(data = FinalValidAOIETDataRMOut, formula = eventDuration ~ Condition + (1|ID))
+# 
+# summary(DurModelBasic)
+# 
+# DurModel1 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+# summary(DurModel1)
 
 #DurModel2 <- lmer(data = FinalValidAOIETDataRMOut,  formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
 #summary(DurModel2)
@@ -1292,10 +1347,11 @@ summary(DurModelBasicLMER)
 
 
 TotalFixDurPlot <- ggplot(data = PptSummaryAOI, aes(x = Condition, y = meanDuration, fill = Condition))+
-  geom_violin()+
+  geom_violin(alpha = 0.5)+
   geom_boxplot(width = 0.2)+
-  ylab("Mean Fixation Duration")+
 scale_fill_manual(values = S5_palette) +
+    labs(title = "Mean Overall Fixation Duration \n \n", y = "Fixation Duration (ms)", x = "NDRT Presentation Condition")+
+
   theme_classic()+
    theme(legend.position="none")
 
@@ -1324,7 +1380,6 @@ ggplot(FinalValidHazardAOIETDataRMOut, aes(x = Condition, y = eventDuration, fil
 #TTFF Model
 
 ```{r}
-
 TTFF$Condition <- TTFF$Condition.x
 
 TTFF$Condition <- as.factor(TTFF$Condition)
@@ -1338,6 +1393,19 @@ TTFF$Condition <- relevel(TTFF$Condition, ref = "Control")
 TTFFWall$Condition <- relevel(TTFFWall$Condition, ref = "Visual")
 
 
+TTFFWallSingle <- TTFFWall
+
+TTFFWallSingle$TTFFSort <- paste(TTFFWallSingle$PIDCond, TTFFWallSingle$VideoClip)
+
+
+TTFFWallSingle <- TTFFWallSingle[!duplicated((TTFFWallSingle$TTFFSort)),]
+
+
+
+```
+
+
+```{r}
 TTFFANOVA <- aov(FirstFixationTime ~ Condition, data = TTFF)
 
 summary(TTFFANOVA)
@@ -1361,7 +1429,7 @@ summary(TTFFANOVA)
 ```
 
 ```{r}
-TTFFModelBasic <- lm(data = TTFF, formula = eventDuration ~ Condition)
+TTFFModelBasic <- lm(data = TTFFWallSingle, formula = eventDuration ~ Condition)
 
 summary(TTFFModelBasic)
 
@@ -1375,30 +1443,72 @@ summary(TTFFWallModelBasic)
 PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 ```
 
+```{r}
+
+
+TTFFNullLMER <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~  (1|ID))
+TTFFModelLMER <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition + (1|ID))
+
+TTFFModelLMER2 <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition + (1|ID) + (1|VideoClip))
+
+TTFFModelLMER3 <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+
+TTFFModelLMER4 <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition + (1|ID) + (1|VideoClip) + (1 + gazePointAOI_name|AOILocationOffset.y) + (1|eventDuration))
+
+TTFFModelLMER5 <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition + (1+VideoClip|ID))
+
+summary(TTFFModelLMER4)
+                       
+   
+anova(TTFFNullLMER, TTFFModelLMER, TTFFModelLMER2,TTFFModelLMER3,TTFFModelLMER4,TTFFModelLMER5)
+
+                    
+```
+
+
 #***WRITEUP***  Time to First Fixation
 ```{r}
 
-TTFF$Condition <- relevel(TTFF$Condition, ref = "NDRT")
+TTFFWallSingle$Condition <- relevel(TTFFWallSingle$Condition, ref = "Control")
 
 
-TTFFModelBasic <- lm(data = TTFF, formula = FirstFixationTime ~ Condition)
+TTFFModelBasic <- lm(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition)
 
 summary(TTFFModelBasic)
 
-TTFFPlot <- ggplot(TTFF, aes(x = Condition, y = FirstFixationTime, fill = Condition))+
-  geom_violin()+ 
-  geom_boxplot(alpha = 0, width = 0.1)+
+TTFFModelLMER <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition + (1|ID))
+
+TTFFModelLMER3 <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition + (1|ID) + (1|VideoClip))
+
+ranef(TTFFModelLMER3)
+summary(TTFFModelLMER3)
+
+
+TTFFPlot <- ggplot(TTFFWallSingle, aes(x = Condition, y = FirstFixationTime, fill = Condition))+
+  geom_violin(alpha = 0.5)+ 
+  geom_boxplot(width = 0.05)+
+  ylim(0,4)+
+    labs(title = "Mean Time to First Fixation \n \n", y = "Time to First Fixation (ms)", x = "NDRT Presentation Condition")+
+
 scale_fill_manual(values = S5_palette) +
-  scale_fill_brewer(palette = "BrBG")+
 
   theme_classic()
 
 
 TTFFPlot
-ggsave(filename = "S5TTFFPlot.jpg",
+ggsave(filename = "S5TTFFPlot.png",
        plot = TTFFPlot)
        
 ```
+```{r}
+
+TTFFModelResults <- report(TTFFModelLMER3, CI = 95)
+
+summary(TTFFModelResults)
+
+```
+
+
 
 HazardFixation Duration
 ```{r}
@@ -1453,9 +1563,9 @@ HazDurModelBasic <- lmer(data = CorrHazardFixCountPpt, formula = meanDuration ~ 
 summary(HazDurModelBasic)
 
 TotalHazFixDurPlot <- ggplot(data = CorrHazardFixCountPpt, aes(x = Condition, y = meanDuration, fill = Condition))+
-  geom_violin()+
-  geom_boxplot(width = 0.2)+
-  ylab("Mean Fixation Duration during Hazard Window")+
+  geom_violin(alpha = 0.5)+
+  geom_boxplot(width = 0.1)+
+    labs(title = "Mean Overall Fixation Duation  \n in the Hazard Window \n \n", y = "Fixation Duration (ms)", x = "NDRT Presentation Condition")+
 scale_fill_manual(values = S5_palette) +
   theme_classic()+
    theme(legend.position="none")

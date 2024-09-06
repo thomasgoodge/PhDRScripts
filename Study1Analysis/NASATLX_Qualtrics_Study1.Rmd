@@ -1,4 +1,4 @@
-#---
+---
 title: "NASATLX_Qualtrics"
 output: html_document
 date: '2022-03-23'
@@ -22,7 +22,10 @@ Central_Palette <- c("#C95E5F", "#48B4C4")
 
 Global_Palette <- c("#E7433B", "#1CE2A4")
 
+Block_Palette <- c("#FF4500" , "#00CED1")
+Condition_Palette <- c("#5A9BD6" , "#3CB371")
 
+Blend_Palette <- c("#C95E5F", "#27C69A")
 Full_Palette <- c(Central_Palette, Global_Palette)
 
 
@@ -31,7 +34,7 @@ Full_Palette <- c(Central_Palette, Global_Palette)
 ```{r}
 #setwd("D:/Qualtrics_Data/Study1/NASATLX")
 #Read in the data
-TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 1/RTData/TGExp1NasaTLX.csv") %>%
+TLXdataRaw <- read.csv("D:/Study1Data/Qualtrics_Data/Study1/NASATLX/TGExp1NasaTLX.csv") %>%
 
 # Tidy the data - select scores,
   select(starts_with('Q'))
@@ -73,11 +76,11 @@ TLXdataOrg <- TLXdataOrg[,-1] %>%
 TLXdataOrg[,2] = toupper(TLXdataOrg[,2]) %>% 
   trimws(which = c("both"))
 
-  TLXdataOrg[TLXdataOrg == "G"] <- "Wider"
-  TLXdataOrg[TLXdataOrg == "L"] <- "Focused" 
+  TLXdataOrg[TLXdataOrg == "G"] <- "Global"
+  TLXdataOrg[TLXdataOrg == "L"] <- "Central" 
 
-  TLXdataOrg[TLXdataOrg == "Control"] <- "Cognitive Only"
-  TLXdataOrg[TLXdataOrg == "Experiment"] <- "Dual Cognitive-AR"
+  TLXdataOrg[TLXdataOrg == "Control"] <- "Go/NoGo"
+  TLXdataOrg[TLXdataOrg == "Experiment"] <- "Go/NoGo-AR"
 ```
 
 
@@ -130,11 +133,30 @@ TLXdataSumm <- TLXdata %>%
 
 
 ```{r}
-ggplot(TLXdata, aes(Condition, Total, fill = Block ))+
-  geom_violin(alpha = 0.5)+
-  #ylim(0,100)+
-  labs(title = "Total TLX Score")+
-    scale_fill_manual(values = Blended_Palette)
+
+
+library(RColorBrewer)
+Central_Palette <- c("#C95E5F", "#48B4C4")
+
+Global_Palette <- c("#E7433B", "#1CE2A4")
+
+Full_Palette <- c(Central_Palette, Global_Palette)
+
+TLXdata$Group <- paste(TLXdata$Condition, TLXdata$Block)
+
+
+S1TotalTLX <- ggplot(TLXdata, aes(Condition, Total, fill = Group)) +
+  geom_violin(alpha = 0.65) +
+  geom_boxplot(width = 0.25, position = position_dodge(0.9)) +
+  labs(title = "Average Total NASA TLX Ratings \n", y = "Total TLX Score", tag = "") +
+  theme_classic() +
+  scale_fill_manual(values = Full_Palette)+
+    theme(legend.position="bottom")
+
+
+S1TotalTLX
+
+ggsave(S1TotalTLX, filename = "S1TotalTLX.png")
 
 ```
 

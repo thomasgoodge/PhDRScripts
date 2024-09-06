@@ -34,7 +34,7 @@ library(pwr)
 #Read in Exp data
 ```{r}
 #Need to change location here:
-dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/BRMHazPredAnalysis/WHNValidation/WHNdata/Exp"
+dataFolder = "C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/BRMHazPredAnalysis/WHNValidation/WHNdata/Exp"
 
 file_list <- list.files(path = dataFolder, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
 ```
@@ -80,9 +80,10 @@ ExpIDs <- SortedWHNDataExp[!duplicated(SortedWHNDataExp$ProlificID), ]
 #Read in Novice data
 ```{r}
 #Need to change location here:
-dataFolderNov = "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/BRMHazPredAnalysis/WHNValidation/WHNdata/Novice"
+dataFolderNov = "C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/BRMHazPredAnalysis/WHNValidation/WHNdata/Novice"
 
 file_listNov <- list.files(path = dataFolderNov, pattern = "..csv$", all.files = TRUE, full.names = TRUE, recursive = TRUE) 
+
 ```
 
 ```{r}
@@ -218,7 +219,7 @@ ExpProb = SummaryGroupWHN$propWHN[1]
 NovProb = SummaryGroupWHN$propWHN[2]
 
 ```
-#Plot WHN scores
+  #Plot WHN scores
 ```{r}
 ggplot(data = SummaryGroupWHN, aes(x = Group, y = sumWHN/30, fill = Group))+
   geom_col()+
@@ -271,7 +272,7 @@ ggsave("MeanWHNPlot.png", plot = last_plot())
 
 ```{r}
 #Need to change location here
-DemogsRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/BRMHazPredAnalysis/WHNValidation/Qualtrics/QualtricsWHNValid.csv")%>%  
+DemogsRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Documents/R_Scripts/BRMHazPredAnalysis/WHNValidation/Qualtrics/QualtricsWHNValid.csv")%>%  
     select(starts_with('Q'), GroupCheck) 
 DemogDataOrg <- row_to_names(DemogsRaw, row_number = 1) %>%  
   rename(Age = `What is your age?`) %>% 
@@ -337,31 +338,31 @@ DemogsDBQFull$Violations <- Violations$meanViolations
 
 #DBQ violin plots
 ```{r}
-# 
-# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Violations, fill = GroupCheck))+
-#   geom_violin(alpha = 0.4)+
-#   geom_boxplot(width = 0.15)+
-#   labs(y = "Average number of Violations")+
-#   ylim(0,3)+
-#   scale_fill_brewer(palette = "Set1")
-# 
-# 
-# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Lapses, fill = GroupCheck))+
-#   geom_violin(alpha = 0.4)+
-#   geom_boxplot(width = 0.15)+
-#   ylim(0,3)+
-#   labs(y = "Average number of Lapses")+
-#   scale_fill_brewer(palette = "Set1")
-# 
-# 
-# 
-# ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Errors, fill = GroupCheck))+
-#   geom_violin(alpha = 0.4)+
-#   geom_boxplot(width = 0.15)+
-#   ylim(0,3)+
-#   labs(y = "Average number of Errors")+
-#   scale_fill_brewer(palette = "Set1")
-# 
+
+ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Violations, fill = GroupCheck))+
+  geom_violin(alpha = 0.4)+
+  geom_boxplot(width = 0.15)+
+  labs(y = "Average number of Violations")+
+  ylim(0,3)+
+  scale_fill_brewer(palette = "Set1")
+
+
+ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Lapses, fill = GroupCheck))+
+  geom_violin(alpha = 0.4)+
+  geom_boxplot(width = 0.15)+
+  ylim(0,3)+
+  labs(y = "Average number of Lapses")+
+  scale_fill_brewer(palette = "Set1")
+
+
+
+ggplot(data = DemogsDBQFull, aes(x = GroupCheck, y = Errors, fill = GroupCheck))+
+  geom_violin(alpha = 0.4)+
+  geom_boxplot(width = 0.15)+
+  ylim(0,3)+
+  labs(y = "Average number of Errors")+
+  scale_fill_brewer(palette = "Set1")
+
 
 
 
@@ -525,14 +526,14 @@ summary(ScoreGLM0)
 ScoreGLMbase <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group)
 summary(ScoreGLMbase)
 
-# ScoreGLM1 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp)
-# summary(ScoreGLM1)
+ScoreGLM1 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp)
+summary(ScoreGLM1)
 # 
-# ScoreGLM2 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * Gender)
-# summary(ScoreGLM2)
+ScoreGLM2 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * Gender)
+summary(ScoreGLM2)
 # 
-# ScoreGLM3 <-glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp * Gender)
-# summary(ScoreGLM3)
+ScoreGLM3 <-glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp * Gender)
+summary(ScoreGLM3)
 
 
 #coef(ScoreGLM1)
@@ -541,7 +542,7 @@ summary(ScoreGLMbase)
 # em <- emmeans(ScoreGLMbase, ~ Group , trans = "response")
 # contrast(em, "pairwise", adjust = "Tukey")
 # 
-# anova(ScoreGLM0, ScoreGLMbase, ScoreGLM1,ScoreGLM2,test = "LRT")
+anova(ScoreGLM0, ScoreGLMbase, ScoreGLM1,ScoreGLM2, ScoreGLM3, test = "LRT")
 
 ```
 
@@ -553,6 +554,45 @@ results <- report(ScoreGLMbase)
 
 print(results)
 ```
+
+
+```{r}
+ScoreGLMPpt <- glm(family = "poisson", data = SummaryPptWHN, formula = sumWHN ~ Group)
+summary(ScoreGLMPpt)
+
+ScoreLMPpt <- lm(data = SummaryPptWHN, formula = meanScore ~ Group)
+summary(ScoreLMPpt)
+
+results <- report(ScoreGLMPpt)
+
+print(results)
+```
+
+
+```{r}
+ScoreGLMER <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + (1|ProlificID))
+summary(ScoreGLMER)
+
+
+ScoreGLMERLicense <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + UKLicense + (1|ProlificID))
+summary(ScoreGLMERLicense)
+
+ScoreGLMERGlasgow <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + GlasgowExp + (1|ProlificID) )
+summary(ScoreGLMERGlasgow)
+
+anova(ScoreGLMER, ScoreGLMERLicense, ScoreGLMERGlasgow)
+
+
+
+results <- report(ScoreGLMER)
+
+print(results)
+
+
+```
+
+
+
 #Outlier
 ```{r}
 SortedWHNDataRMOut <- SortedWHNData %>% 
@@ -580,17 +620,17 @@ ggsave("MeanWHNPlotRMOut.png", plot = last_plot())
 
 
 ```{r}
-RMOutScoreanova <- aov(data = FullDatasetRMOut, formula = trialrespkey.corr ~ Group)
-
-
-summary(RMOutScoreanova)
-TukeyHSD(RMOutScoreanova)
-
-
-
-
-ScoreGLMbaseRMOut <- glm(family = binomial(link="logit"), data = FullDatasetRMOut, formula = trialrespkey.corr ~ Group)
-summary(ScoreGLMbaseRMOut)
+# RMOutScoreanova <- aov(data = FullDatasetRMOut, formula = trialrespkey.corr ~ Group)
+# 
+# 
+# summary(RMOutScoreanova)
+# TukeyHSD(RMOutScoreanova)
+# 
+# 
+# 
+# 
+# ScoreGLMbaseRMOut <- glm(family = binomial(link="logit"), data = FullDatasetRMOut, formula = trialrespkey.corr ~ Group)
+# summary(ScoreGLMbaseRMOut)
 
 ```
 
@@ -627,8 +667,12 @@ summary(ErrorSexLM)
 LapseSexLM <- lm( data = DBQFullDataset, formula = Lapses ~ Group* Gender)
 summary(LapseSexLM)
 
-ViolationSexLM <- lm(data = DBQFullDataset, formula = Violations ~ Group * Gender)
+ViolationSexLM <- lm(data = DBQFullDataset, formula = Violations ~ Group)
 summary(ViolationSexLM)
+
+
+LMVio <- report(ViolationSexLM)
+summary(LMVio)
 
 ```
 
@@ -636,6 +680,11 @@ summary(ViolationSexLM)
 
 ScoreDBQGLM <- glm(data = FullDataset, formula = trialrespkey.corr ~ Group * Violations)
 summary(ScoreDBQGLM)
+
+
+DBQVio <- report(ScoreDBQGLM)
+summary(DBQVio)
+
 ```
 
 #Binomial Distribution

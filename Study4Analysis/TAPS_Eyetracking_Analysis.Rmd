@@ -313,12 +313,22 @@ TTFF <- left_join(FirstFixation, HazardClips, by = (c("VideoClip" = "VideoClip",
   
 TTFF$FirstFixationTime <- TTFF$TimeStamp - TTFF$HazardOnset
 
+TTFFWall <- TTFF %>% 
+  subset(gazePoint_target_name == "Wall")
+
+TTFFWallSingle <- TTFFWall
+
+TTFFWallSingle$TTFFSort <- paste(TTFFWallSingle$PIDCond, TTFFWallSingle$VideoClip)
+
+
+TTFFWallSingle <- TTFFWallSingle[!duplicated((TTFFWallSingle$TTFFSort)),]
+
+TTFFWallSingle <- TTFFWallSingle %>% 
+  filter(FirstFixationTime < 4)
+
 
 
 TTFF <- TTFF[!duplicated(TTFF$PIDCond),]
-
-TTFFWall <- TTFF %>% 
-  subset(gazePoint_target_name == "Wall")
 
 
 TTFFSummary <- TTFF %>% 
@@ -327,10 +337,11 @@ TTFFSummary <- TTFF %>%
             TTFF = mean(FirstFixationTime))
 
 
-TTFFWallSummary <- TTFFWall %>% 
+TTFFWallSummary <- TTFFWallSingle %>% 
   group_by(Condition.x, CorrAOI) %>% 
   summarise(n = n(),
-            TTFF = mean(FirstFixationTime))
+            TTFF = mean(FirstFixationTime),
+            sd = sd(FirstFixationTime))
 
 ```
 
@@ -1138,11 +1149,14 @@ TTFFModelBasic <- lm(data = TTFF, formula = eventDuration ~ Condition)
 summary(TTFFModelBasic)
 
 
-TTFFWallModelBasic <- lm(data = TTFFWall, formula = eventDuration ~ Condition.x)
+TTFFWallModelBasic <- lm(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition.x)
 
 #DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
+TTFFWallModelBasic <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition.x + (1|ID))
 
-summary(TTFFWallModelBasic)
+TTFFWallModel2 <- lmer(data = TTFFWallSingle, formula = FirstFixationTime ~ Condition.x + (1|ID) + (1|gazePointAOI_name))
+
+summary(TTFFWallModel2)
 
 PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 ```
@@ -1150,9 +1164,10 @@ PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 
 
 ```{r}
-ggplot(TTFF, aes(x = Condition, y = FirstFixationTime, fill = Condition))+
+ggplot(TTFFWallSingle, aes(x = Condition.x, y = FirstFixationTime, fill = Condition.x))+
   geom_violin()+ 
   geom_boxplot(alpha = 0, width = 0.15)+
+  ylim(0,4)+
   ylab("Time to First Fixation (s)")+
     scale_fill_brewer(palette = "BrBG")+
 

@@ -504,7 +504,7 @@ theme(legend.position="none") +theme(text=element_text(size = 20)) +
 "#CC79A7"
 "#56B4E9" 
 "#E69F00" 
-"#F0E442""
+"#F0E442"
 
 #7D3C98
 

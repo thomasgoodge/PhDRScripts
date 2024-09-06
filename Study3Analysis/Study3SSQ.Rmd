@@ -26,6 +26,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+
+
+
+
 ```{r, include=FALSE}
 #Set the working directory of the data ***HARD CODED ***
  #setwd("D:/Study2Data/qualtrics_data/SSQ")
@@ -271,13 +275,11 @@ ggplot(SSQConversionSummary,  aes(x = Timepoint, y = mean, colour = Timepoint, g
       title = "Total SSQ Score",
       tag = "")+  
   ylim(0,35) +
-    scale_fill_hue(l = 2)+
-   
-    geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
-                width = 0.2, position = position_dodge(width = 0.5))+
-
-
-
+  scale_fill_hue(l = 2)+
+  geom_errorbar(aes(ymin = mean - (sd/2), 
+                    ymax = mean + (sd/2)),
+                    width = 0.2, 
+                    position = position_dodge(width = 0.5))+
   theme_bw()
 ```
 
@@ -298,8 +300,6 @@ ggplot(SSQConversionBlockSummary,  aes(x = Timepoint, y = mean, colour = Block, 
    
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
                 width = 0.2, position = position_dodge(width = 0.5))+
-
-
 
   theme_bw()
 ```
@@ -450,9 +450,12 @@ TotalSSQmodel3 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint * Block + 
 
 TotalSSQmodel4 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint  + (1|participant) + (1|Block), REML = F)
 
-TotalSSQmodel5 <- lmer(data = SSQConversion, TotalSSQScore ~ Block  + (1|participant) , REML = F)
+TotalSSQmodelint <- lmer(data = SSQConversion, TotalSSQScore ~ Block * Timepoint  + (1|participant) , REML = F)
 
-anova(TotalSSQmodel1, TotalSSQmodel2, TotalSSQmodel3, TotalSSQmodel4,TotalSSQmodel5)
+summary(TotalSSQmodelint)
+fixef(TotalSSQmodelint)
+
+anova(TotalSSQmodel1, TotalSSQmodel2, TotalSSQmodel3, TotalSSQmodel4,TotalSSQmodel5,TotalSSQmodelTPRBlock)
 
 anova(TotalSSQmodelTPRBlock, TotalSSQmodel2)
 
@@ -470,10 +473,18 @@ summary(TotalSSQmodel5)
 
 
 ```{r}
-TotalSSQresults <- report(TotalSSQmodel1, CI = 95)
+SSQConversion$Timepoint <- factor(SSQConversion$Timepoint)
+SSQConversion$Timepoint <- relevel(SSQConversion$Timepoint, ref = "6")
+TotalSSQmodel2 <- lmer(data = SSQConversion, TotalSSQScore ~Timepoint + Block + (1|participant), REML = F)
+
+summary(TotalSSQmodel2)
+
+TotalSSQresults <- report(TotalSSQmodel2, CI = 95)
 
 #summary(results)
+
 print(TotalSSQresults)
+
 ```
 ```{r}
 OculoNullmodel <- lmer(data = SSQConversion, OculomotorWeight ~ (1|participant), REML = F)
@@ -485,7 +496,7 @@ Oculomodel1 <- lmer(data = SSQConversion, OculomotorWeight ~ Timepoint + Block +
 
 anova(OculoNullmodel, Oculomodel0, Oculomodel1)
 
-summary(Oculomodel0)
+summary(Oculomodel1)
 ```
 
 ```{r}
@@ -514,7 +525,7 @@ Disorientmodel2 <- lmer(data = SSQConversion, DisorientationWeight ~  Block + (1
 
 anova(DisorientNullmodel, Disorientmodel0, Disorientmodel1,Disorientmodel2)
 
-summary(Disorientmodel2)
+summary(Disorientmodel1)
 
 ```
 
@@ -652,11 +663,12 @@ ggplot(SSQKPConversionTotalSSQ, aes(Timepoint, TotalSSQScoreChange, colour = Blo
 ggplot(SSQKPConversionTotalSSQSummary,  aes(x = Timepoint, y = mean, colour = Timepoint, group = 1))+
   #geom_point (size = 4.5, aes(color = Condition), shape = 8) +
   geom_point (size = 3.5, shape = 20) +
+  geom_line()+
   labs(x = "Block",
       y = "Total Change in SSQ Score",
       title = "Total Change in SSQ Score",
       tag = "")+  
-  ylim(-5,10) +
+  ylim(-4,7) +
     geom_errorbar(aes(ymin = mean - (sd/2), ymax = mean + (sd/2)),
                 width = 0.2, 
                 position = position_dodge(0.9))+
@@ -682,12 +694,8 @@ ggplot(SSQKPConversionTotalSSQSummary,  aes(x = Timepoint, y = mean, colour = Ti
                 width = 0.2, position = position_dodge(width = 0.5))+
   geom_hline(yintercept = 0, linetype = 'dotted')+
 
-
-
   theme_bw()
 ```
-
-
 
 ```{r}
 ggplot(SSQKPConversionTotalSSQBlockSummary,  aes(x = Timepoint, y = mean, colour = Block, group = Block, shape = Block))+
@@ -707,8 +715,6 @@ ggplot(SSQKPConversionTotalSSQBlockSummary,  aes(x = Timepoint, y = mean, colour
                 width = 0.2, position = position_dodge(width = 0.5))+
   geom_hline(yintercept = 0, linetype = 'dotted')+
 
-
-
   theme_bw()
 ```
 
@@ -726,8 +732,6 @@ KPSSQModelTotalSSQ = emmeans(KPSSQModelTotalSSQ, ~Timepoint)
 pairs(KPSSQModelTotalSSQ, adjust="tukey")
 
 ```
-
-
 ```{r}
 TotalKPSSQNullmodel <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~ (1|participant), REML = F)
 
@@ -735,19 +739,31 @@ TotalKPSSQmodel1 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~Ti
 
 TotalKPSSQmodel2 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~Timepoint + Block + (1|participant),REML = F)
 
-TotalKPSSQmodel3 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~ Block + (1|participant),REML = F)
+TotalKPSSQmodel3 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~ Timepoint *Block + (1|participant),REML = F)
 
-anova(TotalKPSSQNullmodel, TotalKPSSQmodel1, TotalKPSSQmodel2, TotalKPSSQmodel3)
 
-summary(TotalKPSSQmodel3)
+
+TotalKPSSQmodel4 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~ Block + (1|participant),REML = F)
+
+anova(TotalKPSSQNullmodel, TotalKPSSQmodel1, TotalKPSSQmodel2, TotalKPSSQmodel3,TotalKPSSQmodel4)
+
+anova(TotalKPSSQmodel1, TotalKPSSQmodel4)
+
+
+summary(TotalKPSSQmodel1)
 
 ```
 ```{r}
+
+SSQKPConversionTotalSSQ$Timepoint <- factor(SSQKPConversionTotalSSQ$Timepoint)
+SSQKPConversionTotalSSQ$Timepoint <- relevel(SSQKPConversionTotalSSQ$Timepoint, ref = "T4")
+
+TotalKPSSQmodel1 <- lmer(data = SSQKPConversionTotalSSQ, TotalSSQScoreChange ~Timepoint + (1|participant),REML = F)
+
 library(report)
-TotalSSQresults <- report(TotalKPSSQmodel2, CI = 95)
-
+TotalSSQresults <- report(TotalKPSSQmodel1, CI = 95)
+summary(TotalKPSSQmodel1)
 summary(TotalSSQresults)
-
 
 ```
 

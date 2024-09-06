@@ -59,7 +59,7 @@ TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
   
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 0 - Control"] <- "Control"
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "Visual"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Social"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Avatar"
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - Gems"] <- "NDRT"
   
   TLXdataOrg <- TLXdataOrg %>% 
@@ -149,27 +149,28 @@ TLXdataSumm <- TLXdata %>%
 
 ```{r}
 #library(ggpubfigs)
+
+TLXdata$Block <- factor(TLXdata$Block, levels = c("Control", "Visual", "Avatar", "NDRT"))
+
+
+
 S5TLX <- ggplot(TLXdata, aes(Block, Total, fill = Block ))+
-  geom_boxplot(width = 0.35)+
+  geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
-  labs(title = "Total NASA TLX scores")+
+    labs(title = "Average Total NASA TLX Score", y = "TLX Score", x = "NDRT Presentation Condition")+
   ylim(0,200)+
 scale_fill_manual(values = S5_palette) +
 
   theme_classic()+
         theme(plot.title=element_text(vjust=7))+
-  theme(text=element_text(size = 25))+
+  theme(text=element_text(size = 15))+
 
     theme(plot.margin =unit(c(1.5,0,0,0),"cm"))
 S5TLX
 
 ggsave(filename = "S5TLX.png",
        plot = S5TLX,
-       scale = 3,
-       device = png,
-       width = 3840,
-       units = "px",
-       dpi = 700)
+       device = png)
 
 
 

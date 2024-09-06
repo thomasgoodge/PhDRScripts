@@ -97,7 +97,7 @@ ValidSocial$PIDCond <- str_sub(ValidSocial$PIDCond, 2)
 
 ```{r}
 
-binwidth <- 120  # Adjust the binwidth as needed
+binwidth <- 100  # Adjust the binwidth as needed
 
 # Define the limits for the color scale
 color_limits <- c(0, 1000)  # Adjust these limits as needed
@@ -167,6 +167,10 @@ scatterplot3d(x = ValidSocial$fixation_x, y = ValidSocial$fixation_z, z = ValidS
 
 #3D Plots Pop outs
 ```{r}
+
+ValidVisual$gazePointAOI_name[ValidVisual$gazePointAOI_name == 'VisualCueAOI'] <- 'VisualTargetAOI'
+
+
 ValidControl$FixTarget <- if_else(ValidControl$gazePoint_target_name == "Wall", "red", "pink")
 
 ValidVisual$FixTarget <- if_else(ValidVisual$gazePoint_target_name == "Wall", "navy",
@@ -203,7 +207,8 @@ ValidSocial$fixation_z_adj <- if_else(ValidSocial$gazePoint_target_name == "Wall
 
 ```{r}
 Control3D <- plot3d(x =ValidControl$fixation_x, y = ValidControl$fixation_z_norm, z = ValidControl$fixation_y, col =  ValidControl$FixTarget )
-Visual3D <- plot3d(x =ValidVisual$fixation_x, y = ValidVisual$fixation_z_norm, z = ValidVisual$fixation_y,  col = ValidVisual$FixTarget)
+
+Visual3D <- plot3d(x =ValidVisual$fixation_x, y = ValidVisual$fixation_z_norm, z = ValidVisual$fixation_y,  col = ValidVisual$FixTarget )
 
 Avatar3D<- plot3d(x =ValidAvatar$fixation_x, y = ValidAvatar$fixation_z_norm, z = ValidAvatar$fixation_y, col = ValidAvatar$FixTarget )
 
@@ -214,8 +219,6 @@ Social3D <- plot3d(x =ValidSocial$fixation_x, y = ValidSocial$fixation_z_norm, z
 fixZSum <- ValidSocial %>% 
   group_by(gazePoint_target_name, fixation_z) %>% 
 summarise(n = n())
-
-
 ```
 
 ```{r}
@@ -321,6 +324,17 @@ TTFF$FirstFixationTime <- TTFF$TimeStamp - TTFF$HazardOnset
 
 #TTFF$VidSort <- paste (TTFF$Participant, TTFF$Condition, TTFF$VideoClip)
 
+
+
+TTFFWallSingle <- TTFFWall
+
+TTFFWallSingle$TTFFSort <- paste(TTFFWallSingle$PIDCond, TTFFWallSingle$VideoClip)
+
+
+TTFFWallSingle <- TTFFWallSingle[!duplicated((TTFFWallSingle$TTFFSort)),]
+
+TTFFWallSingle <- TTFFWallSingle %>% 
+  filter(FirstFixationTime < 4)
 #TTFF <- TTFF[!duplicated(TTFF$PIDSort),]
 
 TTFFWall <- TTFF %>% 
@@ -333,7 +347,7 @@ TTFFSummary <- TTFF %>%
             TTFF = mean(FirstFixationTime))
 
 
-TTFFWallSummary <- TTFFWall %>% 
+TTFFWallSummary <- TTFFWallSingle %>% 
   group_by(Condition.x, CorrAOI) %>% 
   summarise(n = n(),
             TTFF = mean(FirstFixationTime),
@@ -794,9 +808,7 @@ ggsave(filename = "S6TotalHazardNoFPlot.png",
 ```{r}
 
 CorrHazardFixCountPpt$Condition <- factor(CorrHazardFixCountPpt$Condition, levels = c("Control", "Visual", "Avatar", "Social"))
-
-
-       # dpi = 700)
+# dpi = 700)
 ```
 
 #Hazard FixationCount Corr AOI Plot
@@ -960,8 +972,8 @@ ggsave(filename = "S6ARFixDurPlot.png",
 HazardAOIARTargets$Condition <- factor(HazardAOIARTargets$Condition, levels = c("Visual", "Avatar", "Social"))
 HazardAOIARTargets$Condition <- relevel(HazardAOIARTargets$Condition, ref = "Avatar")
 
-HazardARFixLMER <- lmer(n ~ Condition + (1|gaze), data = HazardAOIARTargets)
-summary(HazardARFixLMER)
+# HazardARFixLMER <- lmer(n ~ Condition + (1|gazePointAOI_name), data = HazardAOIARTargets)
+# summary(HazardARFixLMER)
 
 HazardARNoFPlot <- ggplot(data = HazardAOIARTargets, aes(x = Condition, y = n, fill = Condition))+
   geom_violin(alpha = 0.5)+
@@ -1244,10 +1256,8 @@ summary(DurModelResults)
 
 PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 
-
 DurModelBasicLMER <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
 summary(DurModelBasicLMER)
-
 
 TotalFixDurPlot <- ggplot(data = PptSummaryAOI, aes(x = Condition, y = meanDuration, fill = Condition))+
   geom_violin(alpha = 0.5)+
@@ -1317,6 +1327,10 @@ TTFF$Condition <- relevel(TTFF$Condition, ref = "Control")
 # 
 # anova(TTFFModelNull,TTFFModelBasic,TTFFModel1,TTFFModel2,TTFFModel3)
 
+
+
+
+
 ```
 
 ```{r}
@@ -1325,11 +1339,33 @@ TTFFModelBasic <- lm(data = TTFF, formula = eventDuration ~ Condition)
 summary(TTFFModelBasic)
 
 
-TTFFWallModelBasic <- lm(data = TTFFWall, formula = eventDuration ~ Condition.x)
+#TTFFWallModelBasic <- lm(data = TTFFWall, formula = eventDuration ~ Condition.x)
+
+TTFFWallSingle$Condition <- relevel(TTFFWallSingle$Condition, ref = "Control")
+
+TTFFWallModelLMER <- lmer(data = TTFFWallSingle, formula = eventDuration ~ Condition + (1|ID))
+
+TTFFWallModelLMER2 <- lmer(data = TTFFWallSingle, formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip))
+
+TTFFWallModelLMER3 <- lmer(data = TTFFWallSingle, formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
+
+TTFFWallModelLMER4 <- lmer(data = TTFFWallSingle, formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip)+ (1|gazePointAOI_name) + (1|Hazard.Location) )
+
+summary(TTFFWallModelLMER3)
+ranef(TTFFWallModelLMER3)
+fixef(TTFFWallModelLMER3)
+
+anova(TTFFWallModelLMER,TTFFWallModelLMER2,TTFFWallModelLMER3,TTFFWallModelLMER4)
+
+```
+
+
+```{r}
+summary(TTFFWallModelLMER)
 
 #DurModelBasic <- lmer(data = PptSummaryAOI, formula = meanDuration ~ Condition + (1|Ppt))
 
-summary(TTFFWallModelBasic)
+summary(TTFFWallModelLMER)
 
 PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 ```
@@ -1341,18 +1377,18 @@ PptSummaryAOI$Condition <- relevel(PptSummaryAOI$Condition, ref = "Control")
 TTFF$Condition <- relevel(TTFF$Condition, ref = "Control")
 
 
-TTFFModelBasic <- lm(data = TTFF, formula = FirstFixationTime ~ Condition)
+TTFFWallSingle$Condition <- factor(TTFFWallSingle$Condition, levels = c("Control", "Visual",  "Avatar","Social"))
 
-summary(TTFFModelBasic)
+TTFFWallModelLMER3 <- lmer(data = TTFFWallSingle, formula = eventDuration ~ Condition + (1|ID) + (1|VideoClip) + (1|gazePointAOI_name))
 
-TTFFPlot <- ggplot(TTFF, aes(x = Condition, y = FirstFixationTime, fill = Condition))+
+summary(TTFFWallModelLMER3)
+
+TTFFPlot <- ggplot(TTFFWallSingle, aes(x = Condition, y = FirstFixationTime, fill = Condition))+
   geom_violin(alpha = 0.5)+ 
-  geom_boxplot(width = 0.25)+
-  ylim(0,6)+
-    labs(title = "Mean Time to First Fixation", y = "Mean Time to First Fixation", x = "NDRT Presentation Condition")+
-
-scale_fill_manual(values = S6_palette) +
-
+  geom_boxplot(width = 0.05)+
+  ylim(0,4)+
+  labs(title = "Time to First Fixation (ms) \n \n", y = "Mean Time to First Fixation", x = "NDRT Presentation Condition")+
+  scale_fill_manual(values = S6_palette) +
   theme_classic()
 
 

@@ -59,16 +59,18 @@ TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
   
   
   TLXdataOrg$Block[TLXdataOrg$Block == "Level 0 - Control"] <- "Control - 2"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "VisualCue"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "AvatarCue"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - SocAvatar"] <- "SocialCue"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "Visual Cue"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Avatar Cue"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - SocAvatar"] <- "Social Cue"
   
   
   
-  TLXdataOrg$Block <- as.factor( TLXdataOrg$Block)
-TLXdataOrg$Block <- relevel(TLXdataOrg$Block, ref = "Control - 2")
+  #TLXdataOrg$Block <- as.factor( TLXdataOrg$Block)
+#TLXdataOrg$Block <- relevel(TLXdataOrg$Block, ref = "Control - 2")
 
-  
+TLXdataOrg$Block <- factor(TLXdataOrg$Block, levels = c("Control - 2", "Visual Cue", "Avatar Cue", "Social Cue"))
+
+
   TLXdataOrg <- TLXdataOrg %>% 
   subset(participant != "SP10") %>% 
     subset(participant != "SP12") 
@@ -157,6 +159,11 @@ TLXdataSumm <- TLXdata %>%
 
 ```{r}
 #library(ggpubfigs)
+
+
+#TLXdata$Block <- factor(TLXdata$Block, levels = c("Control - 2", "Visual Cue", "Avatar Cue", "Social Cue"))
+
+
 S6TLX <- ggplot(TLXdata, aes(Block, Total, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+

@@ -64,9 +64,11 @@ SSQdataOrg <- SSQdataOrg %>%
 ```{r}
 Counterbalancing <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Study 4/Study4Counterbalancing.csv", header = T)
 
-Counterbalancing <- Counterbalancing%>%  select(participant, First, Second, Third, Fourth)
+Counterbalancing <- Counterbalancing%>%  select(PID, First, Second, Third, Fourth)
 
 Counterbalancing <- na.omit(Counterbalancing)
+
+Counterbalancing$participant <- Counterbalancing$PID
   
 
 
