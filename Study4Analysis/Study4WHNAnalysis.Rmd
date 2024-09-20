@@ -558,7 +558,7 @@ ConfPlot2 <- ggplot(data = WHNDataset, aes(x = Block, y = conf_slider.response, 
   geom_violin(alpha = 0.8) + geom_boxplot(alpha=0.2, width = 0.2)+
   labs(title = "Average Confidence Score", y = "Mean Confidence Rating", x = "", key= FALSE)+
   ylim(0,1.0)+
-   scale_fill_manual(values = friendly_pal("ito_seven"))+
+   #scale_fill_manual(values = friendly_pal("ito_seven"))+
   theme_classic()+
   theme(legend.position="none")+
   theme(text=element_text(size = 15)) +
@@ -665,7 +665,7 @@ AttPlot2 <- ggplot(data = WHNDataset, aes(x = Block, y = Attention_slider.respon
   geom_violin(alpha = 0.8)+geom_boxplot(alpha = 0.2, width = 0.2)+
  
   labs(title = "Subjective Attention Rating", y = "Mean Attention Rating", x = "NDRT Presentation Condition")+
-    scale_fill_manual(values = friendly_pal("ito_seven"))+
+    #scale_fill_manual(values = friendly_pal("ito_seven"))+
     theme_classic()+
 theme(legend.position="none")+
   theme(text=element_text(size = 15))+
@@ -735,15 +735,15 @@ ef <- as.data.frame(effect("Block", WHNModelBasic))
 head(ef)
 
 library(report)
-#WHNResults <- report(WHNModelBasic, CI = 95)
+WHNResults <- report(WHNModelBasic, CI = 95)
 # ef <- as.data.frame(effect("Block", CueWHNModel2))
 # 
 # head(ef)
 summary(WHNResults)
 
-anova(WHNModel, WHNModelBasic, WHNModel1, WHNModel2, WHNModel3)
+anova(WHNNullModel0,WHNModel, WHNModelBasic, WHNModel1, WHNModel2, WHNModel3)
 
-anova(WHNModelBasic, WHNModel2)
+anova(WHNModelBasic, WHNNullModel0)
 ```
 
 ```{r}
@@ -837,24 +837,31 @@ summary(ConfNullModel)
 
 ```{r}
 
-ConfModel = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file), ontrol(optimizer = "bobyqa"))
+ConfModel = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
 summary(ConfModel)
 
-ConfModel1 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+ConfModel1 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
 summary(ConfModel1)
 
-ConfModel2 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + Block|image_file), family = binomial, glmerControl(optimizer = "bobyqa"))
+ConfModel2 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + Block|image_file), family = binomial, glmerControl(optimizer = "bobyqa"))
 
-ConfModel3 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1 + Block|participant) + (1 + Block|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
+ConfModel3 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1 + Block|participant) + (1 + Block|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
 
 summary(ConfModel1)
 
 anova(ConfModel1, ConfModel2, ConfModel3)
 
-r.squaredGLMM(ConfModel1, ConfNullModel)
+#r.squaredGLMM(ConfModel1, ConfNullModel)
 ```
 
 ```{r Conf GLMER Summary}
+
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Cue")
+
+ConfModel = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
+summary(ConfModel)
+anova(ConfNullModel, ConfModel1)
+
 
 Confresults <- report(ConfModel1, CI = 95)
 

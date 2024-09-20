@@ -699,7 +699,7 @@ ggsave(filename = "RoboFullPlot2.png",
 
 WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Control")
 
-# WHNNullModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~ 1 + (1|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+ WHNNullModel0 <- glmer(data = WHNDataset, formula = trialResp.corr ~ 1 + (1|participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
 # WHNModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block  + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 # 
@@ -728,6 +728,8 @@ library(report)
 WHNResults <- report(WHNModelBasic, CI = 95)
 
 summary(WHNResults)
+
+anova(WHNModelBasic, WHNNullModel0)
 
 
 ```
@@ -761,6 +763,8 @@ summary(ConfModel)
 
 
 #anova(ConfModel, ConfModel1, ConfModel2, ConfModel3)
+
+anova(ConfModel, ConfNullModel)
 
 ```
 

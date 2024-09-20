@@ -471,7 +471,7 @@ PlotData <- PlotData[!duplicated(PlotData),]
 Plot1 <- ggplot(data = PlotData, aes(x = Block, y = score, fill = Block))+
   geom_violin(alpha = 0.8)+
   geom_boxplot(alpha = 0, width = 0.2)+
-  scale_fill_manual(values = friendly_pal("ito_seven"))+
+ # scale_fill_manual(values = friendly_pal("ito_seven"))+
     theme_classic()+
 theme(legend.position="none") +theme(text=element_text(size = 20)) +
 
@@ -734,11 +734,14 @@ deviance(WHNNullModel0)
 # # 
 # summary(WHNModel0)
 
+
+
+
 WHNModelBasic <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant) + (1|image_file) , family = binomial, glmerControl(optimizer = "bobyqa"))
 
-WHNModelPP <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant)  , family = binomial, glmerControl(optimizer = "bobyqa"))
+WHNModelPP <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant), family = binomial, glmerControl(optimizer = "bobyqa"))
 
-WHNModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|image_file) , family = binomial, glmerControl(optimizer = "bobyqa"), nAGQ = 15)
+WHNModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|image_file), family = binomial, glmerControl(optimizer = "bobyqa"), nAGQ = 15)
 
 summary(WHNModel)
 
@@ -746,7 +749,7 @@ summary(WHNModelBasic)
 
 anova(WHNModel, WHNModelBasic)
 
-r.squaredGLMM(WHNModel, WHNNullModel0)
+#r.squaredGLMM(WHNModel, WHNNullModel0)
 
 
 #WHNModelCorr <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 |participant) + (1|image_file) + Block * conf_slider.response , family = binomial, glmerControl(optimizer = "bobyqa"))
@@ -758,7 +761,7 @@ WHNModel1 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + B
 #WHNModel2 <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1 + Block|participant) + (1 + Block| image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 
 summary(WHNModel1)
-summary(WHNModel2)
+#summary(WHNModel2)
 
 summary(WHNModelBasic)
 
@@ -770,7 +773,7 @@ deviance(WHNModelBasic)
 
 #anova(WHNModelBasic, WHNModelBy)
 
-print(report(WHNModelCorr, CI = 95))
+#print(report(WHNModelCorr, CI = 95))
 
 #anova(WHNModelBasic, WHNModel1)
 
@@ -789,9 +792,7 @@ print(report(WHNModelBasic, CI = 95))
 
 
 
-
-anova(WHNModel1, WHNModel, WHNModelBasic, WHNModel2)
-
+anova(WHNNullModel0, WHNModelBasic)
 
 #https://link.springer.com/article/10.3758/s13428-016-0809-y
 
@@ -936,7 +937,10 @@ ggplot(WHNDataset, aes(x=MiseryScale.response)) +
 
 
 ```{r compare WHN Model and report}
-anova(WHNNullModel0, WHNModel)
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "HUD - Cued AR")
+
+WHNModel <- glmer(data = WHNDataset, formula = trialResp.corr ~  Block + (1|image_file), family = binomial, glmerControl(optimizer = "bobyqa"), nAGQ = 15)
+
 
 
 WHNresults <- report(WHNModel, CI = 95)
@@ -1080,6 +1084,14 @@ r.squaredGLMM(ConfModel1, ConfNullModel)
 
   
 ```{r Conf GLMER Summary}
+
+anova(ConfNullModel,ConfModel1)
+
+
+WHNDataset$Block <- relevel(WHNDataset$Block, ref = "HUD - Cued AR")
+
+ConfModel1 = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),  family = binomial, glmerControl(optimizer = "bobyqa"))
+
 
 Confresults <- report(ConfModel1, CI = 95)
 

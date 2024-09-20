@@ -58,22 +58,24 @@ TLXdataRaw <- read.csv("C:/Users/thoma/OneDrive - University of Glasgow/Desktop/
   TLXdataOrg$Timepoint[TLXdataOrg$Timepoint == "End of Experiment"] <- "4"
   
   
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 0 - Control"] <- "Control - 2"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "Visual Cue"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Avatar Cue"
-  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - SocAvatar"] <- "Social Cue"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 0 - Control"] <- "Control"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 1 - Bar"] <- "Visual"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 2 - Avatar"] <- "Avatar"
+  TLXdataOrg$Block[TLXdataOrg$Block == "Level 3 - SocAvatar"] <- "Social"
   
   
   
   #TLXdataOrg$Block <- as.factor( TLXdataOrg$Block)
 #TLXdataOrg$Block <- relevel(TLXdataOrg$Block, ref = "Control - 2")
 
-TLXdataOrg$Block <- factor(TLXdataOrg$Block, levels = c("Control - 2", "Visual Cue", "Avatar Cue", "Social Cue"))
+TLXdataOrg$Block <- factor(TLXdataOrg$Block, levels = c("Control", "Visual", "Avatar", "Social"))
 
 
   TLXdataOrg <- TLXdataOrg %>% 
   subset(participant != "SP10") %>% 
-    subset(participant != "SP12") 
+    subset(participant != "SP12") %>% 
+        subset(participant != "SP08") 
+
   
 
   
@@ -124,7 +126,7 @@ write.csv(TLXdata, "C:/Users/thoma/OneDrive - University of Glasgow/Desktop/Stud
 TLXdataTotalSum <- TLXdata %>% 
   group_by(Block) %>% 
   summarise(
-    n = n(),
+   # n = n(),
     mean = mean(Total, na.rm = T),
     sd = sd(Total)
   )
@@ -136,7 +138,7 @@ TLXdataSumm <- TLXdata %>%
   
   group_by(Block) %>% 
   summarise(
-    n = n(),
+   # n = n(),
     Total_mean = mean(Total),
     Total_sd = sd(Total),
     Mental_mean = mean(MentalDemand, na.rm = T),
@@ -169,6 +171,7 @@ S6TLX <- ggplot(TLXdata, aes(Block, Total, fill = Block ))+
   geom_violin(alpha = 0.5)+
   labs(title = "Total NASA TLX scores")+
   scale_fill_manual(values = S6_palette) +
+  ylim(0,180)+
 
 
   theme_classic()+

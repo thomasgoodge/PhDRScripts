@@ -410,14 +410,21 @@ PlotData2 <- FullDataset %>%
             Group = Group)
 
 
- ggplot(data = PlotData2, aes(x = YearsExp, y = score, fill = Group, colour = Group))+
+YearsExpPlot <- ggplot(data = PlotData2, aes(x = YearsExp, y = score, fill = Group, colour = Group))+
   geom_point()+
+  geom_violin(alpha = 0.2)+
+   geom_vline(xintercept = 3, colour = "red", linetype = "dotted")+
    ylim(0,40)+
   scale_color_brewer(palette = "Set1")+
-   geom_smooth(method = lm)
+   geom_smooth(method = lm)+
+   theme_classic()
    
-  
+YearsExpPlot
  
+  ggsave("YearsExpPlot.png", plot =YearsExpPlot,width = 7.29, height = 4.5, units = "in" )
+
+  
+  
 
 
 ```
@@ -507,7 +514,7 @@ SummaryDBQ <- FullDataset %>%
 ```{r}
 summary(aov(data = SortedWHNData, trialrespkey.corr ~ Group))
 ```
-#Score
+#Score GLM
 
 ```{r}
 
@@ -525,6 +532,9 @@ summary(ScoreGLM0)
 
 ScoreGLMbase <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group)
 summary(ScoreGLMbase)
+
+ScoreGLMexp <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * YearsExp)
+summary(ScoreGLMexp)
 
 ScoreGLM1 <- glm(family = binomial(link="logit"), data = FullDataset, formula = trialrespkey.corr ~ Group * GlasgowExp)
 summary(ScoreGLM1)
@@ -568,14 +578,17 @@ results <- report(ScoreGLMPpt)
 print(results)
 ```
 
-
+#Reported this
 ```{r}
-ScoreGLMER <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + (1|ProlificID))
+ScoreGLMER <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + (1|ProlificID),glmerControl(optimizer = "bobyqa"))
 summary(ScoreGLMER)
 
 
-ScoreGLMERLicense <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + UKLicense + (1|ProlificID))
+ScoreGLMERLicense <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + UKLicense + (1|ProlificID), glmerControl(optimizer = "bobyqa"))
 summary(ScoreGLMERLicense)
+
+ScoreGLMERYearsExp<- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + YearsExp + (1|ProlificID) )
+summary(ScoreGLMERYearsExp)
 
 ScoreGLMERGlasgow <- glmer(family = "binomial", data = FullDataset, formula = trialrespkey.corr ~ Group + GlasgowExp + (1|ProlificID) )
 summary(ScoreGLMERGlasgow)
@@ -697,19 +710,24 @@ dbinom(x = 0:1, size = 40, prob = ExpProb)
 ```{r}
 x <- 0:40
 
+
+png("binomplot.png", width = 672, height = 288, units = "px")
+
+
 binomplot <- plot(dbinom(x, size = 40, prob = ExpProb), type = "h", lwd = 2,
      col = rgb(1,0,0),
      main = "Binomial probability function",
      ylab = "Probability Density", xlab = "Number of successes")
 lines(dbinom(x, size = 40, prob = NovProb), type = "h",
       lwd = 2, col = rgb(0.18, 0.45, 0.7, 0.7),
-      
       )
 
 legend("topright", legend = c("ExpProb", "NovProb"),
        col = c(rgb(1,0,0), rgb(0.18, 0.45, 0.7, 0.7)),
  lwd = 2, xpd = TRUE, inset = c(0.75, 0))
 
+
+dev.off()
 
 
 ```
@@ -1004,13 +1022,18 @@ cv_model <- cv.glmnet(x, y, alpha = 0)
 
 plot(cv_model)
 
+coef(cv_model)
+
 #find optimal lambda value that minimizes test MSE
 best_lambda <- cv_model$lambda.min
 best_lambda
 
 
 #produce plot of test MSE by lambda value
-plot(cv_model) 
+plot(cv_model, xvar = "lambda") 
+
+
+
 ```
 ```{r}
 
@@ -1019,6 +1042,9 @@ best_model <- glmnet(x, y, alpha = 0, lambda = best_lambda)
 coefficients(best_model)
 
 summary(best_model)
+
+plot(cv_model, xvar = "lambda") 
+
 
 ```
 
@@ -1131,11 +1157,14 @@ ggplot(
   geom_vline(aes(xintercept =mean(meanAccuracy)), color = "red")+
   annotate("text", x=0.63, y=5, label="0.65", angle=90, color = "red")+
   xlab("Mean Accuracy over 100 iterations of k=10")+
+  ylab("Frequency")+
   xlim(0,1)
 
 ggsave("meanAccPlot.png", last_plot())
 mean(meanAccTibble$meanAccuracy)
-
+sd(meanAccTibble$meanAccuracy)
+min(meanAccTibble$meanAccuracy)
+max(meanAccTibble$meanAccuracy)
 
 ```
 

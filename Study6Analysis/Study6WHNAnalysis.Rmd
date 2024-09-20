@@ -710,6 +710,10 @@ summary(WHNModelBasic)
 # anova(WHNModel, WHNModelBasic, WHNModel1, WHNModel2, WHNModel3, WHNModel4)
 # 
 anova(WHNModelClip, WHNModelBasic,WHNModelPpt)
+
+anova(WHNModelBasic, WHNNullModel0)
+
+
 ```
 ```{r}
 WHNDatasetRmOUt <- WHNDataset %>% 
@@ -854,13 +858,13 @@ WHNPptData$Block <- relevel(WHNPptData$Block, ref = "Visual")
 
 WHNDataset$Block <- relevel(WHNDataset$Block, ref = "Social")
 
-ConfNullModel <- lmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant) + (1|image_file))
+ConfNullModel <- glmer(data = WHNDataset, formula = conf_slider.response ~  (1|participant) + (1|image_file), family = binomial, glmerControl(optimizer = "bobyqa"))
 
-ConfModelPpt <-  lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) )
+ConfModelPpt <-  glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant),family = binomial , glmerControl(optimizer = "bobyqa"))
 
-ConfModelClip <-  lmer(data = WHNDataset, formula = conf_slider.response ~ Block +(1|image_file))
+ConfModelClip <-  glmer(data = WHNDataset, formula = conf_slider.response ~ Block +(1|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
 
-ConfModel = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file))
+ConfModel = glmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1|image_file),family = binomial, glmerControl(optimizer = "bobyqa"))
 summary(ConfModel)
 
 #ConfModel2 = lmer(data = WHNDataset, formula = conf_slider.response ~ Block + (1|participant) + (1 + image_file|participant))
@@ -869,7 +873,7 @@ summary(ConfModel)
 
 
 anova(ConfModel, ConfModelPpt, ConfModelClip, ConfNullModel)
-
+anova(ConfNullModel, ConfModel)
 summary(ConfModel)
 
 ```

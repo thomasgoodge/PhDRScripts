@@ -187,37 +187,51 @@ ggplot(TLXdata, aes(Block, MentalDemand, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
-  labs(title = "Mental Demand")
+  scale_fill_manual(values = S5_palette) +
+
+  labs(title = "Mental Demand")+
+    theme_classic()
 
 ggplot(TLXdata, aes(Block, PhysicalDemand, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
-    labs(title = "Physical Demand")
+  scale_fill_manual(values = S5_palette) +
+
+    labs(title = "Physical Demand")+
+    theme_classic()
 
 ggplot(TLXdata, aes(Block, TemporalDemand, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim(0,100)+
-    labs(title = "Temporal Demand")
+   scale_fill_manual(values = S5_palette) +
+ labs(title = "Temporal Demand")+
+    theme_classic()
 
 ggplot(TLXdata, aes(Block,OverallPerformance, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim (0,100)+
-    labs(title = "Overall Performance")
+   scale_fill_manual(values = S5_palette) +
+ labs(title = "Overall Performance")+
+    theme_classic()
 
 ggplot(TLXdata, aes(Block, Effort, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim (0,100)+
-    labs(title = "Effort")
+  scale_fill_manual(values = S5_palette) +
+  labs(title = "Effort")+
+    theme_classic()
   
 ggplot(TLXdata, aes(Block, Frustration, fill = Block ))+
   geom_boxplot(width = 0.3)+
   geom_violin(alpha = 0.5)+
   ylim (0,100)+
-    labs(title = "Frustration")
+ scale_fill_manual(values = S5_palette) +
+   labs(title = "Frustration")+
+    theme_classic()
 
 
 ```

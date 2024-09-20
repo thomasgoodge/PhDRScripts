@@ -167,3 +167,57 @@ APbxp +
 
 
 ```
+
+
+
+
+
+```{r}
+
+
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+# Data as a tibble
+data <- tribble(
+  ~Condition, ~`1`, ~`2`, ~`3`, ~`4`, ~Total,
+"Avatar",	2,	8,	6,	7,23,
+"Visual",	1,	13,	5,	4,23,
+"Social",	2,	2,	11,	8,23,
+"Control",	18,	0,	1,	4,23
+)
+
+# Pivot data to long format
+data_long <- data %>%
+  select(-Total) %>%
+  pivot_longer(cols = `1`:`4`, names_to = "Number", values_to = "Frequency") %>% 
+    mutate(Condition = factor(Condition, levels = c( "Visual", "Avatar","Social", "Control")))
+
+# Plotting
+S6RankingPlot <- ggplot(data_long, aes(x = Condition, y = Frequency, fill = Number)) +
+  geom_col(position = "fill", width = 0.5) +  # Stacked column with relative frequencies
+  scale_y_continuous(labels = scales::percent_format()) +  # Convert y-axis to percentages
+  labs(title = "Preference Ranking for each Condition",
+       x = "Condition",
+       y = "Proportion of Total",
+       fill = "Ranking Position") +
+  scale_fill_manual(values = S6_palette) +  # Custom colors
+  coord_flip() +  # Flip the plot to horizontal
+  theme_minimal()
+
+S6RankingPlot
+
+ggsave(filename = "S6RankingPlot.png",
+       plot = S6RankingPlot,
+       device = png)
+
+
+
+```
+
+
+
+```
+
+

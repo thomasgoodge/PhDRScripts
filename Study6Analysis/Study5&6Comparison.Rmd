@@ -52,6 +52,10 @@ Study6WHN$Block[Study6WHN$Block == "Avatar"] <- "Avatar Cue"
 
 FullWHN <- rbind(Study5WHN, Study6WHN)
 
+FullWHN$participant <- as.factor(FullWHN$participant)
+FullWHN$image_file <- as.factor(FullWHN$image_file)
+
+
 FullWHN$Block <- as.factor(FullWHN$Block)
 
 FullWHN$Block <- factor(FullWHN$Block, levels = c("Control","Control - 2", "Visual", "Visual Cue", "Avatar","Avatar Cue", "Social Cue", "NDRT"))
@@ -493,21 +497,35 @@ df <- left_join(WHNClassData, Group, by = "participant")
 library(afex)
 
 #Perform the ANOVA
-# model_FullWHN <- aov_car(score ~ (Block*Study) + Error(participant/Block), 
-#                     data = PlotData)
-# 
-# 
-# #Get the output
-# summary(model_anx)
+model_FullWHN <- aov_car(score ~ (Block*Study) + Error(participant/Block),
+                    data = PlotData)
 
+
+#Get the output
+summary(model_anx)
+
+a <- aov(data = FullWHN, formula = trialResp.corr ~ Block * Study)
+summary(a)
+
+TukeyHSD(a)
 
 ```
-
+#WHN GLMER
 ```{r}
 FullWHN$Block <- relevel(FullWHN$Block, ref = "NDRT")
+FullWHN$trials_3.thisTrialN <- as.factor(FullWHN$trials_3.thisTrialN)
+
+WHNModel1 <- glmer(data = FullWHN, formula = trialResp.corr ~  Block * Study + (1 |participant)  , family = binomial, glmerControl( optimizer = "bobyqa"))
+summary(WHNModel1)
+
+WHNModel2 <- glmer(data = FullWHN, formula = trialResp.corr ~  Block * Study + (1 |participant) +   , family = binomial, glmerControl( optimizer = "bobyqa"))
+summary(WHNModel2)
 
 WHNModelBasic <- glmer(data = FullWHN, formula = trialResp.corr ~  Block * Study + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
 summary(WHNModelBasic)
+
+anova(WHNModel1,WHNModelBasic,WHNModel2)
+
 
 fix.fit <- lm(WHNModelBasic, data.df, method = "qr", singular.ok = TRUE)
 p <- length(fix.fit$coef)
@@ -528,7 +546,7 @@ summary(WHNResults)
 ```
 
 ```{r}
-FullWHNPptDataset$Block <- relevel(FullWHNPptDataset$Block, ref = "Control")
+FullWHNPptDataset$Block <- relevel(FullWHNPptDataset$Block, ref = "NDRT")
 
 WHNModelPptBasic <- glmer(data = FullWHNPptDataset, formula = sumWHN ~  Block * Study + (1 |participant) , family = poisson, glmerControl( optimizer = "bobyqa"))
 
@@ -539,7 +557,7 @@ summary(WHNModelPptBasic)
 # head(ef)
 
 library(report)
-WHNResults <- report(WHNModelBasic, CI = 95)
+WHNResults <- report(WHNModelPptBasic, CI = 95)
 
 summary(WHNResults)
 ```
@@ -670,10 +688,13 @@ summary(NDRTSocialANOVAConf)
 #Conf GLMS
 ```{r}
 
-
 print("***************Control - Control 2***************")
-ControlConfGLM <- lm(data = ControlData, conf_slider.response ~ Study, family = "poisson")
-summary(ControlConfGLM)
+ControlConfGLM <- lmer(data = ControlData, conf_slider.response ~ Study + (1|participant))
+ControlConfGLM2 <- lmer(data = ControlData, conf_slider.response ~ Study + (1|participant) + (1|image_file))
+summary(ControlConfGLM2)
+
+anova(ControlConfGLM, ControlConfGLM2)
+
 
 print("***************Avatar - Avatar Cue***************")
 AvatarConfGLM <- lm(data = AvatarData, conf_slider.response ~ Study, family = "poisson")
@@ -683,6 +704,10 @@ print("***************Visual - Visual Cue***************")
 VisualConfGLM <- lm(data = VisualData, conf_slider.response ~ Study, family = "poisson")
 summary(VisualConfGLM)
 
+viscondresults <- report(VisualConfGLM)
+summary(viscondresults)
+
+
 print("***************Avatar - Social Cue***************")
 SocialConfGLM <- lm(data = SocialData, conf_slider.response ~ Study, family = "poisson")
 summary(SocialConfGLM)
@@ -691,14 +716,53 @@ summary(SocialConfGLM)
 print("***************NDRT - Visual Cue***************")
 NDRTVisualConfGLM <-  lm(data = NDRTVisualData, conf_slider.response ~ Study, family = "poisson")
 summary(NDRTVisualConfGLM)
+
+visndrtcondresults <- report(NDRTVisualConfGLM)
+summary(visndrtcondresults)
+
+
 print("***************NDRT - Avatar Cue***************")
 NDRTAvatarConfGLM <-  lm(data = NDRTAvatarData, conf_slider.response ~ Study, family = "poisson")
 summary(NDRTAvatarConfGLM)
 print("***************NDRT - Social Cue***************")
 NDRTSocialConfGLM <-  lm(data = NDRTSocialData, conf_slider.response ~ Study, family = "poisson")
 summary(NDRTSocialConfGLM)
+
+
 ```
 
+#Conf GLMER
+```{r}
+
+
+FullWHN$Block <- relevel(FullWHN$Block, ref = "Control - 2")
+
+FullWHN$ConfPercent <- FullWHN$conf_slider.response * 100
+
+
+ConfModel1 <- glmer(data = FullWHN, formula = conf_slider.response ~  Block  + (1 |participant),  family = binomial, glmerControl( optimizer = "bobyqa"))
+summary(ConfModel1)
+
+fixef(ConfModel1)
+ranef(ConfModelBasic)
+
+ConfModelBasic <- glmer(data = FullWHN, formula = conf_slider.response ~  Block * Study + (1 |participant) + (1|image_file) , family = binomial, glmerControl( optimizer = "bobyqa"))
+summary(ConfModelBasic)
+
+
+
+ConfResults <- report(ConfModelBasic, CI = 95)
+
+summary(ConfResults)
+
+
+
+
+
+
+
+
+```
 
 
 #Subjective Attention
@@ -939,10 +1003,10 @@ RosasFullSummary <- FullRoSAS %>%
 
 ```
 
-
+`
 ```{r}
 
-RoSASANOVA <- aov(data = FullRoSAS, formula = Capable ~  Block)
+RoSASANOVA <- aov(data = FullRoSAS, formula = Happy ~  Block)
 summary(RoSASANOVA)
 TukeyHSD(RoSASANOVA)
 
